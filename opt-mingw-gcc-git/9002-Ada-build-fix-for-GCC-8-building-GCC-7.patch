@@ -1,0 +1,230 @@
+From 685f1f510d39a000fe35f8fc542995af40869a72 Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Tue, 6 Sep 2022 19:48:28 -0400
+Subject: Ada build fix for GCC 8 building GCC 7
+
+---
+ gcc/ada/s-parame.ads |  2 +
+ gcc/ada/s-secsta.adb | 53 ------------------------
+ gcc/ada/s-secsta.ads | 99 +++++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 100 insertions(+), 54 deletions(-)
+
+diff --git a/gcc/ada/s-parame.ads b/gcc/ada/s-parame.ads
+index 2c2a2fadac9..28308cc6953 100644
+--- a/gcc/ada/s-parame.ads
++++ b/gcc/ada/s-parame.ads
+@@ -103,6 +103,8 @@ package System.Parameters is
+    --  down (True) in memory as functions are called. It is used for
+    --  proper implementation of the stack overflow check.
+ 
++   Runtime_Default_Sec_Stack_Size : constant Size_Type := 10 * 1024;
++
+    ----------------------------------------------
+    -- Characteristics of types in Interfaces.C --
+    ----------------------------------------------
+diff --git a/gcc/ada/s-secsta.adb b/gcc/ada/s-secsta.adb
+index b55556f73ed..054012e71f0 100644
+--- a/gcc/ada/s-secsta.adb
++++ b/gcc/ada/s-secsta.adb
+@@ -32,7 +32,6 @@
+ pragma Compiler_Unit_Warning;
+ 
+ with System.Soft_Links;
+-with System.Parameters;
+ 
+ with Ada.Unchecked_Conversion;
+ with Ada.Unchecked_Deallocation;
+@@ -55,58 +54,6 @@ package body System.Secondary_Stack is
+    --  then the secondary stack is allocated statically by grabbing a
+    --  section of the primary stack and using it for this purpose.
+ 
+-   type Memory is array (SS_Ptr range <>) of SSE.Storage_Element;
+-   for Memory'Alignment use Standard'Maximum_Alignment;
+-   --  This is the type used for actual allocation of secondary stack
+-   --  areas. We require maximum alignment for all such allocations.
+-
+-   ---------------------------------------------------------------
+-   -- Data Structures for Dynamically Allocated Secondary Stack --
+-   ---------------------------------------------------------------
+-
+-   --  The following is a diagram of the data structures used for the
+-   --  case of a dynamically allocated secondary stack, where the stack
+-   --  is allocated as a linked list of chunks allocated from the heap.
+-
+-   --                                      +------------------+
+-   --                                      |       Next       |
+-   --                                      +------------------+
+-   --                                      |                  | Last (200)
+-   --                                      |                  |
+-   --                                      |                  |
+-   --                                      |                  |
+-   --                                      |                  |
+-   --                                      |                  |
+-   --                                      |                  | First (101)
+-   --                                      +------------------+
+-   --                         +----------> |          |       |
+-   --                         |            +--------- | ------+
+-   --                         |                    ^  |
+-   --                         |                    |  |
+-   --                         |                    |  V
+-   --                         |            +------ | ---------+
+-   --                         |            |       |          |
+-   --                         |            +------------------+
+-   --                         |            |                  | Last (100)
+-   --                         |            |         C        |
+-   --                         |            |         H        |
+-   --    +-----------------+  |   +------->|         U        |
+-   --    |  Current_Chunk ----+   |        |         N        |
+-   --    +-----------------+      |        |         K        |
+-   --    |       Top      --------+        |                  | First (1)
+-   --    +-----------------+               +------------------+
+-   --    | Default_Size    |               |       Prev       |
+-   --    +-----------------+               +------------------+
+-   --
+-
+-   type Chunk_Id (First, Last : SS_Ptr);
+-   type Chunk_Ptr is access all Chunk_Id;
+-
+-   type Chunk_Id (First, Last : SS_Ptr) is record
+-      Prev, Next : Chunk_Ptr;
+-      Mem        : Memory (First .. Last);
+-   end record;
+-
+    type Stack_Id is record
+       Top           : SS_Ptr;
+       Default_Size  : SSE.Storage_Count;
+diff --git a/gcc/ada/s-secsta.ads b/gcc/ada/s-secsta.ads
+index c5a0eadf29f..33082d067cb 100644
+--- a/gcc/ada/s-secsta.ads
++++ b/gcc/ada/s-secsta.ads
+@@ -31,16 +31,23 @@
+ 
+ pragma Compiler_Unit_Warning;
+ 
++with System.Parameters;
+ with System.Storage_Elements;
+ 
+ package System.Secondary_Stack is
+ 
++   package SP renames System.Parameters;
+    package SSE renames System.Storage_Elements;
+ 
+    Default_Secondary_Stack_Size : Natural := 10 * 1024;
+    --  Default size of a secondary stack. May be modified by binder -D switch
+    --  which causes the binder to generate an appropriate assignment in the
+    --  binder generated file.
++   type SS_Stack (Size : SP.Size_Type) is private;
++   --  Data structure for secondary stacks
++
++   type SS_Stack_Ptr is access all SS_Stack;
++   --  Pointer to secondary stack objects
+ 
+    function Minimum_Secondary_Stack_Size return Natural;
+    --  The minimum size of the secondary stack so that the internal
+@@ -109,9 +116,84 @@ private
+    --  Unused entity that is just present to ease the sharing of the pool
+    --  mechanism for specific allocation/deallocation in the compiler
+ 
+-   type SS_Ptr is new SSE.Integer_Address;
++   subtype SS_Ptr is SP.Size_Type;
+    --  Stack pointer value for secondary stack
+ 
++   type Memory is array (SS_Ptr range <>) of SSE.Storage_Element;
++   for Memory'Alignment use Standard'Maximum_Alignment;
++   --  This is the type used for actual allocation of secondary stack
++   --  areas. We require maximum alignment for all such allocations.
++
++   ---------------------------------------------------------------
++   -- Data Structures for Dynamically Allocated Secondary Stack --
++   ---------------------------------------------------------------
++
++   --  The following is a diagram of the data structures used for the
++   --  case of a dynamically allocated secondary stack, where the stack
++   --  is allocated as a linked list of chunks allocated from the heap.
++
++   --                                      +------------------+
++   --                                      |       Next       |
++   --                                      +------------------+
++   --                                      |                  | Last (200)
++   --                                      |                  |
++   --                                      |                  |
++   --                                      |                  |
++   --                                      |                  |
++   --                                      |                  |
++   --                                      |                  | First (101)
++   --                                      +------------------+
++   --                         +----------> |          |       |
++   --                         |            +--------- | ------+
++   --                         |                    ^  |
++   --                         |                    |  |
++   --                         |                    |  V
++   --                         |            +------ | ---------+
++   --                         |            |       |          |
++   --                         |            +------------------+
++   --                         |            |                  | Last (100)
++   --                         |            |         C        |
++   --                         |            |         H        |
++   --    +-----------------+  |   +------->|         U        |
++   --    |  Current_Chunk ----+   |        |         N        |
++   --    +-----------------+      |        |         K        |
++   --    |       Top      --------+        |                  | First (1)
++   --    +-----------------+               +------------------+
++   --    | Default_Size    |               |       Prev       |
++   --    +-----------------+               +------------------+
++   --
++
++   type Chunk_Id (First, Last : SS_Ptr);
++   type Chunk_Ptr is access all Chunk_Id;
++
++   type Chunk_Id (First, Last : SS_Ptr) is record
++      Prev, Next : Chunk_Ptr;
++      Mem        : Memory (First .. Last);
++   end record;
++
++   --  Secondary stack data structure
++
++   type SS_Stack (Size : SP.Size_Type) is record
++      Top : SS_Ptr;
++      --  Index of next available location in the stack. Initialized to 1 and
++      --  then incremented on Allocate and decremented on Release.
++
++      Max : SS_Ptr;
++      --  Contains the high-water mark of Top. Initialized to 1 and then
++      --  may be incremented on Allocate but never decremented. Since
++      --  Top = Size + 1 represents a fully used stack, Max - 1 indicates
++      --  the size of the stack used in bytes.
++
++      Current_Chunk : Chunk_Ptr;
++      --  A link to the chunk containing the highest range of the stack
++
++      Freeable : Boolean;
++      --  Indicates if an object of this type can be freed
++
++      Internal_Chunk : aliased Chunk_Id (1, Size);
++      --  Initial memory allocation of the secondary stack
++   end record;
++
+    type Mark_Id is record
+       Sstk : System.Address;
+       Sptr : SS_Ptr;
+@@ -120,4 +202,19 @@ private
+    --  as returned by System.Soft_Links.Get_Sec_Stack_Addr, and a stack
+    --  pointer value corresponding to the point of the mark call.
+ 
++   Binder_SS_Count : Natural;
++   pragma Export (Ada, Binder_SS_Count, "__gnat_binder_ss_count");
++   --  The number of default sized secondary stacks allocated by the binder
++
++   Default_SS_Size : SP.Size_Type;
++   pragma Export (Ada, Default_SS_Size, "__gnat_default_ss_size");
++   --  The default size for secondary stacks. Defined here and not in init.c/
++   --  System.Init because these locations are not present on ZFP or
++   --  Ravenscar-SFP run-times.
++
++   Default_Sized_SS_Pool : System.Address;
++   pragma Export (Ada, Default_Sized_SS_Pool, "__gnat_default_ss_pool");
++   --  Address to the secondary stack pool generated by the binder that
++   --  contains default sized stacks.
++
+ end System.Secondary_Stack;
+-- 

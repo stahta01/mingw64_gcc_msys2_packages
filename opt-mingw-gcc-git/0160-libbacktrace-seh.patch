@@ -1,0 +1,44 @@
+From bd6ecbe48ada79bb14cbb30ef8318495b5237790 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
+Date: Tue, 8 Sep 2020 15:21:51 +0300
+Subject: libgcc: Expose the instruction pointer and stack pointer in
+ SEH _Unwind_Backtrace
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Previously, the SEH version of _Unwind_Backtrace did unwind
+the stack and call the provided callback function as intended,
+but there was little the caller could do within the callback to
+actually get any info about that particular level in the unwind.
+
+Set the ra and cfa pointers, which are used by _Unwind_GetIP
+and _Unwind_GetCFA, to allow using these functions from the
+callacb to inspect the state at each stack frame.
+
+2020-09-08  Martin Storsjö  <martin@martin.st>
+
+	libgcc/
+	* unwind-seh.c (_Unwind_Backtrace): Set the ra and cfa pointers
+	before calling the callback.
+---
+ libgcc/unwind-seh.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/libgcc/unwind-seh.c b/libgcc/unwind-seh.c
+index 1a70180cfaa..275d782903a 100644
+--- a/libgcc/unwind-seh.c
++++ b/libgcc/unwind-seh.c
+@@ -466,6 +466,11 @@ _Unwind_Backtrace(_Unwind_Trace_Fn trace,
+ 			    &gcc_context.disp->HandlerData,
+ 			    &gcc_context.disp->EstablisherFrame, NULL);
+ 
++      /* Set values that the callback can inspect via _Unwind_GetIP
++       * and _Unwind_GetCFA. */
++      gcc_context.ra = ms_context.Rip;
++      gcc_context.cfa = ms_context.Rsp;
++
+       /* Call trace function.  */
+       if (trace (&gcc_context, trace_argument) != _URC_NO_REASON)
+ 	return _URC_FATAL_PHASE1_ERROR;
+-- 

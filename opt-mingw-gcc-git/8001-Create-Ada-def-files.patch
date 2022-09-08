@@ -1,0 +1,34 @@
+From 7f42655600d842d2b6927d2dd5dd533d7e3c90d8 Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Thu, 18 Aug 2022 10:11:35 -0400
+Subject: Create Ada def files
+
+---
+ gcc/ada/gcc-interface/Makefile.in | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/gcc/ada/gcc-interface/Makefile.in b/gcc/ada/gcc-interface/Makefile.in
+index a640e51df9d..f87ffdc0a68 100644
+--- a/gcc/ada/gcc-interface/Makefile.in
++++ b/gcc/ada/gcc-interface/Makefile.in
+@@ -770,7 +770,8 @@ gnatlib-shared-win32:
+ 		-o libgnat$(hyphen)$(LIBRARY_VERSION)$(soext) \
+ 		$(GNATRTL_NONTASKING_OBJS) $(LIBGNAT_OBJS) \
+ 		$(SO_OPTS)libgnat$(hyphen)$(LIBRARY_VERSION)$(soext) \
+ 		-Wl,-out-implib,libgnat$(hyphen)$(LIBRARY_VERSION).dll.a \
++		-Wl,--output-def,libgnat$(hyphen)$(LIBRARY_VERSION).dll.def \
+ 		$(MISCLIB)
+ 	cd $(RTSDIR); `echo "$(GCC_FOR_TARGET)" \
+                 | sed -e 's,\./xgcc,../../xgcc,' -e 's,-B\./,-B../../,'` -shared -shared-libgcc \
+@@ -778,7 +777,8 @@ gnatlib-shared-win32:
+ 		-o libgnarl$(hyphen)$(LIBRARY_VERSION)$(soext) \
+ 		$(GNATRTL_TASKING_OBJS) \
+ 		$(SO_OPTS)libgnarl$(hyphen)$(LIBRARY_VERSION)$(soext) \
+ 		-Wl,-out-implib,libgnarl$(hyphen)$(LIBRARY_VERSION).dll.a \
++		-Wl,--output-def,libgnarl$(hyphen)$(LIBRARY_VERSION).dll.def \
+ 		$(THREADSLIB) -Wl,libgnat$(hyphen)$(LIBRARY_VERSION)$(soext)
+ 
+ gnatlib-shared-darwin:
+-- 
+2.37.2
+

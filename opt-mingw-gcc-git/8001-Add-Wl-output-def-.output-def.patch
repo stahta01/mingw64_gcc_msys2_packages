@@ -1,0 +1,37 @@
+From 34cfc94ffe0e9272750d5e7ef04fb4bf20a07e13 Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Fri, 2 Sep 2022 14:37:08 -0400
+Subject: Add "-Wl,--output-def=[$]@.output-def"
+
+---
+ config/gcc-plugin.m4 | 2 +-
+ gcc/configure        | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/config/gcc-plugin.m4 b/config/gcc-plugin.m4
+index 7ee342fe5fe..4556e97b121 100644
+--- a/config/gcc-plugin.m4
++++ b/config/gcc-plugin.m4
+@@ -30,7 +30,7 @@ AC_DEFUN([GCC_ENABLE_PLUGINS],
+          enable_plugin=no
+        elif test x"$enable_plugin" = x"yes"; then
+          # Use make's target variable to derive import library name.
+-         pluginlibs='-Wl,--export-all-symbols -Wl,--out-implib=[$]@.a'
++         pluginlibs='-Wl,--export-all-symbols -Wl,--output-def=[$]@.output-def -Wl,--out-implib=[$]@.a'
+ 	 plugin_check=no
+        fi
+      ;;
+diff --git a/gcc/configure b/gcc/configure
+index 5ce0557719a..34d92619d49 100755
+--- a/gcc/configure
++++ b/gcc/configure
+@@ -32102,7 +32102,7 @@ fi
+          enable_plugin=no
+        elif test x"$enable_plugin" = x"yes"; then
+          # Use make's target variable to derive import library name.
+-         pluginlibs='-Wl,--export-all-symbols -Wl,--out-implib=$@.a'
++         pluginlibs='-Wl,--export-all-symbols -Wl,--output-def=$@.output-def -Wl,--out-implib=$@.a'
+ 	 plugin_check=no
+        fi
+      ;;
+-- 
