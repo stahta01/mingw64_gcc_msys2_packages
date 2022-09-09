@@ -1,0 +1,153 @@
+From 61f6b650f9bb7fd276b45427b9202f3263465376 Mon Sep 17 00:00:00 2001
+From: =?utf8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
+Date: Sat, 23 Jul 2022 00:57:19 +0300
+Subject: [PATCH] ld: Support the -exclude-symbols option via COFF def files,
+ with the EXCLUDE_SYMBOLS keyword
+
+This was requested in review.
+---
+ ld/deffile.h                                    |  2 ++
+ ld/deffilep.y                                   |  3 +++
+ ld/testsuite/ld-pe/exclude-symbols-def-i386.d   | 10 ++++++++++
+ ld/testsuite/ld-pe/exclude-symbols-def-i386.s   | 11 +++++++++++
+ ld/testsuite/ld-pe/exclude-symbols-def-x86_64.d | 10 ++++++++++
+ ld/testsuite/ld-pe/exclude-symbols-def-x86_64.s | 11 +++++++++++
+ ld/testsuite/ld-pe/exclude-symbols-def.def      |  4 ++++
+ ld/testsuite/ld-pe/pe.exp                       |  2 ++
+ 8 files changed, 53 insertions(+)
+ create mode 100644 ld/testsuite/ld-pe/exclude-symbols-def-i386.d
+ create mode 100644 ld/testsuite/ld-pe/exclude-symbols-def-i386.s
+ create mode 100644 ld/testsuite/ld-pe/exclude-symbols-def-x86_64.d
+ create mode 100644 ld/testsuite/ld-pe/exclude-symbols-def-x86_64.s
+ create mode 100644 ld/testsuite/ld-pe/exclude-symbols-def.def
+
+diff --git a/ld/deffile.h b/ld/deffile.h
+index 306ae3a6f75..a247639628e 100644
+--- a/ld/deffile.h
++++ b/ld/deffile.h
+@@ -99,6 +99,8 @@ typedef struct def_file {
+ 
+   /* Only expected from .drectve sections, not .DEF files.  */
+   def_file_aligncomm *aligncomms;
++
++  /* From EXCLUDE_SYMBOLS or embedded directives. */
+   def_file_exclude_symbol *exclude_symbols;
+ 
+ } def_file;
+diff --git a/ld/deffilep.y b/ld/deffilep.y
+index dc0cb4db944..27db336e0f5 100644
+--- a/ld/deffilep.y
++++ b/ld/deffilep.y
+@@ -249,6 +249,7 @@ keyword_as_name: BASE { $$ = "BASE"; }
+ 	 | DATAL { $$ = "data"; }
+ 	 | DESCRIPTION { $$ = "DESCRIPTION"; }
+ 	 | DIRECTIVE { $$ = "DIRECTIVE"; }
++	 | EXCLUDE_SYMBOLS { $$ = "EXCLUDE_SYMBOLS"; }
+ 	 | EXECUTE { $$ = "EXECUTE"; }
+ 	 | EXPORTS { $$ = "EXPORTS"; }
+ 	 | HEAPSIZE { $$ = "HEAPSIZE"; }
+@@ -337,6 +338,7 @@ anylang_id: ID		{ $$ = $1; }
+ 
+ symbol_list:
+ 	anylang_id { def_exclude_symbols ($1); }
++	|	symbol_list anylang_id { def_exclude_symbols ($2); }
+ 	|	symbol_list ',' anylang_id { def_exclude_symbols ($3); }
+ 	;
+ 
+@@ -1352,6 +1354,7 @@ tokens[] =
+   { "data", DATAL },
+   { "DESCRIPTION", DESCRIPTION },
+   { "DIRECTIVE", DIRECTIVE },
++  { "EXCLUDE_SYMBOLS", EXCLUDE_SYMBOLS },
+   { "EXECUTE", EXECUTE },
+   { "EXPORTS", EXPORTS },
+   { "HEAPSIZE", HEAPSIZE },
+diff --git a/ld/testsuite/ld-pe/exclude-symbols-def-i386.d b/ld/testsuite/ld-pe/exclude-symbols-def-i386.d
+new file mode 100644
+index 00000000000..1f15c893447
+--- /dev/null
++++ b/ld/testsuite/ld-pe/exclude-symbols-def-i386.d
+@@ -0,0 +1,10 @@
++#source: exclude-symbols-def-i386.s
++#target: i?86-*-cygwin* i?86-*-pe i?86-*-mingw*
++#ld: -shared ${srcdir}/${subdir}/exclude-symbols-def.def
++#objdump: -p
++
++#...
++.*\[[ 	]*0\] sym1
++.*\[[ 	]*1\] sym3
++.*\[[ 	]*2\] sym5
++#pass
+diff --git a/ld/testsuite/ld-pe/exclude-symbols-def-i386.s b/ld/testsuite/ld-pe/exclude-symbols-def-i386.s
+new file mode 100644
+index 00000000000..fd533bb44c9
+--- /dev/null
++++ b/ld/testsuite/ld-pe/exclude-symbols-def-i386.s
+@@ -0,0 +1,11 @@
++.global _sym1
++.global _sym2
++.global _sym3
++.global _sym4
++.global _sym5
++_sym1:
++_sym2:
++_sym3:
++_sym4:
++_sym5:
++  ret
+diff --git a/ld/testsuite/ld-pe/exclude-symbols-def-x86_64.d b/ld/testsuite/ld-pe/exclude-symbols-def-x86_64.d
+new file mode 100644
+index 00000000000..39de8813dc5
+--- /dev/null
++++ b/ld/testsuite/ld-pe/exclude-symbols-def-x86_64.d
+@@ -0,0 +1,10 @@
++#source: exclude-symbols-def-x86_64.s
++#target: x86_64-*-cygwin* x86_64-*-pe x86_64-*-mingw*
++#ld: -shared ${srcdir}/${subdir}/exclude-symbols-def.def
++#objdump: -p
++
++#...
++.*\[[ 	]*0\] sym1
++.*\[[ 	]*1\] sym3
++.*\[[ 	]*2\] sym5
++#pass
+diff --git a/ld/testsuite/ld-pe/exclude-symbols-def-x86_64.s b/ld/testsuite/ld-pe/exclude-symbols-def-x86_64.s
+new file mode 100644
+index 00000000000..2889de1c160
+--- /dev/null
++++ b/ld/testsuite/ld-pe/exclude-symbols-def-x86_64.s
+@@ -0,0 +1,11 @@
++.global sym1
++.global sym2
++.global sym3
++.global sym4
++.global sym5
++sym1:
++sym2:
++sym3:
++sym4:
++sym5:
++  ret
+diff --git a/ld/testsuite/ld-pe/exclude-symbols-def.def b/ld/testsuite/ld-pe/exclude-symbols-def.def
+new file mode 100644
+index 00000000000..c0cee7b1e70
+--- /dev/null
++++ b/ld/testsuite/ld-pe/exclude-symbols-def.def
+@@ -0,0 +1,4 @@
++LIBRARY exclude-symbols-def.dll
++EXCLUDE_SYMBOLS
++sym2
++sym4
+diff --git a/ld/testsuite/ld-pe/pe.exp b/ld/testsuite/ld-pe/pe.exp
+index b640b0891f2..22819e0894f 100644
+--- a/ld/testsuite/ld-pe/pe.exp
++++ b/ld/testsuite/ld-pe/pe.exp
+@@ -127,3 +127,5 @@ run_ld_link_tests $foreign_sym_test
+ 
+ run_dump_test "exclude-symbols-embedded-i386"
+ run_dump_test "exclude-symbols-embedded-x86_64"
++run_dump_test "exclude-symbols-def-i386"
++run_dump_test "exclude-symbols-def-x86_64"
+-- 
+2.31.1
+
