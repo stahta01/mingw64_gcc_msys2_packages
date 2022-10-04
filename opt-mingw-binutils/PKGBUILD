@@ -26,7 +26,7 @@ depends=("${MINGW_PACKAGE_PREFIX}-libiconv"
 makedepends=("${MINGW_PACKAGE_PREFIX}-cc"
              "${MINGW_PACKAGE_PREFIX}-autotools")
 options=('staticlibs' '!distcc' '!ccache')
-source=(https://ftp.gnu.org/gnu/binutils/${_realname}-${pkgver}.tar.xz{,.sig}
+source=(https://ftp.gnu.org/gnu/binutils/${_realname}-${pkgver}.tar.xz
         0002-check-for-unusual-file-harder.patch
         0010-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch
         0110-binutils-mingw-gnu-print.patch
@@ -39,7 +39,6 @@ source=(https://ftp.gnu.org/gnu/binutils/${_realname}-${pkgver}.tar.xz{,.sig}
         "61f6b650f9bb7fd276b45427b9202f3263465376.patch::https://sourceware.org/git/?p=binutils-gdb.git;a=patch;h=61f6b650f9bb7fd276b45427b9202f3263465376"
 )
 sha256sums=('645c25f563b8adc0a81dbd6a41cffbf4d37083a382e02d5d3df4f65c09516d00'
-            'SKIP'
             '2c99345fc575c3a060d6677537f636c6c4154fac0fde508070f3b6296c1060d4'
             '4e8ac055df61b1b5d6ae29dc87e1154737c2e87c7b244b44866702cabf1a5d18'
             'de0a5fe11e75a2ea1bdb154670db028e2158ada74a17d6c67950464dc4e912e3'
@@ -50,8 +49,6 @@ sha256sums=('645c25f563b8adc0a81dbd6a41cffbf4d37083a382e02d5d3df4f65c09516d00'
             '27696da8ecfff307537a461b205fad44d6abc1fa648fbf839e72a1d3ea71c40a'
             'b2f159fe91da6ca4f6c2d91dba09883d777533bc952898939ac8185aa712ef5c'
             '3d1ab4038c28afb27bfa89702ec86ce5e1b852523aa0e550e1ad35d1452b7804')
-validpgpkeys=('EAF1C276A747E9ED86210CBAC3126D3B4AE55E93'
-              '3A24BC1E8FB409FA9F14371813FCEF89DD9E3C4F')
 
 apply_patch_with_msg() {
   for _patch in "$@"
@@ -140,6 +137,12 @@ check() {
 package() {
   cd ${srcdir}/build-${MSYSTEM}
   make DESTDIR=${pkgdir} install
+
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/{lib,include}/${_realname}
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include
+  cp ${pkgdir}${OPT_MINGW_PREFIX}/include/ansidecl.h ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/
+  mv ${pkgdir}${OPT_MINGW_PREFIX}/include/*.h ${pkgdir}${OPT_MINGW_PREFIX}/include/${_realname}
+  mv ${pkgdir}${OPT_MINGW_PREFIX}/lib/*.a ${pkgdir}${OPT_MINGW_PREFIX}/lib/${_realname}
 
   # https://github.com/msys2/MINGW-packages/issues/7890
   rm "${pkgdir}${OPT_MINGW_PREFIX}/lib/bfd-plugins/libdep.a"
