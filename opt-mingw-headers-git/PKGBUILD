@@ -64,13 +64,13 @@ build() {
   fi
 
   msg "Configuring ${MINGW_CHOST} headers"
-  [[ -d ${srcdir}/headers-${MINGW_CHOST} ]] && rm -rf ${srcdir}/headers-${MINGW_CHOST}
-  mkdir -p ${srcdir}/headers-${MINGW_CHOST} && cd ${srcdir}/headers-${MINGW_CHOST}
+  [[ -d ${srcdir}/headers-${MSYSTEM} ]] && rm -rf ${srcdir}/headers-${MSYSTEM}
+  mkdir -p ${srcdir}/headers-${MSYSTEM} && cd ${srcdir}/headers-${MSYSTEM}
   ${srcdir}/mingw-w64/mingw-w64-headers/configure \
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
-    --prefix=${OPT_MINGW_PREFIX} \
+    --prefix=${OPT_MINGW_PREFIX}/${MINGW_CHOST} \
     --enable-sdk=all \
     --with-default-win32-winnt=${_default_win32_winnt} \
     --with-default-msvcrt=${_default_msvcrt} \
@@ -80,12 +80,12 @@ build() {
 
 package() {
   msg "Installing ${MINGW_CHOST} headers"
-  cd ${srcdir}/headers-${MINGW_CHOST}
+  cd ${srcdir}/headers-${MSYSTEM}
   make DESTDIR=${pkgdir} install
 
-  rm ${pkgdir}${OPT_MINGW_PREFIX}/include/pthread_signal.h
-  rm ${pkgdir}${OPT_MINGW_PREFIX}/include/pthread_time.h
-  rm ${pkgdir}${OPT_MINGW_PREFIX}/include/pthread_unistd.h
+  rm ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/pthread_signal.h
+  rm ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/pthread_time.h
+  rm ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/pthread_unistd.h
 
   msg "Installing MinGW-w64 licenses"
   install -Dm644 ${srcdir}/mingw-w64/mingw-w64-headers/ddk/readme.txt ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/ddk-readme.txt
