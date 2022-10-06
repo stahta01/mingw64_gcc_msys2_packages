@@ -1,0 +1,61 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Renato Silva <br.renatosilva@gmail.com>
+
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+
+_realname=expat
+pkgbase=opt-mingw-${_realname}
+pkgname="${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=2.4.9
+pkgrel=1
+pkgdesc="An XML parser library (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
+url="https://libexpat.github.io/"
+license=('spdx:MIT')
+makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-cc" "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+options=('strip' 'staticlibs')
+source=("https://github.com/libexpat/libexpat/releases/download/R_${pkgver//./_}/expat-${pkgver}.tar.xz"{,.asc})
+sha256sums=('6e8c0728fe5c7cd3f93a6acce43046c5e4736c7b4b68e032e9350daa0efc0354'
+            'SKIP')
+validpgpkeys=('3176EF7DB2367F1FCA4F306B1F9B0E909AF37285') # Sebastian Pipping
+
+prepare() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  autoreconf -fiv
+}
+
+build() {
+  [[ -d "${srcdir}/build-${MSYSTEM}" ]] && rm -rf "${srcdir}/build-${MSYSTEM}"
+  mkdir -p "${srcdir}/build-${MSYSTEM}" && cd "${srcdir}/build-${MSYSTEM}"
+
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
+  ../${_realname}-${pkgver}/configure \
+    --prefix=${OPT_MINGW_PREFIX} \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --target=${MINGW_CHOST} \
+    --enable-shared \
+    --enable-static
+
+  make
+}
+
+check() {
+  cd "${srcdir}/build-${MSYSTEM}"
+  make check
+}
+
+package() {
+  cd "${srcdir}/build-${MSYSTEM}"
+  make DESTDIR="${pkgdir}" install
+  install -Dm644 "${srcdir}/${_realname}-${pkgver}/COPYING" "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING"
+}
