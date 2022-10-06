@@ -7,28 +7,39 @@
 # Contributor: Kirill Müller <krlmlr@mailbox.org>
 # Contributor: Liu Hao <lh_mouse@126.com>
 
-BUILD_PREFIX=${MINGW_PREFIX}
-INSTALL_PREFIX=${MINGW_PREFIX}
-#INSTALL_PREFIX=/opt${MINGW_PREFIX}
-OPT_MINGW_PACKAGE_PREFIX=${MINGW_PACKAGE_PREFIX}
-#if [[ "$MSYSTEM" == "UCRT64" ]]; then
-  #OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
-#else
-  #OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
-#fi
+# Common toolchain settings
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+_include_sub_folder=/${MINGW_CHOST}
 
 _enable_fortran=no
 _enable_ada=yes           # Use yes for production
+_enable_lto=no            # Use yes for production
 
+_enable_threads=yes       # Use yes for production
+_threads="posix"
 _enable_libstdcxx=yes     # Use yes for production
 _enable_libquadmath=no
-_enable_libada=yes        # Use yes for production
+_enable_std_libada=yes    # Use yes for production
+_enable_libatomic=no
 
 _enable_gcc_plugin=no
-_enable_bootstrap=no      # Use yes for production
+_enable_bootstrap=yes     # Use yes for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
-_enable_backstrap_ada=yes # Use no for production
+_enable_backstrap_ada=no  # Use no for production
+
+# =========================================== #
+
+if [[ "$_enable_threads" == "yes" && "$_threads" == "posix" ]]; then
+  _enable_libgomp=yes
+else
+  _enable_libgomp=no
+fi
 
 if [[ "$_enable_fortran" == "yes" && "$_enable_libquadmath" != "yes" ]]; then
    warning "when building FORTRAN; libquadmath is enabled"
@@ -40,12 +51,16 @@ if [[ "$_enable_bootstrap" != "yes" && "$MSYSTEM" == "UCRT64" ]]; then
   _enable_bootstrap=yes
 fi
 
-if [[ "$_enable_libada" == "yes" && "$_enable_ada" != "yes" ]]; then
-  _enable_libada=no
+if [[ "$_enable_std_libada" == "yes" && "$_enable_ada" != "yes" ]]; then
+  _enable_std_libada=no
+fi
+
+if [[ "$_enable_ada" == "yes" ]]; then
+  _enable_build_ada=yes
 fi
 
 ### Exit block start
-#if [[ "$_enable_libada" == "yes" && "$_enable_gcc_plugin" == "yes" ]]; then
+#if [[ "$_enable_std_libada" == "yes" && "$_enable_gcc_plugin" == "yes" ]]; then
    #warning "Both Ada Library and GCC plugins together error outs!" 
    #exit 1
 #fi
@@ -59,14 +74,42 @@ fi
 #options=('staticlibs' '!emptydirs') # '!strip' 'debug') # production options
 options=('staticlibs' '!emptydirs' '!strip' '!debug') # development options
 
-#_git_branch=releases/gcc-6  # Oldest tested version this package
-#_git_branch=releases/gcc-7  # Important version for building gcc-ada
-#_git_branch=releases/gcc-8  # Important version for building gcc-ada with GCC plugin support
- _git_branch=releases/gcc-9  # Important version for building gcc-ada
-#_git_branch=releases/gcc-12 # Broken
+####
+### ICE means Internal Compiler Error
+## graphite requires CLOOG in GCC 4.9;
+#   disabled graphite below GCC version 5.
+#_git_branch=releases/gcc-4.6  # TODO
+#_git_branch=releases/gcc-4.7  # ICE when built using GCC 4.9+
+#911595bf2d485c0d1e067d9a94a867d9b8281502 (tag: releases/gcc-4.7.3)
+#b058453f82a5dab2304c3ddf1ce646eaa748a475 (tag: releases/gcc-4.7.2)
+#edc56cde5124be76dd6ae3baff9eeb1fb61a1c41 (tag: releases/gcc-4.7.1)
+#ae02e369d7a25c78527e89ca132ec1909902631d (tag: releases/gcc-4.7.0)
+#_git_branch=releases/gcc-4.8  # Failed to build itself and failed in bootstrap mode; possible CRT issue.
+# 4.8.4
+#_git_commit=b70261df79330539a127c5bee7b4bf61cf029dd5 # (tag: releases/gcc-4.8.3) ICE New location/info
+#_git_commit=3cf2083d636bab3e3a6e91e8b0a0ca1244dff722 # (tag: releases/gcc-4.8.2) ICE
+#_git_commit=6c53ef36e5bfe222e9786cd0b2afe90784a8a43d # (tag: releases/gcc-4.8.1)
+#_git_commit=372a443092ee1656c6d866a16e6da6df32b1f71d # (tag: releases/gcc-4.8.0)
+ _git_branch=releases/gcc-4.9  # built okay
+#_git_tag=releases/gcc-4.9.4   # invalid/forged tag
+#_git_commit=4f18db57daffc62a373e30d93c9552f2b94adf09 # built and installed okay
+#_git_tag=releases/gcc-4.9.3   #
+#_git_commit=52d80075bc3cc4270756284258400a116528ea7c # built and installed okay
+#_git_tag=releases/gcc-4.9.2   #
+#_git_commit=c8be0366b55cdb3233abcf79abe2c5ddc6f82cb9 # built and installed okay
+#_git_tag=releases/gcc-4.9.1   #
+#_git_commit=fc567ceb717bbcfc3ae0a02a193bcb34d95362ee # built and installed okay
+#_git_tag=releases/gcc-4.9.0   #
+#_git_commit=ade89f291493b5e697047441c1193e5fc8278d3e # built and installed okay
+#_git_branch=releases/gcc-5    # Cannot use system built ISL 0.25
+#_git_branch=releases/gcc-6    # Can use system built ISL 0.25
+#_git_branch=releases/gcc-7    # Important version for building gcc-ada
+#_git_branch=releases/gcc-8    # Important version for building gcc-ada with GCC plugin support
+#_git_branch=releases/gcc-9    # Important version for building gcc-ada   32 bit build errors out on self build
+#_git_branch=releases/gcc-10   # 32 bit build errors out
+#_git_branch=releases/gcc-11   # GCC 12 Ada cannot build GCC 11 Ada
+#_git_branch=releases/gcc-12   # 32 bit builds okay
 #_realpkgver="$(git archive --remote=git://gcc.gnu.org/git/gcc.git refs/heads/${_git_branch}:gcc/ BASE-VER | tar -xO)"
-#_git_tag_ver=12.1.0
-#_git_tag=releases/gcc-${_git_tag_ver}
 
 _realname=gcc
 _sourcedir=${_realname}-git
@@ -77,7 +120,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran-git")
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
-pkgver=9.5.0+d20220527.c13.g7a15b5060a8
+pkgver=4.9.4+d20160726.r51.c10.g4f18db57daff
 pkgrel=1
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
@@ -85,45 +128,56 @@ mingw_arch=('mingw32' 'mingw64' 'ucrt64')
 url="https://gcc.gnu.org"
 license=('GPL' 'LGPL' 'FDL' 'custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
-makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
-             $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-cc"
+             $([[ "$_enable_build_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
              "${OPT_MINGW_PACKAGE_PREFIX}-binutils"
-             "${MINGW_PACKAGE_PREFIX}-crt"
+             "${OPT_MINGW_PACKAGE_PREFIX}-crt"
              "${OPT_MINGW_PACKAGE_PREFIX}-headers"
-             "${MINGW_PACKAGE_PREFIX}-gmp"
-             "${MINGW_PACKAGE_PREFIX}-isl"
-             "${MINGW_PACKAGE_PREFIX}-libiconv"
-             "${MINGW_PACKAGE_PREFIX}-mpc"
-             "${MINGW_PACKAGE_PREFIX}-mpfr"
-             "${MINGW_PACKAGE_PREFIX}-windows-default-manifest"
-             "${MINGW_PACKAGE_PREFIX}-winpthreads"
-             "${MINGW_PACKAGE_PREFIX}-zlib"
-             "${MINGW_PACKAGE_PREFIX}-zstd")
+             "${OPT_MINGW_PACKAGE_PREFIX}-gmp"
+             "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
+             "${OPT_MINGW_PACKAGE_PREFIX}-mpc"
+             "${OPT_MINGW_PACKAGE_PREFIX}-mpfr"
+             "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
+             $([[ "$_enable_threads" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
+             "${OPT_MINGW_PACKAGE_PREFIX}-zlib")
 #checkdepends=('dejagnu')
 optdepends=()
 
-source=('0002-gcc-8-Relocate-libintl.patch'
+ISL_VERSION=0.16.1
+noextract=("isl-${ISL_VERSION}.tar.bz2")
+source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
+        isl-0.12.1-msys2.patch
+        isl-0.14.1-no-undefined.patch
+        '0002-gcc-8-Relocate-libintl.patch'
         '0002-gcc-10-Relocate-libintl.patch'
         '0002-Relocate-libintl.patch'
         '0003-gcc-12-Windows-Follow-Posix-dir-exists-semantics-more-close.patch'
         "0003-Windows-Follow-Posix-dir-exists-semantics-more-close.patch"
         "0004-Windows-Use-not-in-progpath-and-leave-case-as-is.patch"
         "0005-gcc-12-Windows-Don-t-ignore-native-system-header-dir.patch"
+        '0005-gcc-10-Windows-Don-t-ignore-native-system-header-dir.patch'
         "0005-Windows-Don-t-ignore-native-system-header-dir.patch"
-        "0006-Windows-New-feature-to-allow-overriding.patch"
+        '0006-gcc-11-Windows-New-feature-to-allow-overriding.patch'
+        '0006-gcc-6-Windows-New-feature-to-allow-overriding.patch'
+        '0006-gcc-5-Windows-New-feature-to-allow-overriding.patch'
         '0007-gcc-8-Build-EXTRA_GNATTOOLS-for-Ada.patch'
         '0007-gcc-7-Build-EXTRA_GNATTOOLS-for-Ada.patch'
         '0007-Build-EXTRA_GNATTOOLS-for-Ada.patch'
         "0008-Prettify-linking-no-undefined.patch"
         '0009-gcc-make-xmmintrin-header-cplusplus-compatible-depre.patch'
         "0010-gcc-12-Fix-using-large-PCH.patch"
+        '0010-gcc-10-Fix-using-large-PCH.patch'
         "0010-Fix-using-large-PCH.patch"
         "0011-Enable-shared-gnat-implib.patch"
+        '0012-gcc-12-Handle-spaces-in-path-for-default-manifest.patch'
         '0012-Handle-spaces-in-path-for-default-manifest.patch'
+        '0012-MinGW-w64-Enable-libitm.patch'
+        '0013-MinGW-w64-Enable-shared-gnat.patch'
         "0014-gcc-9-branch-clone_function_name_1-Retain-any-stdcall-suffix.patch"
         "0014-gcc-12-branch-clone_function_name_1-Retain-any-stdcall-suffix.patch"
         '0014-clone_function_name_1-Retain-any-stdcall-suffix.patch'
         '0014-gcc-6-branch-clone_function_name_1-Retain-any-stdcall-suffix.patch'
+        '0014-gcc-5-branch-clone_function_name_1-Retain-any-stdcall-suffix.patch'
         '0015-makedeps-properly-handle-win-paths.patch'
         '0015-Force-linking-to-libgcc_s_dw2-1.dll-deprecated.patch'
         '0016-disable-weak-refs-in-libstdc++.patch'
@@ -131,49 +185,73 @@ source=('0002-gcc-8-Relocate-libintl.patch'
         "0020-libgomp-Don-t-hard-code-MS-printf-attributes.patch"
         '0021-PR14940-Allow-a-PCH-to-be-mapped-to-a-different-addr.patch'
         '0100-gcc-4.8-libstdc++export.patch'
-        '0110-gcc-4.7-stdthreads.patch'
+        '111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch'
+        '122-gcc-4.9-Relocate-libintl.patch'
+        '125-gcc-4.7-stdthreads.patch'
+        '131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch'
+        '132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch'
+        '133-gcc-4.7.0-mingw-dont-ignore-native-system-header-dir.patch'
+        '134-gcc-4.8-Build-EXTRA_GNATTOOLS-for-Ada.patch'
+        '137-gcc-4.9-Enable-shared-gnat-implib.patch'
         '0140-gcc-12-diagnostic-color.patch'
         '0140-gcc-8.2.0-diagnostic-color.patch'
         '0140-gcc-7-diagnostic-color.patch'
+        '141-gcc-4.4-ktietz-libgomp.patch'
         '0150-gcc-10.2.0-libgcc-ldflags.patch'
         '0160-libbacktrace-seh.patch'
         '0170-gcc-7-Enable-std-experimental-filesystem.patch'
         '0200-gcc-12-add-m-no-align-vector-insn-option-for-i386.patch'
         '0300-gcc-12-override-builtin-printf-format.patch'
         '0300-override-builtin-printf-format.patch'
+        '704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch'
+        '0820-libiberty-mingw-host-shared.patch'
+        '955-4.9.2-apply-hack-so-gcc_s-isnt-stripped.patch'
         '1002-libgomp-don-t-use-GOMP_USE_ALIGNED_WORK_SHARES-on-Wi.patch'
-        '9001-gcc-10-to-9-ada-build-fix.patch'
+        '9001-Ada-build-fix-for-GCC-10-building-GCC-9.patch'
         '9002-Ada-build-fix-for-GCC-8-building-GCC-7.patch'
-        'libgnarl-12.dll.def'
-        'libgnat-12.dll.def')
-if [ -n "$_git_tag" ]; then
-  source+=(${_sourcedir}::"git://gcc.gnu.org/git/gcc.git#tag=${_git_tag}")
+        '9003-Ada-build-fix-for-GCC-5-building-GCC-4.9.patch'
+        '9004-Ada-build-fix-for-GCC-4.9-building-GCC-4.7.patch')
+if [ -n "$_git_commit" ]; then
+  source+=(${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#commit=${_git_commit}")
+elif [ -n "$_git_tag" ]; then
+  source+=(${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#tag=${_git_tag}")
 else
   source+=(${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=${_git_branch}")
 fi
-
-sha256sums=('2dd7498bcb25b41afcc458696386b456ee4ff440bf395519a23d1f945ba15a41'
+#
+sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
+            '659430857ccd7429671ccdf6c8239be8eb8c53f9a4c279d4023fd6a4e2a9694f'
+            '83655a7202f0a0dcce1782d4b365252bf1ad12a522b7ad82ab578ee5ec46433b'
+            '2dd7498bcb25b41afcc458696386b456ee4ff440bf395519a23d1f945ba15a41'
             '7ba56b5ce1a63246115b36e1763ac802b8db9817872f6944eae96bf261c77edc'
             '83e9c6f76f728ae3e2f2eabb588b0d6cea7a3eda03cd5e77aed9d613143b7348'
             'a5e06776c16723af33dde37d4c95b8635188669a5ca675abb5ba7b3da1c8c562'
             '5b8ab5a54ebdd10c9802ea431b935ff4ba225eec6ca92824cfddfcf2ee8ac910'
             'be1dd73bca4e802df5e263a2b27355c3b42d7298491b94fdcc35e00be2e2cb68'
             '2a208d5b13f370c6b2187c7932a13d6caedfc3722f02afc8e5ee9426fb8e64cc'
+            'bd1c201febdf292570b0da9dcc066a237916ab3166dce3610487814f131517e5'
             '86fc77d5a6c137a9aca65ad6ba56653fb41b05636b763ce2c0b0b14d617c9de4'
+            '56832cb8f939fe14eaadf8fb2d4c784012acc87e1661320398b42b7389643bb7'
             '7f5fc74961ec0face6c4c56d3fc3613c38c5133bb68648191065bbf597f3e906'
+            'c74b6962bf9bf0a73a73684398e0ee98af4b319622ac200f2d520582ca08f2a8'
             '87472619bb0f9520cce20e3e5f5f57b9ab1fbea297bc81cb00216697d64084b1'
             '9c4dcedc156b7f31d91b9862c4936b6840ddf7a6a2d1e075d080cf7536c6422a'
             '691bc4044726b4f7980be64b1296278a1ad9a19c8e1bec236d48b1277a1a64ba'
             'd7066b206d7b4d81a25d4f9c2ee88751e041b81176d915d8175b9b85f5cbc425'
             '513a824ee500d063f09ec920a9ad317a3a117e5468bf201aaf3f70dd0000e769'
             'acaf6f1b8df91bf0fe7c363b2abd10c2f7b967b563761160892559358da9bf91'
+            'ec58aafba0174313451c282339bbd67ed0b11bca034c29023e0138b61441cf71'
             '0decbbebda7ceac91da5d3dec9b7330f406a4358fa150560f08ff6f54739035f'
             'bb99f727c713232b47b89ffd096e296b9ef359dea1e259e7a36fff78f8512a98'
+            '0483451eaed8b36b8fbdc30d10a04d73424d58ca83dde0320902d39f0ef623a6'
             '11dd5388a1e1c0a2bc8bc3824726598784b9b9e0896a3d77950ba6a4569f1128'
+            'fc34b667c94df53c96a1f39c7e89a737c64e59df19169b02182dde84b6bec39e'
+            'bab73267116024d0b0d2a9dcb78a0ad839bb6a232f1ebbee7ed8fd54c8d71087'
             '21e31addcf13bc6fa6650b02ed0f2e195a1226260ae48c536840cc9230de2cfc'
             '540918d2210bc91a324f8dce27769fa5094d16539e2702cc3cfd5c3d14d75fe4'
+            'ad4bb777a7f19070e83bdf5046281ee9e359ed039c70179285c4119244cf9093'
             '60a58ed41389691a68ef4b7d47a0328df4d28d26e6c680a6b06b31191481ca65'
-            '60a58ed41389691a68ef4b7d47a0328df4d28d26e6c680a6b06b31191481ca65'
+            'ad4bb777a7f19070e83bdf5046281ee9e359ed039c70179285c4119244cf9093'
             '4233a8d893787413b316de3ac320fd65c46844d463b98c0a98fdc17100cca505'
             '262c6fb0f6c9951d69e4c2dcc27949aa8f2cca8e672faf66740a7dbba4a4cd2c'
             '09f27e0dae8d962f2a46a33a9891f2d14303629bb40f91ed8c5824c90da653a9'
@@ -181,23 +259,35 @@ sha256sums=('2dd7498bcb25b41afcc458696386b456ee4ff440bf395519a23d1f945ba15a41'
             'a501666d1f5cae726f2b2f1618d187a397c3525c0ffa1bcb03a441fd8e8020cf'
             'a4b4f7e97635ddf0443ee17cd093b9d10953f97eb290466999585d02ef8bf72d'
             '21191b4fd57ce5f230fcc97b4d9ae31bdc387d7c7c8e39436aa7e4268d278d3d'
-            '5e0fc1437ce0b357e78d440692e3a30a7905a5f360a67928a95b14ec8d45365b'
+            'cba7c512a4e0e6a738e0f4ad1026930260a73c7b39bedf36df0b16bae312206b'
+            'd143713dfcb86afa0c32e53b12c1d3a9586729b6580c8e535d72e03003511914'
+            '3b01a5f08d87c043932d5393fdb650832fe0adb472ffdf9fb5a5ddb3f3288aa5'
+            '7cd7f884b7d2f64846adfb06007e881834fd00e98f78c737b965a823ce6198b0'
+            'd122ee00238f2cef746639cc5d8807dffd7d4f06a33e1bb146fa1b28a7dae14a'
+            'd674531a39361782448048bda31a100dac9be87d681809f8b48b6e8de97a8418'
+            'e7c31c573520addc8edb9a213571622b8cedd1c25b06ba7f9e04edddb33db642'
+            '265fff19fe1da6383c7fa1ead3239de8f622b46b556b4f9268eeb073d2549aee'
             '9faee4294ca31e272c597e8d0f224f5c24700aa99474c9f0549800ae91e9ced1'
             '5240a9e731b45c17a164066c7eb193c1fbee9fd8d9a2a5afa2edbcde9510da47'
             'e33e8f5d1f93250714ddf9d0e09d7e1d5e67ba024f8ec23e96064b34d09ce33d'
+            '388220ee08a71e065ecd631855dba082e0b833cafec2b3b281a268d5d4d0f265'
             '7f0b4e45d933e18c9d8bd2afcd83e4f52e97e2e25dd41bfa0cba755c70e591c7'
             '273f5f8a527f627441b1aee765bfe0dd0f5c9818175b5303a1915901226fb361'
             '37e6e6d6b7a2ff27a807bfb390fb4a91b8f67cf38cad345c51d0a8011a15efc1'
             'ce832a1be7271a2249e4dd46647474b37cf51f578678d9bd9433b32aacefb528'
             '0d82cf1d748c9f1d4d3c7ee43ca3be1b6efbd431dc13ce652ae00ee489d67eec'
             'd119f17f224db814bc54da87520db532a2cb35aa2e13760048bab8be7c4af17a'
+            'c5782bca021e1b96ada60001e98052648bc07207d0a6e5066bc0b69f1efb692e'
+            'a1f24895af9229e891d199b773d90efa3946e242f2d10defeef37c2a59c32651'
+            '9893cd986191de2e761e2ed98ad6ec8fadeab86311dc6ba20a1032f13e478686'
             '5ea3dcd6a0050607ebea7efb2e42b06995b85e7ad33777ecf359940bd0beda36'
             'd9a99af9e1c50d4165c373e320e3ae616f5da6d699b6725c9052bc9aa4d0101c'
             '0ce6f7597b0e1800cce13df9520ab084fb99c2c221c3934a989f3b6175b3618c'
-            '74f7ab5279e47adf2419b4525da2effac9ef573fe7f5424ca094fa97d30af4cd'
-            '6c2d65d06ebe0c51e6975f425a51cbc8436d235ef3f86c0922ee9b50ba68b7cd'
+            '3ceb659e23136616b48e9cde5a0d96063e050fa2579c5e6cec8709c6added327'
+            '82751764922a4757e5be4f1b243caebe82ba2dbbd58c3c21731175c74f64d733'
             'SKIP')
-# Helper macros to help make tasks easier #
+# =========================================== #
+# Helper macros to help make tasks easier     #
 apply_patch_with_msg() {
   for _patch in "$@"
   do
@@ -217,9 +307,18 @@ del_file_exists() {
     fi
   done
 }
+_extract_to_gcc_folder() {
+    local tarfile="$1"
+    local subfolder="$(echo "$tarfile" | sed 's/-.*$//')"
+    if [ ! -d  "$_sourcedir/$subfolder" ]; then
+        echo "Extracting ${tarfile} to $_sourcedir/$subfolder"
+        mkdir -p "$_sourcedir/$subfolder"
+        tar -x --strip-components=1 -f "$tarfile" -C "$_sourcedir/$subfolder"
+    else
+        echo "Folder $_sourcedir/$subfolder already exists"
+    fi
+}
 # =========================================== #
-# --disable-threads
-_threads="posix"
 _git_base_commit=
 _gcc_version=
 _gcc_date=
@@ -228,7 +327,10 @@ pkgver() {
   cd ${srcdir}/${_sourcedir}
   _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
   _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
-  printf "%s+d%s.c%s.g%s" "$_gcc_version" "$_gcc_date" $(git rev-list --count ${_git_base_commit}..HEAD) $(git rev-parse --short ${_git_base_commit})
+  printf "%s+d%s.r%s.c%s.g%s" "$_gcc_version" "$_gcc_date" \
+    $(git rev-list --count $(git log -1 --format=%H -- gcc/DATESTAMP)..${_git_base_commit}) \
+    $(git rev-list --count ${_git_base_commit}..HEAD) \
+    $(git rev-parse --short=12 ${_git_base_commit})
 }
 
 prepare() {
@@ -237,70 +339,120 @@ prepare() {
   _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
   _gcc_major_version=${_gcc_version%%.*}
 
+  cd ${srcdir}
+  rm -fr ${srcdir}/${_sourcedir}/isl
+
+  if [[ $_gcc_major_version -gt 4 ]]; then
+    _extract_to_gcc_folder          isl-${ISL_VERSION}.tar.bz2
+
+    cd ${srcdir}/${_sourcedir}/isl
+    patch -Nbp1 -i ${srcdir}/isl-0.12.1-msys2.patch
+    patch -Nbp1 -i ${srcdir}/isl-0.14.1-no-undefined.patch
+
+    autoreconf -fi
+  fi
+
+  cd ${srcdir}/${_sourcedir}
+
   del_file_exists intl/canonicalize.c intl/canonicalize.h \
-    intl/relocatex.c intl/relocatex.h \
-    gcc/ada/libgnarl-${_gcc_major_version}.dll.def \
-    gcc/ada/libgnat-${_gcc_major_version}.dll.def
+    intl/relocatex.c intl/relocatex.h
 
   _git_base_commit=$(git rev-parse HEAD)
   GIT_AM="git am --committer-date-is-author-date"
+
+  if [[ $_gcc_major_version -eq 4 ]]; then
+    ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
+    ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
+    ${GIT_AM} ${srcdir}/125-gcc-4.7-stdthreads.patch
+    ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
+    ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
+    ${GIT_AM} ${srcdir}/133-gcc-4.7.0-mingw-dont-ignore-native-system-header-dir.patch
+    if [[ "${_gcc_version:0:3}" == "4.9" ]]; then
+      # Fails on 4.8.2
+      ${GIT_AM} ${srcdir}/134-gcc-4.8-Build-EXTRA_GNATTOOLS-for-Ada.patch
+    fi
+    ${GIT_AM} ${srcdir}/137-gcc-4.9-Enable-shared-gnat-implib.patch
+    ${GIT_AM} ${srcdir}/141-gcc-4.4-ktietz-libgomp.patch
+    if [[ "${_gcc_version:0:3}" != "4.9" ]]; then
+      ${GIT_AM} ${srcdir}/704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch
+    fi
+    if [[ "${_gcc_version:0:3}" == "4.9" ]]; then
+      ${GIT_AM} ${srcdir}/0009-gcc-make-xmmintrin-header-cplusplus-compatible-depre.patch
+      apply_patch_with_msg 955-4.9.2-apply-hack-so-gcc_s-isnt-stripped.patch
+    fi
+  fi
+
   if [[ $_gcc_major_version -gt 9 ]]; then
     ${GIT_AM} ${srcdir}/0002-gcc-10-Relocate-libintl.patch
   elif [[ $_gcc_major_version -gt 7 ]]; then
     ${GIT_AM} ${srcdir}/0002-gcc-8-Relocate-libintl.patch
-  else
+  elif [[ $_gcc_major_version -gt 4 ]]; then
     ${GIT_AM} ${srcdir}/0002-Relocate-libintl.patch
   fi
   if [[ $_gcc_major_version -gt 11 ]]; then
     ${GIT_AM} ${srcdir}/0003-gcc-12-Windows-Follow-Posix-dir-exists-semantics-more-close.patch
-  else
+  elif [[ $_gcc_major_version -gt 4 ]]; then
     ${GIT_AM} ${srcdir}/0003-Windows-Follow-Posix-dir-exists-semantics-more-close.patch
   fi
-  ${GIT_AM} ${srcdir}/0004-Windows-Use-not-in-progpath-and-leave-case-as-is.patch
+  if [[ $_gcc_major_version -gt 4 ]]; then
+    ${GIT_AM} ${srcdir}/0004-Windows-Use-not-in-progpath-and-leave-case-as-is.patch
+  fi
   if [[ $_gcc_major_version -gt 11 ]]; then
     ${GIT_AM} ${srcdir}/0005-gcc-12-Windows-Don-t-ignore-native-system-header-dir.patch
   elif [[ $_gcc_major_version -gt 9 ]]; then
     ${GIT_AM} ${srcdir}/0005-gcc-10-Windows-Don-t-ignore-native-system-header-dir.patch
-  else
+  elif [[ $_gcc_major_version -gt 4 ]]; then
     ${GIT_AM} ${srcdir}/0005-Windows-Don-t-ignore-native-system-header-dir.patch
   fi
   if [[ $_gcc_major_version -gt 10 ]]; then
     ${GIT_AM} ${srcdir}/0006-gcc-11-Windows-New-feature-to-allow-overriding.patch
-  else
-    ${GIT_AM} ${srcdir}/0006-Windows-New-feature-to-allow-overriding.patch
+  elif [[ $_gcc_major_version -gt 5 ]]; then
+    ${GIT_AM} ${srcdir}/0006-gcc-6-Windows-New-feature-to-allow-overriding.patch
+  elif [[ $_gcc_major_version -gt 4 ]]; then
+    ${GIT_AM} ${srcdir}/0006-gcc-5-Windows-New-feature-to-allow-overriding.patch
   fi
   if [[ $_gcc_major_version -gt 7 ]]; then
     ${GIT_AM} ${srcdir}/0007-gcc-8-Build-EXTRA_GNATTOOLS-for-Ada.patch
   elif [[ $_gcc_major_version -eq 7 ]]; then
     ${GIT_AM} ${srcdir}/0007-gcc-7-Build-EXTRA_GNATTOOLS-for-Ada.patch
-  else
+  elif [[ $_gcc_major_version -gt 4 ]]; then
     ${GIT_AM} ${srcdir}/0007-Build-EXTRA_GNATTOOLS-for-Ada.patch
   fi
-  ${GIT_AM} ${srcdir}/0008-Prettify-linking-no-undefined.patch
-  if [[ $_gcc_major_version -lt 11 ]]; then
+  if [[ $_gcc_major_version -gt 4 ]]; then
+    ${GIT_AM} ${srcdir}/0008-Prettify-linking-no-undefined.patch
+  fi
+
+  if [[ $_gcc_major_version -lt 11 && $_gcc_major_version -gt 4 ]]; then
     ${GIT_AM} ${srcdir}/0009-gcc-make-xmmintrin-header-cplusplus-compatible-depre.patch
   fi
+
   if [[ $_gcc_major_version -gt 11 ]]; then
     ${GIT_AM} ${srcdir}/0010-gcc-12-Fix-using-large-PCH.patch
   elif [[ $_gcc_major_version -gt 9 ]]; then
     ${GIT_AM} ${srcdir}/0010-gcc-10-Fix-using-large-PCH.patch
-  else
+  elif [[ $_gcc_major_version -gt 4 ]]; then
     ${GIT_AM} ${srcdir}/0010-Fix-using-large-PCH.patch
   fi
-  ${GIT_AM} ${srcdir}/0011-Enable-shared-gnat-implib.patch
+  if [[ $_gcc_major_version -gt 4 ]]; then
+    ${GIT_AM} ${srcdir}/0011-Enable-shared-gnat-implib.patch
+  fi
   if [[ $_gcc_major_version -gt 11 ]]; then
     ${GIT_AM} ${srcdir}/0012-gcc-12-Handle-spaces-in-path-for-default-manifest.patch
   elif [[ $_gcc_major_version -gt 8 ]]; then
     apply_patch_with_msg 0012-Handle-spaces-in-path-for-default-manifest.patch
   fi
+  if [[ $_gcc_major_version -eq 5 ]]; then
+    ${GIT_AM} ${srcdir}/0013-MinGW-w64-Enable-shared-gnat.patch
+  fi
+
   if [[ $_gcc_major_version -gt 11 ]]; then
     ${GIT_AM} ${srcdir}/0014-gcc-12-branch-clone_function_name_1-Retain-any-stdcall-suffix.patch
   elif [[ $_gcc_major_version -gt 8 ]]; then
     ${GIT_AM} ${srcdir}/0014-gcc-9-branch-clone_function_name_1-Retain-any-stdcall-suffix.patch
   elif [[ $_gcc_major_version -eq 6 ]]; then
     ${GIT_AM} ${srcdir}/0014-gcc-6-branch-clone_function_name_1-Retain-any-stdcall-suffix.patch
-  else
-    ${GIT_AM} ${srcdir}/0014-clone_function_name_1-Retain-any-stdcall-suffix.patch
+  elif [[ $_gcc_major_version -eq 5 ]]; then
+    ${GIT_AM} ${srcdir}/0014-gcc-5-branch-clone_function_name_1-Retain-any-stdcall-suffix.patch
   fi
   if [[ $_gcc_major_version -eq 6 ]]; then
     ${GIT_AM} ${srcdir}/0015-Force-linking-to-libgcc_s_dw2-1.dll-deprecated.patch
@@ -308,7 +460,9 @@ prepare() {
   if [[ $_gcc_major_version -eq 8 ]]; then
     ${GIT_AM} ${srcdir}/0019-gcc-8-branch-Backport-patches-for-std-filesystem-from-master.patch
   fi
-  ${GIT_AM} ${srcdir}/0020-libgomp-Don-t-hard-code-MS-printf-attributes.patch
+  if [[ $_gcc_major_version -gt 5 ]]; then
+    ${GIT_AM} ${srcdir}/0020-libgomp-Don-t-hard-code-MS-printf-attributes.patch
+  fi
   if [[ $_gcc_major_version -gt 11 ]]; then
     ${GIT_AM} ${srcdir}/0021-PR14940-Allow-a-PCH-to-be-mapped-to-a-different-addr.patch
   fi
@@ -319,7 +473,7 @@ prepare() {
     ${GIT_AM} ${srcdir}/0140-gcc-12-diagnostic-color.patch
   elif [[ $_gcc_major_version -gt 7 ]]; then
     apply_patch_with_msg 0140-gcc-8.2.0-diagnostic-color.patch
-  else
+  elif [[ $_gcc_major_version -gt 4 ]]; then
     apply_patch_with_msg 0140-gcc-7-diagnostic-color.patch
   fi
 
@@ -345,23 +499,27 @@ prepare() {
     ${GIT_AM} ${srcdir}/1002-libgomp-don-t-use-GOMP_USE_ALIGNED_WORK_SHARES-on-Wi.patch
   fi
 
-  # Patch 9001 allows GCC 10 to build GCC 9
   if [[ "$_enable_ada" == "yes" ]]; then
     if [[ "$_enable_backstrap_ada" == "yes" && $_gcc_major_version -eq 9 ]]; then
-      ${GIT_AM} ${srcdir}/9001-gcc-10-to-9-ada-build-fix.patch
+      ${GIT_AM} ${srcdir}/9001-Ada-build-fix-for-GCC-10-building-GCC-9.patch
     fi
     if [[ "$_enable_backstrap_ada" == "yes" && $_gcc_major_version -eq 7 ]]; then
       ${GIT_AM} ${srcdir}/9002-Ada-build-fix-for-GCC-8-building-GCC-7.patch
     fi
+    if [[ "$_enable_backstrap_ada" == "yes" && $_gcc_major_version -eq 4 ]]; then
+      #echo "_gcc_version := $_gcc_version"
+      #echo "${_gcc_version:0:3}"
+      if [[ "${_gcc_version:0:3}" == "4.9" ]]; then
+        ${GIT_AM} ${srcdir}/9003-Ada-build-fix-for-GCC-5-building-GCC-4.9.patch
+      fi
+      if [[ "${_gcc_version:0:3}" == "4.7" ]]; then
+        ${GIT_AM} ${srcdir}/9004-Ada-build-fix-for-GCC-4.9-building-GCC-4.7.patch
+      fi
+      #if [[ "${_gcc_version:0:3}" == "4.6" ]]; then
+        #${GIT_AM} ${srcdir}/9004-Ada-build-fix-for-GCC-4.9-building-GCC-4.7.patch
+      #fi
+    fi
   fi
-
-  # Reset past sed and apply_patch_with_msg changes; do refresh at end
-  git reset --no-refresh -- libgcc/Makefile.in
-  git reset --no-refresh -- configure
-  git reset              -- gcc/config/i386/mingw32.h
-
-  #cp ${srcdir}/libgnarl-${_gcc_major_version}.dll.def ${srcdir}/${_sourcedir}/gcc/ada/
-  #cp ${srcdir}/libgnat-${_gcc_major_version}.dll.def  ${srcdir}/${_sourcedir}/gcc/ada/
 
   if [[ $_gcc_major_version -lt 11 && $_gcc_major_version -gt 9 ]]; then
     apply_patch_with_msg 0015-makedeps-properly-handle-win-paths.patch
@@ -369,7 +527,7 @@ prepare() {
 
   if [[ $_gcc_major_version -eq 7 ]]; then
     apply_patch_with_msg 0100-gcc-4.8-libstdc++export.patch
-    apply_patch_with_msg 0110-gcc-4.7-stdthreads.patch
+    apply_patch_with_msg 125-gcc-4.7-stdthreads.patch
     apply_patch_with_msg 0170-gcc-7-Enable-std-experimental-filesystem.patch
   fi
 
@@ -381,28 +539,34 @@ prepare() {
     apply_patch_with_msg 0150-gcc-10.2.0-libgcc-ldflags.patch
   #fi
 
-  if [[ $_gcc_major_version -lt 11 ]]; then
+  if [[ $_gcc_major_version -lt 11 && $_gcc_major_version -gt 4 ]]; then
     apply_patch_with_msg 0160-libbacktrace-seh.patch
   fi
-  
+
+  #apply_patch_with_msg 0820-libiberty-mingw-host-shared.patch
+
   # do not expect $prefix/mingw symlink - this should be superceded by
   # 0004-Windows-Don-t-ignore-native-system-header-dir.patch .. but isn't!
   sed -i 's|${prefix}/mingw/|${prefix}/|g' configure
 
   # change hardcoded /mingw prefix to the real prefix .. isn't this rubbish?
   # it might work at build time and could be important there but beyond that?!
-  local MINGW_NATIVE_PREFIX=$(cygpath -am ${INSTALL_PREFIX})
+  local MINGW_NATIVE_PREFIX=$(cygpath -am ${OPT_MINGW_PREFIX}${_include_sub_folder})
   sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/mingw32.h
 }
 
 build() {
-  [[ -d ${srcdir}/build-${MINGW_CHOST} ]] && rm -rf ${srcdir}/build-${MINGW_CHOST}
-  mkdir -p ${srcdir}/build-${MINGW_CHOST} && cd ${srcdir}/build-${MINGW_CHOST}
-
+  cd ${srcdir}/${_sourcedir}
+  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
+  echo "_gcc_version := $_gcc_version"
   _gcc_major_version=${_gcc_version%%.*}
+  echo "_gcc_major_version := $_gcc_major_version"
 
-  export PATH=${BUILD_PREFIX}/bin:$PATH
-  which gcc
+  [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
+  mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
+
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  echo "PATH := $PATH"
 
   declare -a extra_config
   if check_option "debug" "n"; then
@@ -448,12 +612,19 @@ build() {
   fi
   extra_config+=('--with-stage1-ldflags="-static-libstdc++"')
 
-  LDFLAGS+=" -Wl,--disable-dynamicbase"
-  if [ "${CARCH}" = 'x86_64' ]; then
-    LDFLAGS+=",--default-image-base-low"
-  fi
+  # Binutils 2.25 errors out on disable-dynamicbase
+  #LDFLAGS+=" -Wl,--disable-dynamicbase"
+  #if [ "${CARCH}" = 'x86_64' ]; then
+  #  LDFLAGS+=",--default-image-base-low"
+  #fi
 
-  local _languages="c,lto,c++"
+  local _languages="c,c++"
+  if [ "$_enable_lto" == "yes" ]; then
+    _languages+=",lto"
+    extra_config+=("--enable-lto")
+  else
+    extra_config+=("--disable-lto") 
+  fi
   if [ "$_enable_fortran" == "yes" ]; then
     _languages+=",fortran"
   fi
@@ -461,7 +632,7 @@ build() {
     _languages+=",ada"
   fi
 
-  if [[ "$_enable_ada" == "yes" && "$_enable_libada" == "no" ]]; then
+  if [[ "$_enable_ada" == "yes" && "$_enable_std_libada" == "no" ]]; then
     extra_config+=('--disable-libada')
   fi
 
@@ -473,43 +644,82 @@ build() {
     extra_config+=('--disable-libstdcxx')
   fi
 
+  if [[ "$_enable_threads" != "yes" ]]; then
+    extra_config+=('--disable-threads')
+    _enable_libatomic=no
+  else
+    if [[ "$_threads" == "posix" ]]; then
+      extra_config+=("--enable-threads=posix")
+    elif [[ "$_threads" == "win32" ]]; then
+      extra_config+=("--enable-threads=mcf")
+    elif [[ "$_threads" == "win32" ]]; then
+      extra_config+=("--enable-threads=mcf")
+    else
+      extra_config+=("--enable-threads=single")
+    fi
+  fi
+
+  if [[ $_gcc_major_version -eq 4 ]]; then
+    _enable_libatomic=no
+  fi
+  if [[ "$_enable_libatomic" != "yes" ]]; then
+    extra_config+=('--disable-libatomic')
+  else
+    extra_config+=('--enable-libatomic')
+  fi
+
+  if [ "$_enable_libgomp" == "yes" ]; then
+    extra_config+=("--enable-libgomp")
+  elif [ "$_enable_libgomp" == "no" ]; then
+    extra_config+=("--disable-libgomp")
+  fi
+
   if [[ $_gcc_major_version -gt 6 ]]; then
     extra_config+=('--enable-libstdcxx-filesystem-ts')
+  fi
+
+  if [[ $_gcc_major_version -gt 4 ]]; then
+    extra_config+=('--enable-graphite')
+  else
+    extra_config+=('--disable-graphite')
   fi
 
   # so libgomp DLL gets built despide static libdl
   export lt_cv_deplibs_check_method='pass_all'
 
   echo ""
-  echo "extra_config contains ${extra_config[@]}"
+  echo "OPT_MINGW_PREFIX := ${OPT_MINGW_PREFIX}"
+  echo ""
+  echo "OPT_MINGW_PACKAGE_PREFIX := ${OPT_MINGW_PACKAGE_PREFIX}"
   echo ""
   echo "LDFLAGS := ${LDFLAGS}"
   echo ""
+  echo "CPPFLAGS := ${CPPFLAGS}"
+  echo ""
+  echo "ADA_INCLUDE_PATH := ${ADA_INCLUDE_PATH}"
+  echo ""
+  echo "ADA_OBJECT_PATH := ${ADA_OBJECT_PATH}"
+  echo ""
+  echo "extra_config contains ${extra_config[@]}"
+  echo ""
 
-  CC=${BUILD_PREFIX}/bin/gcc \
-  CXX=${BUILD_PREFIX}/bin/g++ \
   ../${_sourcedir}/configure \
-    --prefix=${INSTALL_PREFIX} \
-    --with-local-prefix=${BUILD_PREFIX}/local \
+    --prefix=${OPT_MINGW_PREFIX} \
+    --with-local-prefix=${OPT_MINGW_PREFIX}/local \
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
-    --with-native-system-header-dir=${BUILD_PREFIX}/include \
-    --libexecdir=${INSTALL_PREFIX}/lib \
+    --with-native-system-header-dir=${OPT_MINGW_PREFIX}${_include_sub_folder}/include \
+    --libexecdir=${OPT_MINGW_PREFIX}/lib \
     --enable-bootstrap \
     --enable-checking=release \
     --with-arch=${_arch} \
     --with-tune=generic \
     --enable-languages=${_languages} \
     --enable-shared --enable-static \
-    --enable-libatomic \
-    --enable-threads=${_threads} \
-    --enable-graphite \
     --enable-fully-dynamic-string \
     --enable-libstdcxx-time \
     --disable-libstdcxx-pch \
-    --enable-lto \
-    --enable-libgomp \
     --disable-multilib \
     --disable-rpath \
     --disable-win32-registry \
@@ -518,7 +728,7 @@ build() {
     --disable-symvers \
     --with-libiconv \
     --with-system-zlib \
-    --with-{gmp,mpfr,mpc,isl}=${BUILD_PREFIX} \
+    --with-{gmp,mpfr,mpc}=${OPT_MINGW_PREFIX} \
     --with-pkgversion="Rev ${pkgver##*.g}-${pkgrel}, Built by stahta01" \
     --with-bugurl="https://github.com/stahta01/mingw64_gcc_msys2_packages/issues" \
     --with-gnu-as --with-gnu-ld \
@@ -533,20 +743,20 @@ build() {
 
   make V=1 all --jobs=1
 
-  rm -rf ${srcdir}${INSTALL_PREFIX}
+  rm -rf ${srcdir}${OPT_MINGW_PREFIX}
 
   make -j1 DESTDIR=${srcdir} install
-  if [ "$_enable_libada" == "yes" ]; then
-    mv ${srcdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib/*.dll ${srcdir}${INSTALL_PREFIX}/bin/
+  if [ "$_enable_std_libada" == "yes" ]; then
+    mv ${srcdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib/*.dll ${srcdir}${OPT_MINGW_PREFIX}/bin/
   fi
 }
 
 package_gcc-libs-git() {
   pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
-  depends=("${MINGW_PACKAGE_PREFIX}-gmp"
-           "${MINGW_PACKAGE_PREFIX}-mpc"
-           "${MINGW_PACKAGE_PREFIX}-mpfr"
-           "${MINGW_PACKAGE_PREFIX}-libwinpthread")
+  depends=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  if [[ "$_enable_threads" == "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread")
+  fi
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs"
             "${OPT_MINGW_PACKAGE_PREFIX}-libssp")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
@@ -559,132 +769,148 @@ package_gcc-libs-git() {
   license=(GPL3+ partial:'GCCRLE' partial:'LGPL2+')
 
   # We explain the licensing in this generated README file
-  mkdir -p "${pkgdir}${INSTALL_PREFIX}/share/licenses/${_realname}-libs"
-  cat << ENDFILE > "${pkgdir}${INSTALL_PREFIX}/share/licenses/${_realname}-libs/README"
+  mkdir -p "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}-libs"
+  cat << ENDFILE > "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}-libs/README"
 The libgcc, libssp, libstdc++, libgomp and libatomic libraries are covered by
 GPL3+ with the GCC Runtime Library Exception. The libquadmath library is covered
 by LGPL2+. The package as a whole can be redistributed under GPL3+.
 ENDFILE
 
   # License files
-  install -Dm644 "${srcdir}/${_sourcedir}/COPYING3"        "${pkgdir}${INSTALL_PREFIX}/share/licenses/${_realname}-libs/COPYING3"
-  install -Dm644 "${srcdir}/${_sourcedir}/COPYING.LIB"     "${pkgdir}${INSTALL_PREFIX}/share/licenses/${_realname}-libs/COPYING.LIB"
-  install -Dm644 "${srcdir}/${_sourcedir}/COPYING.RUNTIME" "${pkgdir}${INSTALL_PREFIX}/share/licenses/${_realname}-libs/COPYING.RUNTIME"
+  install -Dm644 "${srcdir}/${_sourcedir}/COPYING3"        "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}-libs/COPYING3"
+  install -Dm644 "${srcdir}/${_sourcedir}/COPYING.LIB"     "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}-libs/COPYING.LIB"
+  install -Dm644 "${srcdir}/${_sourcedir}/COPYING.RUNTIME" "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}-libs/COPYING.RUNTIME"
 
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/bin
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/bin
 
-  cd ${srcdir}${INSTALL_PREFIX}
+  cd ${srcdir}${OPT_MINGW_PREFIX}
   # libitm* and libvtv* are disbled until fixed
-  cp bin/{libatomic*,libgcc*,libgomp*,libssp*}.dll ${pkgdir}${INSTALL_PREFIX}/bin/
+  cp bin/{libgcc*,libssp*}.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   if [[ "$_enable_libquadmath" == "yes" ]]; then
-    cp bin/libquadmath*.dll ${pkgdir}${INSTALL_PREFIX}/bin/
+    cp bin/libquadmath*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
   if [[ "$_enable_libstdcxx" == "yes" ]]; then
-    cp bin/libstdc*.dll ${pkgdir}${INSTALL_PREFIX}/bin/
+    cp bin/libstdc*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  fi
+  if [[ "$_enable_threads" == "yes" ]]; then
+    cp bin/libgomp*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  fi
+  if [[ "$_enable_libatomic" == "yes" ]]; then
+    cp bin/libatomic*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
 }
 
 package_gcc-git() {
   pkgdesc="GNU Compiler Collection (C,C++,OpenMP) for MinGW-w64"
   depends=("${OPT_MINGW_PACKAGE_PREFIX}-binutils"
-           "${MINGW_PACKAGE_PREFIX}-crt"
+           "${OPT_MINGW_PACKAGE_PREFIX}-crt"
            "${OPT_MINGW_PACKAGE_PREFIX}-headers"
-           "${MINGW_PACKAGE_PREFIX}-isl"
-           "${MINGW_PACKAGE_PREFIX}-libiconv"
-           "${MINGW_PACKAGE_PREFIX}-mpc"
+           "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
+           "${OPT_MINGW_PACKAGE_PREFIX}-gmp"
            "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}"
-           "${MINGW_PACKAGE_PREFIX}-windows-default-manifest"
-           "${MINGW_PACKAGE_PREFIX}-winpthreads"
-           "${MINGW_PACKAGE_PREFIX}-zlib"
-           "${MINGW_PACKAGE_PREFIX}-zstd")
+           "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
+           "${OPT_MINGW_PACKAGE_PREFIX}-zlib")
+  if [[ "$_enable_threads" == "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
+  fi
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
             "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-base"
             "${OPT_MINGW_PACKAGE_PREFIX}-cc")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
              "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-base")
 
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/{bin,include,lib,share}
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/{bin,include,lib,share}
 
-  cd ${srcdir}${INSTALL_PREFIX}
-  cp bin/cpp.exe                                        ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/gcc.exe                                        ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/gcc.exe                                        ${pkgdir}${INSTALL_PREFIX}/bin/cc.exe
-  cp bin/gcc-ar.exe                                     ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/gcc-nm.exe                                     ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/gcc-ranlib.exe                                 ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/gcov.exe                                       ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/gcov-tool.exe                                  ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/c++.exe                                        ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/g++.exe                                        ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/${MINGW_CHOST}-c++.exe                         ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/${MINGW_CHOST}-g++.exe                         ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/${MINGW_CHOST}-gcc-${pkgver%%+*}.exe           ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/${MINGW_CHOST}-gcc.exe                         ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/${MINGW_CHOST}-gcc-ar.exe                      ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/${MINGW_CHOST}-gcc-nm.exe                      ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/${MINGW_CHOST}-gcc-ranlib.exe                  ${pkgdir}${INSTALL_PREFIX}/bin/
-
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include
-  if [[ "$_enable_libstdcxx" == "yes" ]]; then
-    cp -r include/c++                                         ${pkgdir}${INSTALL_PREFIX}/include/
+  cd ${srcdir}${OPT_MINGW_PREFIX}
+  cp bin/cpp.exe                                        ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/gcc.exe                                        ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/gcc.exe                                        ${pkgdir}${OPT_MINGW_PREFIX}/bin/cc.exe
+  cp bin/gcc-ar.exe                                     ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/gcc-nm.exe                                     ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/gcc-ranlib.exe                                 ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/gcov.exe                                       ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  if [[ $_gcc_major_version -gt 4 ]]; then
+    cp bin/gcov-tool.exe                                ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/*.h         ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/
-  cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/ssp      ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/
-  cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include-fixed    ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/install-tools    ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp bin/c++.exe                                        ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/g++.exe                                        ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/${MINGW_CHOST}-c++.exe                         ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/${MINGW_CHOST}-g++.exe                         ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/${MINGW_CHOST}-gcc-${pkgver%%+*}.exe           ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/${MINGW_CHOST}-gcc.exe                         ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/${MINGW_CHOST}-gcc-ar.exe                      ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/${MINGW_CHOST}-gcc-nm.exe                      ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/${MINGW_CHOST}-gcc-ranlib.exe                  ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include
+  if [[ "$_enable_libstdcxx" == "yes" ]]; then
+    cp -r include/c++                                         ${pkgdir}${OPT_MINGW_PREFIX}/include/
+  fi
+  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/*.h         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/
+  cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/ssp      ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/
+  cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include-fixed    ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/install-tools    ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   if [[ "$_enable_gcc_plugin" == "yes" ]]; then
-    cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/plugin         ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+    cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/plugin         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/cc1.exe             ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/collect2.exe        ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/crt*.o              ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/liblto*             ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libgcov*            ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/lto*.exe            ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/cc1plus.exe         ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/cc1.exe             ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/collect2.exe        ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/crt*.o              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  if [ "$_enable_lto" == "yes" ]; then
+    cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/liblto*           ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  fi
+  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libgcov*            ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/lto*.exe            ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/cc1plus.exe         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
 
-  cp lib/libatomic*                                           ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/libgcc*                                              ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libgcc*             ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  if [[ "$_enable_libatomic" == "yes" ]]; then
+    cp lib/libatomic*                                         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  fi
+  cp lib/libgcc*                                              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libgcc*             ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
 
-  cp lib/libgomp*                                             ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  #cp lib/libitm*                                              ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  if [[ "$_enable_threads" == "yes" ]]; then
+    cp lib/libgomp*                                           ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  fi
+  #cp lib/libitm*                                              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   if [[ "$_enable_libquadmath" == "yes" ]]; then
-    cp lib/libquadmath*                                       ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+    cp lib/libquadmath*                                       ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
-  cp lib/libssp*                                              ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  #cp lib/libvtv*                                              ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp lib/libssp*                                              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  #cp lib/libvtv*                                              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   if [[ "$_enable_libstdcxx" == "yes" ]]; then
-    cp lib/libstdc++*                                         ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-    cp lib/libsupc++*                                         ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+    cp lib/libstdc++*                                         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+    cp lib/libsupc++*                                         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/share/{doc,info,locale,man}
-  #cp -r share/doc/gcc-${pkgver%%+*} ${pkgdir}${INSTALL_PREFIX}/share/doc/
-  cp share/info/cpp.info*                                ${pkgdir}${INSTALL_PREFIX}/share/info/
-  cp share/info/cppinternals.info*                       ${pkgdir}${INSTALL_PREFIX}/share/info/
-  cp share/info/gcc.info*                                ${pkgdir}${INSTALL_PREFIX}/share/info/
-  cp share/info/gccinstall.info*                         ${pkgdir}${INSTALL_PREFIX}/share/info/
-  cp share/info/gccint.info*                             ${pkgdir}${INSTALL_PREFIX}/share/info/
-  #cp share/info/libitm.info*                             ${pkgdir}${INSTALL_PREFIX}/share/info/
-  cp share/info/libgomp.info*                            ${pkgdir}${INSTALL_PREFIX}/share/info/
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/share/{doc,info,locale,man}
+  #cp -r share/doc/gcc-${pkgver%%+*} ${pkgdir}${OPT_MINGW_PREFIX}/share/doc/
+  cp share/info/cpp.info*                                ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
+  cp share/info/cppinternals.info*                       ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
+  cp share/info/gcc.info*                                ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
+  cp share/info/gccinstall.info*                         ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
+  cp share/info/gccint.info*                             ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
+  #cp share/info/libitm.info*                             ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
+  if [[ "$_enable_threads" == "yes" ]]; then
+    cp share/info/libgomp.info*                          ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
+  fi
   if [[ "$_enable_libquadmath" == "yes" ]]; then
-    cp share/info/libquadmath.info*                      ${pkgdir}${INSTALL_PREFIX}/share/info/
+    cp share/info/libquadmath.info*                      ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
   fi
 
-  #cp share/locale/* ${pkgdir}${INSTALL_PREFIX}/share/locale/
+  #cp share/locale/* ${pkgdir}${OPT_MINGW_PREFIX}/share/locale/
   if [[ "$_enable_libstdcxx" == "yes" ]]; then
-    mkdir -p ${pkgdir}${INSTALL_PREFIX}/share/gcc-${pkgver%%+*}/python
-    cp -r share/gcc-${pkgver%%+*}/python/libstdcxx       ${pkgdir}${INSTALL_PREFIX}/share/gcc-${pkgver%%+*}/python/
+    mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/share/gcc-${pkgver%%+*}/python
+    cp -r share/gcc-${pkgver%%+*}/python/libstdcxx       ${pkgdir}${OPT_MINGW_PREFIX}/share/gcc-${pkgver%%+*}/python/
   fi
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/share/man/man1
-  cp share/man/man1/cpp.1*                               ${pkgdir}${INSTALL_PREFIX}/share/man/man1/
-  cp share/man/man1/gcc.1*                               ${pkgdir}${INSTALL_PREFIX}/share/man/man1/
-  cp share/man/man1/gcov.1*                              ${pkgdir}${INSTALL_PREFIX}/share/man/man1/
-  cp share/man/man7/fsf-funding.7*                       ${pkgdir}${INSTALL_PREFIX}/share/man/man1/
-  cp share/man/man7/gfdl.7*                              ${pkgdir}${INSTALL_PREFIX}/share/man/man1/
-  cp share/man/man7/gpl.7*                               ${pkgdir}${INSTALL_PREFIX}/share/man/man1/
-  cp share/man/man1/g++.1*                               ${pkgdir}${INSTALL_PREFIX}/share/man/man1/
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1
+  cp share/man/man1/cpp.1*                               ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
+  cp share/man/man1/gcc.1*                               ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
+  cp share/man/man1/gcov.1*                              ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
+  cp share/man/man7/fsf-funding.7*                       ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
+  cp share/man/man7/gfdl.7*                              ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
+  cp share/man/man7/gpl.7*                               ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
+  cp share/man/man1/g++.1*                               ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
 }
 
 package_gcc-libgfortran-git() {
@@ -693,9 +919,9 @@ package_gcc-libgfortran-git() {
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libgfortran")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libgfortran")
 
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/bin
-  cd ${srcdir}${INSTALL_PREFIX}
-  cp bin/libgfortran*.dll                                ${pkgdir}${INSTALL_PREFIX}/bin/
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/bin
+  cd ${srcdir}${OPT_MINGW_PREFIX}
+  cp bin/libgfortran*.dll                                ${pkgdir}${OPT_MINGW_PREFIX}/bin/
 }
 
 package_gcc-fortran-git() {
@@ -705,21 +931,21 @@ package_gcc-fortran-git() {
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran")
 
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/{bin,lib,share}
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/{bin,lib,share}
 
-  cd ${srcdir}${INSTALL_PREFIX}
-  cp bin/gfortran.exe ${pkgdir}${INSTALL_PREFIX}/bin/
-  cp bin/${MINGW_CHOST}-gfortran.exe ${pkgdir}${INSTALL_PREFIX}/bin/
+  cd ${srcdir}${OPT_MINGW_PREFIX}
+  cp bin/gfortran.exe ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  cp bin/${MINGW_CHOST}-gfortran.exe ${pkgdir}${OPT_MINGW_PREFIX}/bin/
 
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}
-  cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/finclude        ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/f951.exe           ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libcaf_single.a    ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/libgfortran*                                        ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/share/man/man1
-  cp share/man/man1/gfortran.1*                         ${pkgdir}${INSTALL_PREFIX}/share/man/man1/
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/share/info
-  cp share/info/gfortran.info*                          ${pkgdir}${INSTALL_PREFIX}/share/info/
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}
+  cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/finclude        ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/f951.exe           ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libcaf_single.a    ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  cp lib/libgfortran*                                        ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1
+  cp share/man/man1/gfortran.1*                         ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/share/info
+  cp share/info/gfortran.info*                          ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
 }
 
 package_gcc-ada-git() {
@@ -728,30 +954,30 @@ package_gcc-ada-git() {
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
 
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/{bin,lib,share}
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/{bin,lib,share}
 
-  cd ${srcdir}${INSTALL_PREFIX}
+  cd ${srcdir}${OPT_MINGW_PREFIX}
 
-  cp bin/gnat*.exe                                          ${pkgdir}${INSTALL_PREFIX}/bin/
-  if [ "$_enable_libada" == "yes" ]; then
-    cp bin/{libgnarl*,libgnat*}.dll                           ${pkgdir}${INSTALL_PREFIX}/bin/
+  cp bin/gnat*.exe                                          ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  if [ "$_enable_std_libada" == "yes" ]; then
+    cp bin/{libgnarl*,libgnat*}.dll                           ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
 
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/gnat1.exe         ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}
+  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/gnat1.exe         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
 
-  if [ "$_enable_libada" == "yes" ]; then
-    cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adainclude     ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  if [ "$_enable_std_libada" == "yes" ]; then
+    cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adainclude     ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
-  if [ "$_enable_libada" == "yes" ]; then
-    cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib         ${pkgdir}${INSTALL_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  if [ "$_enable_std_libada" == "yes" ]; then
+    cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
-  mkdir -p ${pkgdir}${INSTALL_PREFIX}/share/info
-  cp share/info/gnat-style.info*                        ${pkgdir}${INSTALL_PREFIX}/share/info/
-  cp share/info/gnat_rm.info*                           ${pkgdir}${INSTALL_PREFIX}/share/info/
-  cp share/info/gnat_ugn.info*                          ${pkgdir}${INSTALL_PREFIX}/share/info/
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/share/info
+  cp share/info/gnat-style.info*                        ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
+  cp share/info/gnat_rm.info*                           ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
+  cp share/info/gnat_ugn.info*                          ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
 }
 
 # template start; name=mingw-w64-splitpkg-wrappers; version=1.0;
