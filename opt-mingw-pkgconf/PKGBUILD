@@ -1,0 +1,77 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Ilya Rakhlin <i.rakhlin@gmail.com>
+
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+
+_realname=pkgconf
+pkgbase=opt-mingw-${_realname}
+pkgname="${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=1.9.3
+pkgrel=1
+pkgdesc='pkg-config compatible utility which does not depend on glib'
+url='https://github.com/pkgconf/pkgconf'
+arch=('any')
+mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
+license=('ISC')
+options=('!debug' 'strip')
+provides=("${OPT_MINGW_PACKAGE_PREFIX}-pkg-config")
+conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-pkg-config")
+makedepends=("${MINGW_PACKAGE_PREFIX}-meson" "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
+source=("https://github.com/pkgconf/pkgconf/archive/refs/tags/$_realname-$pkgver.tar.gz"
+        0002-size-t-format.patch
+        0003-printf-format.patch
+        0004-default-pure-static.patch)
+sha256sums=('e8b637c0dd8ae1decbcc95b24b64795cba81a8e3064fddb4424cacef411e59f9'
+            '1db5975d6b1db946ba1d71cc3cf390dec567899a89d7ef53f56f24f0058cdbe3'
+            'a7efeef61b4af1c0813d9d8a211cde669a3e3fa2c97ed21e55487667769c567a'
+            '93a4aa1475122d16b6ac8a84f771e004e1a53e1df982d3dd069b262c9815ebb4')
+
+prepare() {
+  mv "${_realname}-${_realname}-${pkgver}" "${_realname}-${pkgver}"
+  cd ${srcdir}/$_realname-$pkgver
+
+  # https://github.com/msys2/MINGW-packages/issues/8473
+  patch -R -p1 -i ${srcdir}/0004-default-pure-static.patch
+
+  patch -p1 -i ${srcdir}/0002-size-t-format.patch
+  patch -p1 -i ${srcdir}/0003-printf-format.patch
+}
+
+build() {
+  [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
+  mkdir ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
+
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
+  declare -a _extra_config
+  if check_option "debug" "n"; then
+    _extra_config+=("--buildtype=release")
+  else
+    _extra_config+=("--buildtype=debug")
+  fi
+
+  MSYS2_ARG_CONV_EXCL="--prefix=" \
+  ${MINGW_PREFIX}/bin/meson \
+    --prefix="${OPT_MINGW_PREFIX}" \
+    ${_extra_config[@]} \
+    -Dtests=false \
+    ../${_realname}-${pkgver}
+
+  ${MINGW_PREFIX}/bin/meson compile
+}
+
+package() {
+  cd ${srcdir}/build-${MSYSTEM}
+
+  DESTDIR="${pkgdir}" ${MINGW_PREFIX}/bin/meson install
+
+  cp "${pkgdir}${OPT_MINGW_PREFIX}"/bin/pkgconf "${pkgdir}${OPT_MINGW_PREFIX}"/bin/pkg-config
+  cp "${pkgdir}${OPT_MINGW_PREFIX}"/bin/pkgconf "${pkgdir}${OPT_MINGW_PREFIX}"/bin/${MINGW_CHOST}-pkgconf
+  cp "${pkgdir}${OPT_MINGW_PREFIX}"/bin/pkg-config "${pkgdir}${OPT_MINGW_PREFIX}"/bin/${MINGW_CHOST}-pkg-config
+}
