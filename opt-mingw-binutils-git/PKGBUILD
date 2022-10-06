@@ -1,0 +1,135 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Ray Donnelly <mingw.android@gmail.com>
+
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+
+_realname=binutils
+_sourcedir=${_realname}-git
+_base_ver=2.25
+pkgbase=opt-mingw-${_realname}-git
+pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
+pkgver=2.25.r5.001a073344e5
+pkgrel=1
+provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}=${pkgver}")
+conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgdesc="A set of programs to assemble and manipulate binary and object files"
+arch=('any')
+url="https://www.gnu.org/software/binutils/"
+license=('GPL')
+groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
+depends=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
+         "${OPT_MINGW_PACKAGE_PREFIX}-gettext-runtime"
+         "${OPT_MINGW_PACKAGE_PREFIX}-zlib")
+#checkdepends=('dejagnu' 'bc')
+makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv" "${OPT_MINGW_PACKAGE_PREFIX}-zlib" "git")
+options=('staticlibs' '!distcc' '!ccache' 'debug' '!strip')
+#install=binutils.install
+source=("${_sourcedir}"::"git+https://sourceware.org/git/binutils-gdb.git#branch=${_realname}-${_base_ver//./_}-branch"
+        0001-MinGW-w64-Two-fixes-for-unusual-files.patch
+        0002-MinGW-w64-Fix-libiberty-makefile.patch
+        0003-MinGW-w64-Fix-libibery-configure.patch
+        0004-MinGW-w64-Use-gnu-printf.patch
+        0005-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch)
+sha256sums=('SKIP'
+            '6f3b8bdaa41b3d2a7ab98fb819872fa988ebab580daf21522c32012530465e95'
+            '5b65eb12154216ccef02c93417468fedd2dd6b9029bb392e5616793136c1abb4'
+            '80a0934e863a211b4d76dcf24e8d61841b06d1f8094f3d657d46e337cae6c7f4'
+            '824d4cd28976127e0164216c0770bcad0aea29c95805e1e883f93a2cfc4ace3c'
+            'bd38317b28b894d5c0e0ba043fc2445af415f6e96bb9ac93c348748d21a43625')
+# =========================================== #
+_git_base_commit=
+
+pkgver() {
+  cd "$srcdir/$_sourcedir"
+  printf "%s.r%s.%s" "${_base_ver}" "$(git rev-list --count ${_git_base_commit}..HEAD)" "$(git rev-parse --short=12 HEAD)"
+}
+
+prepare() {
+  cd ${srcdir}/${_sourcedir}
+
+  _git_base_commit=$(git rev-parse HEAD)
+  GIT_AM="git am --committer-date-is-author-date"
+  ${GIT_AM} "${srcdir}"/0001-MinGW-w64-Two-fixes-for-unusual-files.patch
+  ${GIT_AM} "${srcdir}"/0002-MinGW-w64-Fix-libiberty-makefile.patch
+  ${GIT_AM} "${srcdir}"/0003-MinGW-w64-Fix-libibery-configure.patch
+  ${GIT_AM} "${srcdir}"/0004-MinGW-w64-Use-gnu-printf.patch
+  ${GIT_AM} "${srcdir}"/0005-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch
+  rm -rf gdb readline libdecnumber sim
+}
+
+build() {
+  if [ "${CARCH}" = "x86_64" ]; then
+    local _conf='--enable-64-bit-bfd'
+  else
+    local _conf=''
+    LDFLAGS+=" -Wl,--large-address-aware"
+  fi
+
+  if check_option "debug" "y"; then
+    CFLAGS+=" -O0"
+  fi
+
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
+  cd $srcdir
+  rm -rf build-${MSYSTEM}
+  mkdir -p build-${MSYSTEM} && cd build-${MSYSTEM}
+  ../${_sourcedir}/configure \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --target=${MINGW_CHOST} \
+    --prefix=${OPT_MINGW_PREFIX} \
+    --disable-werror \
+    --enable-lto \
+    --with-sysroot=${OPT_MINGW_PREFIX} \
+    --with-libiconv-prefix=${OPT_MINGW_PREFIX} \
+    $_conf \
+    --enable-nls \
+    --disable-rpath \
+    --disable-multilib \
+    --enable-install-libiberty \
+    --enable-plugins \
+    --enable-gold \
+    --disable-shared
+
+  make
+}
+
+check() {
+  cd ${srcdir}/build-${MSYSTEM}
+
+  # unset LDFLAGS as testsuite makes assumptions about which ones are active
+  # do not abort on errors - manually check log files
+  make LDFLAGS="" -k check || true
+}
+
+package() {
+  cd ${srcdir}/build-${MSYSTEM}
+
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
+  make DESTDIR=${pkgdir} install
+
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/{lib,include}/${_realname}
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include
+  cp ${pkgdir}${OPT_MINGW_PREFIX}/include/ansidecl.h ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/
+  mv ${pkgdir}${OPT_MINGW_PREFIX}/include/*.h ${pkgdir}${OPT_MINGW_PREFIX}/include/${_realname}
+  mv ${pkgdir}${OPT_MINGW_PREFIX}/lib/*.a ${pkgdir}${OPT_MINGW_PREFIX}/lib/${_realname}
+
+  # Remove unwanted files
+  find ${pkgdir}${OPT_MINGW_PREFIX}/share/locale -type f -iname "bfd.*" -o -iname "opcodes.*" | xargs -rtl1 rm
+  # rm -rf ${pkgdir}${OPT_MINGW_PREFIX}/share
+  rm -f ${pkgdir}${OPT_MINGW_PREFIX}/share/info/dir
+
+  # Add some useful headers
+  #install -m644 ${srcdir}/${_realname}-${pkgver}/include/libiberty.h ${pkgdir}${OPT_MINGW_PREFIX}/include
+  #install -m644 ${srcdir}/${_realname}-${pkgver}/include/demangle.h ${pkgdir}${OPT_MINGW_PREFIX}/include
+
+  find  ${pkgdir}${OPT_MINGW_PREFIX}/share -type f -iname "opcodes.mo" -o -iname "bfd.mo" | xargs -rtl1 rm
+}
