@@ -20,15 +20,16 @@ _enable_fortran=no
 _enable_ada=yes           # Use yes for production
 _enable_lto=no            # Use yes for production
 
-_enable_threads=yes       # Use yes for production
+_enable_threads=no       # Use yes for production
 _threads="posix"
 _enable_libstdcxx=yes     # Use yes for production
 _enable_libquadmath=no
 _enable_std_libada=yes    # Use yes for production
 _enable_libatomic=no
 
+_use_system_gmp_mpfr_mpc=no
 _enable_gcc_plugin=no
-_enable_bootstrap=yes     # Use yes for production
+_enable_bootstrap=no     # Use yes for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
 _enable_backstrap_ada=no  # Use no for production
@@ -78,29 +79,10 @@ options=('staticlibs' '!emptydirs' '!strip' '!debug') # development options
 ### ICE means Internal Compiler Error
 ## graphite requires CLOOG in GCC 4.9;
 #   disabled graphite below GCC version 5.
-#_git_branch=releases/gcc-4.6  # TODO
-#_git_branch=releases/gcc-4.7  # ICE when built using GCC 4.9+
-#911595bf2d485c0d1e067d9a94a867d9b8281502 (tag: releases/gcc-4.7.3)
-#b058453f82a5dab2304c3ddf1ce646eaa748a475 (tag: releases/gcc-4.7.2)
-#edc56cde5124be76dd6ae3baff9eeb1fb61a1c41 (tag: releases/gcc-4.7.1)
-#ae02e369d7a25c78527e89ca132ec1909902631d (tag: releases/gcc-4.7.0)
-#_git_branch=releases/gcc-4.8  # Failed to build itself and failed in bootstrap mode; possible CRT issue.
-# 4.8.4
-#_git_commit=b70261df79330539a127c5bee7b4bf61cf029dd5 # (tag: releases/gcc-4.8.3) ICE New location/info
-#_git_commit=3cf2083d636bab3e3a6e91e8b0a0ca1244dff722 # (tag: releases/gcc-4.8.2) ICE
-#_git_commit=6c53ef36e5bfe222e9786cd0b2afe90784a8a43d # (tag: releases/gcc-4.8.1)
-#_git_commit=372a443092ee1656c6d866a16e6da6df32b1f71d # (tag: releases/gcc-4.8.0)
+#_git_branch=releases/gcc-4.6  # gnatbind: invalid switch: -C
+#_git_branch=releases/gcc-4.7  # built okay with CRT6 and binutils 2.25; but, fails to build binutils 2.25
+#_git_branch=releases/gcc-4.8  # built okay with CRT6 and binutils 2.25
  _git_branch=releases/gcc-4.9  # built okay
-#_git_tag=releases/gcc-4.9.4   # invalid/forged tag
-#_git_commit=4f18db57daffc62a373e30d93c9552f2b94adf09 # built and installed okay
-#_git_tag=releases/gcc-4.9.3   #
-#_git_commit=52d80075bc3cc4270756284258400a116528ea7c # built and installed okay
-#_git_tag=releases/gcc-4.9.2   #
-#_git_commit=c8be0366b55cdb3233abcf79abe2c5ddc6f82cb9 # built and installed okay
-#_git_tag=releases/gcc-4.9.1   #
-#_git_commit=fc567ceb717bbcfc3ae0a02a193bcb34d95362ee # built and installed okay
-#_git_tag=releases/gcc-4.9.0   #
-#_git_commit=ade89f291493b5e697047441c1193e5fc8278d3e # built and installed okay
 #_git_branch=releases/gcc-5    # Cannot use system built ISL 0.25
 #_git_branch=releases/gcc-6    # Can use system built ISL 0.25
 #_git_branch=releases/gcc-7    # Important version for building gcc-ada
@@ -133,10 +115,10 @@ makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-cc"
              "${OPT_MINGW_PACKAGE_PREFIX}-binutils"
              "${OPT_MINGW_PACKAGE_PREFIX}-crt"
              "${OPT_MINGW_PACKAGE_PREFIX}-headers"
-             "${OPT_MINGW_PACKAGE_PREFIX}-gmp"
              "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
-             "${OPT_MINGW_PACKAGE_PREFIX}-mpc"
-             "${OPT_MINGW_PACKAGE_PREFIX}-mpfr"
+             $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+             $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
+             $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
              "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
              $([[ "$_enable_threads" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
              "${OPT_MINGW_PACKAGE_PREFIX}-zlib")
@@ -144,8 +126,15 @@ makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-cc"
 optdepends=()
 
 ISL_VERSION=0.16.1
-noextract=("isl-${ISL_VERSION}.tar.bz2")
+MPFR_VERSION=2.4.2
+GMP_VERSION=4.3.2
+MPC_VERSION=0.8.1
+noextract=("isl-${ISL_VERSION}.tar.bz2" "mpfr-${MPFR_VERSION}.tar.bz2"
+           "gmp-${GMP_VERSION}.tar.bz2" "mpc-${MPC_VERSION}.tar.gz")
 source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
+        ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${MPFR_VERSION}.tar.bz2
+        ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${GMP_VERSION}.tar.bz2
+        ftp://gcc.gnu.org/pub/gcc/infrastructure/mpc-${MPC_VERSION}.tar.gz
         isl-0.12.1-msys2.patch
         isl-0.14.1-no-undefined.patch
         '0002-gcc-8-Relocate-libintl.patch'
@@ -210,7 +199,7 @@ source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
         '9001-Ada-build-fix-for-GCC-10-building-GCC-9.patch'
         '9002-Ada-build-fix-for-GCC-8-building-GCC-7.patch'
         '9003-Ada-build-fix-for-GCC-5-building-GCC-4.9.patch'
-        '9004-Ada-build-fix-for-GCC-4.9-building-GCC-4.7.patch')
+        '9004-Ada-build-fix-for-GCC-4.8-building-GCC-4.7.patch')
 if [ -n "$_git_commit" ]; then
   source+=(${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#commit=${_git_commit}")
 elif [ -n "$_git_tag" ]; then
@@ -220,6 +209,9 @@ else
 fi
 #
 sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
+            'c7e75a08a8d49d2082e4caee1591a05d11b9d5627514e678f02d66a124bcf2ba'
+            '936162c0312886c21581002b79932829aa048cfaf9937c6265aeaa14f1cd1775'
+            'e664603757251fd8a352848276497a4c79b7f8b21fd8aedd5cc0598a38fee3e4'
             '659430857ccd7429671ccdf6c8239be8eb8c53f9a4c279d4023fd6a4e2a9694f'
             '83655a7202f0a0dcce1782d4b365252bf1ad12a522b7ad82ab578ee5ec46433b'
             '2dd7498bcb25b41afcc458696386b456ee4ff440bf395519a23d1f945ba15a41'
@@ -342,6 +334,12 @@ prepare() {
   cd ${srcdir}
   rm -fr ${srcdir}/${_sourcedir}/isl
 
+  if [[ $_gcc_major_version -eq 4 ]]; then
+    _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
+    _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.bz2
+    _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
+  fi
+
   if [[ $_gcc_major_version -gt 4 ]]; then
     _extract_to_gcc_folder          isl-${ISL_VERSION}.tar.bz2
 
@@ -360,18 +358,22 @@ prepare() {
   _git_base_commit=$(git rev-parse HEAD)
   GIT_AM="git am --committer-date-is-author-date"
 
+  git am --abort || true
+
   if [[ $_gcc_major_version -eq 4 ]]; then
     ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
     ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
-    ${GIT_AM} ${srcdir}/125-gcc-4.7-stdthreads.patch
+    if [[ "${_gcc_version:0:3}" == "4.9" || "${_gcc_version:0:3}" == "4.8" || "${_gcc_version:0:3}" == "4.7" ]]; then
+      ${GIT_AM} ${srcdir}/125-gcc-4.7-stdthreads.patch
+      ${GIT_AM} ${srcdir}/133-gcc-4.7.0-mingw-dont-ignore-native-system-header-dir.patch
+      ${GIT_AM} ${srcdir}/137-gcc-4.9-Enable-shared-gnat-implib.patch
+    fi
     ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
     ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
-    ${GIT_AM} ${srcdir}/133-gcc-4.7.0-mingw-dont-ignore-native-system-header-dir.patch
     if [[ "${_gcc_version:0:3}" == "4.9" ]]; then
       # Fails on 4.8.2
       ${GIT_AM} ${srcdir}/134-gcc-4.8-Build-EXTRA_GNATTOOLS-for-Ada.patch
     fi
-    ${GIT_AM} ${srcdir}/137-gcc-4.9-Enable-shared-gnat-implib.patch
     ${GIT_AM} ${srcdir}/141-gcc-4.4-ktietz-libgomp.patch
     if [[ "${_gcc_version:0:3}" != "4.9" ]]; then
       ${GIT_AM} ${srcdir}/704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch
@@ -513,10 +515,10 @@ prepare() {
         ${GIT_AM} ${srcdir}/9003-Ada-build-fix-for-GCC-5-building-GCC-4.9.patch
       fi
       if [[ "${_gcc_version:0:3}" == "4.7" ]]; then
-        ${GIT_AM} ${srcdir}/9004-Ada-build-fix-for-GCC-4.9-building-GCC-4.7.patch
+        ${GIT_AM} ${srcdir}/9004-Ada-build-fix-for-GCC-4.8-building-GCC-4.7.patch
       fi
       #if [[ "${_gcc_version:0:3}" == "4.6" ]]; then
-        #${GIT_AM} ${srcdir}/9004-Ada-build-fix-for-GCC-4.9-building-GCC-4.7.patch
+        #${GIT_AM} ${srcdir}/9004-Ada-build-fix-for-GCC-4.8-building-GCC-4.7.patch
       #fi
     fi
   fi
@@ -674,6 +676,10 @@ build() {
     extra_config+=("--disable-libgomp")
   fi
 
+  if [ "$_use_system_gmp_mpfr_mpc" == "yes" ]; then
+    extra_config+=("--with-{gmp,mpfr,mpc}=${OPT_MINGW_PREFIX}")
+  fi
+
   if [[ $_gcc_major_version -gt 6 ]]; then
     extra_config+=('--enable-libstdcxx-filesystem-ts')
   fi
@@ -728,7 +734,6 @@ build() {
     --disable-symvers \
     --with-libiconv \
     --with-system-zlib \
-    --with-{gmp,mpfr,mpc}=${OPT_MINGW_PREFIX} \
     --with-pkgversion="Rev ${pkgver##*.g}-${pkgrel}, Built by stahta01" \
     --with-bugurl="https://github.com/stahta01/mingw64_gcc_msys2_packages/issues" \
     --with-gnu-as --with-gnu-ld \
@@ -753,7 +758,10 @@ build() {
 
 package_gcc-libs-git() {
   pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
-  depends=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  depends=()
+  if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread")
   fi
@@ -806,10 +814,12 @@ package_gcc-git() {
            "${OPT_MINGW_PACKAGE_PREFIX}-crt"
            "${OPT_MINGW_PACKAGE_PREFIX}-headers"
            "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
-           "${OPT_MINGW_PACKAGE_PREFIX}-gmp"
            "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}"
            "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
            "${OPT_MINGW_PACKAGE_PREFIX}-zlib")
+  if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
   fi
