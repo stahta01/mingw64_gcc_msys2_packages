@@ -1,0 +1,71 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Martell Malone <martellmalone@gmail.com>
+
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+
+_realname=tools
+pkgbase=opt-mingw-${_realname}-git
+pkgname="${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
+provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=10.0.0.r83.gad45df377
+pkgrel=1
+_commit='ad45df377c697186eac4d6816abfc23175f0c5db'
+pkgdesc="MinGW-w64 tools"
+arch=('any')
+mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
+url="https://mingw-w64.sourceforge.io/"
+license=('custom')
+groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
+makedepends=("git" "${OPT_MINGW_PACKAGE_PREFIX}-cc" "${OPT_MINGW_PACKAGE_PREFIX}-libmangle" "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+depends=("${OPT_MINGW_PACKAGE_PREFIX}-gcc-libs")
+options=('staticlibs' '!emptydirs')
+source=("mingw-w64"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#commit=$_commit")
+sha256sums=('SKIP')
+_tools="gendef genlib genidl genpeimg widl" # genstubdll
+
+pkgver() {
+  cd "${srcdir}/mingw-w64"
+  git describe --long ${_commit} | sed 's/\([^-]*-g\)/r\1/;s/-/./g;s/^v//g'
+}
+
+prepare() {
+  cd "${srcdir}/mingw-w64"
+}
+
+build() {
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
+  local cur=
+  for cur in ${_tools}; do
+    plain "Building ${cur} ..."
+    [[ -d ${srcdir}/${MINGW_CHOST}-${cur} ]] && rm -rf ${srcdir}/${MINGW_CHOST}-${cur}
+    mkdir -p ${srcdir}/${MINGW_CHOST}-${cur}
+    cd ${srcdir}/${MINGW_CHOST}-${cur}
+    ${srcdir}/mingw-w64/mingw-w64-tools/${cur}/configure \
+      --prefix=${OPT_MINGW_PREFIX} \
+      --build=${MINGW_CHOST} \
+      --host=${MINGW_CHOST} \
+      --with-mangle=${OPT_MINGW_PREFIX} \
+      --with-widl-includedir=${OPT_MINGW_PREFIX}/include
+    make
+  done
+}
+
+package() {
+  local cur=
+  for cur in ${_tools}; do
+    plain "Installing ${cur} ..."
+    cd ${srcdir}/${MINGW_CHOST}-${cur}
+    make DESTDIR=${pkgdir} install
+    if [[ -f "${srcdir}/mingw-w64/mingw-w64-tools/${cur}"/COPYING ]]; then
+      install -Dm644 ${srcdir}/mingw-w64/mingw-w64-tools/${cur}/COPYING ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/mingw-w64-tools/COPYING.${cur}
+    fi
+  done
+}
