@@ -1,13 +1,10 @@
-*.tar
-*.tar.*
-*.jar
-*.exe
-*.msi
-*.zip
-*.tgz
-*.log
-*.log.*
-*.sig
+/*/*.tgz
+/*/*.log
+/*/*.sig
+/*/*.tar.gz
+/*/*.tar.xz
+/*/*.tar.bz2
 
-pkg/
-src/
+/*/pkg/
+/*/src/*-git/
+/*/*-git/
