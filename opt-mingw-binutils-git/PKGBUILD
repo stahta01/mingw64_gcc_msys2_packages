@@ -11,10 +11,10 @@ fi
 
 _realname=binutils
 _sourcedir=${_realname}-git
-_base_ver=2.25
+_base_ver=2.24
 pkgbase=opt-mingw-${_realname}-git
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
-pkgver=2.25.r5.001a073344e5
+pkgver=2.24+r78636.c2.gcd3813a8c9e5
 pkgrel=1
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}=${pkgver}")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
@@ -32,22 +32,19 @@ options=('staticlibs' '!distcc' '!ccache' 'debug' '!strip')
 #install=binutils.install
 source=("${_sourcedir}"::"git+https://sourceware.org/git/binutils-gdb.git#branch=${_realname}-${_base_ver//./_}-branch"
         0001-MinGW-w64-Two-fixes-for-unusual-files.patch
-        0002-MinGW-w64-Fix-libiberty-makefile.patch
-        0003-MinGW-w64-Fix-libibery-configure.patch
-        0004-MinGW-w64-Use-gnu-printf.patch
-        0005-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch)
+        0003-MinGW-w64-Fix-libibery-configure.patch)
 sha256sums=('SKIP'
             '6f3b8bdaa41b3d2a7ab98fb819872fa988ebab580daf21522c32012530465e95'
-            '5b65eb12154216ccef02c93417468fedd2dd6b9029bb392e5616793136c1abb4'
-            '80a0934e863a211b4d76dcf24e8d61841b06d1f8094f3d657d46e337cae6c7f4'
-            '824d4cd28976127e0164216c0770bcad0aea29c95805e1e883f93a2cfc4ace3c'
-            'bd38317b28b894d5c0e0ba043fc2445af415f6e96bb9ac93c348748d21a43625')
+            '80a0934e863a211b4d76dcf24e8d61841b06d1f8094f3d657d46e337cae6c7f4')
 # =========================================== #
 _git_base_commit=
 
 pkgver() {
   cd "$srcdir/$_sourcedir"
-  printf "%s.r%s.%s" "${_base_ver}" "$(git rev-list --count ${_git_base_commit}..HEAD)" "$(git rev-parse --short=12 HEAD)"
+  printf "%s+r%s.c%s.g%s" "${_base_ver}" \
+    "$(git rev-list --count HEAD)" \
+    "$(git rev-list --count ${_git_base_commit}..HEAD)" \
+    "$(git rev-parse --short=12 ${_git_base_commit})"
 }
 
 prepare() {
@@ -56,11 +53,14 @@ prepare() {
   _git_base_commit=$(git rev-parse HEAD)
   GIT_AM="git am --committer-date-is-author-date"
   ${GIT_AM} "${srcdir}"/0001-MinGW-w64-Two-fixes-for-unusual-files.patch
-  ${GIT_AM} "${srcdir}"/0002-MinGW-w64-Fix-libiberty-makefile.patch
   ${GIT_AM} "${srcdir}"/0003-MinGW-w64-Fix-libibery-configure.patch
-  ${GIT_AM} "${srcdir}"/0004-MinGW-w64-Use-gnu-printf.patch
-  ${GIT_AM} "${srcdir}"/0005-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch
+
   rm -rf gdb readline libdecnumber sim
+
+  #do not install libiberty
+  sed -i 's/install_to_$(INSTALL_DEST) //' libiberty/Makefile.in
+  # hack! - libiberty configure tests for header files using "$CPP $CPPFLAGS"
+  sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
 }
 
 build() {
@@ -76,6 +76,9 @@ build() {
   fi
 
   export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
+  # Try Using during GCC version change in building of Binutils or CRT.
+  # export LDFLAGS+=" -static-libgcc -static-libstdc++"
 
   cd $srcdir
   rm -rf build-${MSYSTEM}
