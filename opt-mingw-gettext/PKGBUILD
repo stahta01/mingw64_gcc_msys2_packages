@@ -111,7 +111,7 @@ build() {
     --disable-openmp \
     --disable-rpath \
     --enable-static \
-    --enable-threads=windows \
+    --disable-threads \
     --enable-relocatable \
     --without-emacs \
     --without-cvs \
