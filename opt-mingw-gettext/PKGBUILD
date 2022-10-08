@@ -4,6 +4,8 @@
 # This package is based on
 # https://github.com/msys2/MINGW-packages/tree/master/mingw-w64-gettext
 
+_build_cross_using_standard_packages=no
+
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
   OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
@@ -24,12 +26,18 @@ url="https://www.gnu.org/software/gettext/"
 pkgdesc="GNU internationalization library (mingw-w64)"
 # GPL3 for the package as a whole and LGPL for some parts, see the license files
 license=(GPL3 partial:'LGPL2.1')
-depends=(#"${OPT_MINGW_PACKAGE_PREFIX}-expat"
-         #"${OPT_MINGW_PACKAGE_PREFIX}-gcc-libs"
-         "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
-        )
-makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-autotools"
-             "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+depends=()
+if [[ "$_build_cross_using_standard_packages" != "yes" ]]; then
+  depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
+else
+  depends+=("${MINGW_PACKAGE_PREFIX}-libiconv")
+fi
+makedepends=(
+  $([[ "$_build_cross_using_standard_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+  $([[ "$_build_cross_using_standard_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_cross_using_standard_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
+  $([[ "$_build_cross_using_standard_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
+)
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_parentname}")
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_parentname}")
 options=('strip' 'staticlibs')
