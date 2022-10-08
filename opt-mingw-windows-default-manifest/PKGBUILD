@@ -1,6 +1,8 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
 # Contributor: Alexey Pavlov <alexpux@gmail.com>
 
+_build_cross_using_standard_packages=no
+
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
   OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
@@ -18,7 +20,13 @@ url='https://cygwin.com/'
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32')
 license=('BSD')
-makedepends=('git' "${OPT_MINGW_PACKAGE_PREFIX}-cc" "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+makedepends=(
+  'git'
+  $([[ "$_build_cross_using_standard_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_cross_using_standard_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+  $([[ "$_build_cross_using_standard_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_cross_using_standard_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
+)
 _GIT_TAG="release-6_4"
 source=("git+https://sourceware.org/git/cygwin-apps/${_realname}.git#tag=${_GIT_TAG}")
 sha256sums=('SKIP')
