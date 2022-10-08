@@ -1,6 +1,8 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
 # Contributor: Ilya Rakhlin <i.rakhlin@gmail.com>
 
+_build_cross_using_standard_packages=no
+
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
   OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
@@ -21,7 +23,11 @@ license=('ISC')
 options=('!debug' 'strip')
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-pkg-config")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-pkg-config")
-makedepends=("${MINGW_PACKAGE_PREFIX}-meson" "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+makedepends=(
+  "${MINGW_PACKAGE_PREFIX}-meson"
+  $([[ "$_build_cross_using_standard_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_cross_using_standard_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
+)
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 source=("https://github.com/pkgconf/pkgconf/archive/refs/tags/$_realname-$pkgver.tar.gz"
         0002-size-t-format.patch
