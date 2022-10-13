@@ -88,7 +88,7 @@ build() {
 
 check() {
   cd "${srcdir}/build-${MSYSTEM}"
-  make test
+  make -k test || true
 }
 
 package() {
