@@ -7,6 +7,26 @@
 # Contributor: Kirill Müller <krlmlr@mailbox.org>
 # Contributor: Liu Hao <lh_mouse@126.com>
 
+# At most only one of these build options should be yes
+_build_cross_using_mingw64=no
+_build_using_external_compiler=no
+_build_using_std_mingw_packages=yes
+
+if [[ "$_build_using_external_compiler" == "yes" && \
+       "${MSYSTEM_CARCH}" == "x86_64" ]]; then
+  _build_using_external_compiler=no
+fi
+
+if [[ "$_build_using_std_mingw_packages" == "yes" && \
+       "${MSYSTEM_CARCH}" == "x86_64" ]]; then
+  _build_using_std_mingw_packages=no
+fi
+
+_use_system_gmp_mpfr_mpc=no
+if [[ "$_build_using_std_mingw_packages" == "yes" ]]; then
+  _use_system_gmp_mpfr_mpc=yes
+fi
+
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
@@ -27,7 +47,6 @@ _enable_libquadmath=no
 _enable_std_libada=yes    # Use yes for production
 _enable_libatomic=no
 
-_use_system_gmp_mpfr_mpc=no
 _enable_gcc_plugin=no
 _enable_bootstrap=no     # Use yes for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
@@ -79,6 +98,9 @@ options=('staticlibs' '!emptydirs' '!strip' '!debug') # development options
 ### ICE means Internal Compiler Error
 ## graphite requires CLOOG in GCC 4.9;
 #   disabled graphite below GCC version 5.
+#_git_branch=releases/gcc-4.3
+#_git_branch=releases/gcc-4.4
+#_git_branch=releases/gcc-4.5
 #_git_branch=releases/gcc-4.6  # gnatbind: invalid switch: -C
 #_git_branch=releases/gcc-4.7  # built okay with CRT6 and binutils 2.25; but, fails to build binutils 2.25
 #_git_branch=releases/gcc-4.8  # built okay with CRT6 and binutils 2.25
@@ -110,18 +132,25 @@ mingw_arch=('mingw32' 'mingw64' 'ucrt64')
 url="https://gcc.gnu.org"
 license=('GPL' 'LGPL' 'FDL' 'custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
-makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-cc"
-             $([[ "$_enable_build_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
-             "${OPT_MINGW_PACKAGE_PREFIX}-binutils"
-             "${OPT_MINGW_PACKAGE_PREFIX}-crt"
-             "${OPT_MINGW_PACKAGE_PREFIX}-headers"
-             "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
-             $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
-             $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
-             $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
-             "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
-             $([[ "$_enable_threads" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
-             "${OPT_MINGW_PACKAGE_PREFIX}-zlib")
+makedepends=(
+  $([[ "$_build_using_external_compiler" != "yes" && \
+       "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_enable_build_ada" == "yes" && "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+  $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-crt")
+  $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-headers")
+  #$([[ "$_build_using_external_compiler" != "yes" ]] && echo 
+  "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
+  #$([[ "$_build_using_external_compiler" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-libiconv")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-mpc")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-mpfr")
+  #$([[ "$_build_using_external_compiler" != "yes" ]] && echo 
+  "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
+  #$([[ "$_build_using_external_compiler" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-windows-default-manifest")
+  $([[ "$_enable_threads" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
+  $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-zlib")
+)
 #checkdepends=('dejagnu')
 optdepends=()
 
@@ -338,6 +367,10 @@ prepare() {
     _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
     _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.bz2
     _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
+  else
+    rm -fr ${srcdir}/${_sourcedir}/mpfr
+    rm -fr ${srcdir}/${_sourcedir}/gmp
+    rm -fr ${srcdir}/${_sourcedir}/mpc
   fi
 
   if [[ $_gcc_major_version -gt 4 ]]; then
@@ -555,6 +588,14 @@ prepare() {
   # it might work at build time and could be important there but beyond that?!
   local MINGW_NATIVE_PREFIX=$(cygpath -am ${OPT_MINGW_PREFIX}${_include_sub_folder})
   sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/mingw32.h
+  #sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/t-mingw-w32
+  #sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/t-mingw-w64
+  #sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/t-mingw32
+
+  if [[ $_gcc_major_version -eq 4 ]]; then
+    # work around bug in 4.6.x and 4.5.x
+    mkdir -p ${OPT_MINGW_PREFIX}/mingw/include
+  fi
 }
 
 build() {
@@ -567,7 +608,24 @@ build() {
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
 
-  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  if [[ "$_build_cross_using_mingw64" == "yes" ]]; then
+    local _compiler_toolchain_prefix=/mingw64
+    export PATH=${OPT_MINGW_PREFIX}/bin:${_compiler_toolchain_prefix}/bin:$PATH
+    export CC="${_compiler_toolchain_prefix}/bin/gcc"
+    export CXX="${_compiler_toolchain_prefix}/bin/g++"
+    export GNATMAKE="${_compiler_toolchain_prefix}/bin/gnatmake"
+    export GNATBIND="${_compiler_toolchain_prefix}/bin/gnatbind" 
+  elif [[ "$_build_using_external_compiler" == "yes" ]]; then
+    local _ext_compiler=/h/GNAT/2012
+    export PATH=${OPT_MINGW_PREFIX}/bin:${_ext_compiler}/bin:$PATH
+    export CC="${_ext_compiler}/bin/gcc"
+    export CXX="${_ext_compiler}/bin/g++"
+    export LD="${_ext_compiler}/bin/ld"
+    export GNATMAKE="${_ext_compiler}/bin/gnatmake"
+    export GNATBIND="${_ext_compiler}/bin/gnatbind"
+  else
+    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  fi
   echo "PATH := $PATH"
 
   declare -a extra_config
@@ -579,10 +637,9 @@ build() {
 
   case "${CARCH}" in
     i686)
-      extra_config+=(
-        "--disable-sjlj-exceptions"
-        "--with-dwarf2"
-      )
+      extra_config+=("--with-dwarf2")
+      extra_config+=("--disable-sjlj-exceptions")
+
       LDFLAGS+=" -Wl,--large-address-aware"
       local _arch=i686
     ;;
@@ -634,6 +691,14 @@ build() {
     _languages+=",ada"
   fi
 
+  if [[ "$_enable_std_libada" == "yes" && $_gcc_major_version -eq 4 ]]; then
+    # Disable libada for 4.7 and below
+    if ! [[ "${_gcc_version:0:3}" == "4.8" || \
+            "${_gcc_version:0:3}" == "4.9" ]]; then
+      _enable_std_libada=no
+    fi
+  fi
+
   if [[ "$_enable_ada" == "yes" && "$_enable_std_libada" == "no" ]]; then
     extra_config+=('--disable-libada')
   fi
@@ -677,8 +742,17 @@ build() {
   fi
 
   if [ "$_use_system_gmp_mpfr_mpc" == "yes" ]; then
-    extra_config+=("--with-{gmp,mpfr,mpc}=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-mpc=${MINGW_PREFIX}")
+    extra_config+=("--with-mpfr=${MINGW_PREFIX}")
+    extra_config+=("--with-gmp=${MINGW_PREFIX}")
   fi
+
+  if [ "$_build_using_external_compiler" != "yes" ]; then
+    extra_config+=("--with-system-zlib")
+  else
+    extra_config+=("--with-sysroot=${OPT_MINGW_PREFIX}")
+  fi
+  extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
 
   if [[ $_gcc_major_version -gt 6 ]]; then
     extra_config+=('--enable-libstdcxx-filesystem-ts')
@@ -709,15 +783,21 @@ build() {
   echo "extra_config contains ${extra_config[@]}"
   echo ""
 
+# --with-headers=${MINGW_PREFIX}/${_target}/include
+
+  if [[ "$_build_cross_using_mingw64" == "yes" ]]; then
+    extra_config+=("--build=x86_64-w64-mingw32")
+  else
+    extra_config+=("--build=${MINGW_CHOST}")
+  fi
+
   ../${_sourcedir}/configure \
     --prefix=${OPT_MINGW_PREFIX} \
     --with-local-prefix=${OPT_MINGW_PREFIX}/local \
-    --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
     --with-native-system-header-dir=${OPT_MINGW_PREFIX}${_include_sub_folder}/include \
     --libexecdir=${OPT_MINGW_PREFIX}/lib \
-    --enable-bootstrap \
     --enable-checking=release \
     --with-arch=${_arch} \
     --with-tune=generic \
@@ -732,8 +812,6 @@ build() {
     --disable-nls \
     --disable-werror \
     --disable-symvers \
-    --with-libiconv \
-    --with-system-zlib \
     --with-pkgversion="Rev ${pkgver##*.g}-${pkgrel}, Built by stahta01" \
     --with-bugurl="https://github.com/stahta01/mingw64_gcc_msys2_packages/issues" \
     --with-gnu-as --with-gnu-ld \
@@ -760,7 +838,7 @@ package_gcc-libs-git() {
   pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
   depends=()
   if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
-    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+    depends+=("${MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread")
@@ -813,12 +891,16 @@ package_gcc-git() {
   depends=("${OPT_MINGW_PACKAGE_PREFIX}-binutils"
            "${OPT_MINGW_PACKAGE_PREFIX}-crt"
            "${OPT_MINGW_PACKAGE_PREFIX}-headers"
-           "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
            "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}"
-           "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
-           "${OPT_MINGW_PACKAGE_PREFIX}-zlib")
+           "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest")
+  if [[ "$_build_using_external_compiler" != "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-zlib")
+  fi
+  if [[ "$_build_using_external_compiler" != "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
+  fi
   if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
-    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+    depends+=("${MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
