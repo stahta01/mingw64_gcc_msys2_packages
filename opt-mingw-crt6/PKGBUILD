@@ -1,6 +1,14 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
 # Contributor: Alexey Pavlov <alexpux@gmail.com>
 
+_build_using_external_compiler=no
+
+if [[ "$_build_using_external_compiler" == "yes" && \
+       "${MSYSTEM_CARCH}" == "x86_64" ]]; then
+  _build_using_external_compiler=no
+fi
+
+_include_sub_folder=/${MINGW_CHOST}
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
   OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
@@ -22,9 +30,11 @@ arch=('any')
 url='https://mingw-w64.sourceforge.io/'
 license=('custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
-makedepends=("git"
-             "${OPT_MINGW_PACKAGE_PREFIX}-gcc"
-             "${OPT_MINGW_PACKAGE_PREFIX}-binutils")
+makedepends=(
+  "git"
+  $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  #"${OPT_MINGW_PACKAGE_PREFIX}-binutils"
+)
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 options=('!strip' 'staticlibs' '!buildflags' '!emptydirs')
@@ -49,27 +59,42 @@ prepare() {
 }
 
 build() {
-  msg "Configuring ${MINGW_CHOST} headers"
-  [[ -d ${srcdir}/headers-${MINGW_CHOST} ]] && rm -rf ${srcdir}/headers-${MINGW_CHOST}
-  mkdir -p ${srcdir}/headers-${MINGW_CHOST} && cd ${srcdir}/headers-${MINGW_CHOST}
+  if [[ "$_build_using_external_compiler" != "yes" ]]; then
+    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  else
+    if [[ "${MSYSTEM_CARCH}" == "x86_64" ]]; then
+      local _ext_compiler=/h/GNAT/2018 # GCC 7.3.1
+    else
+      local _ext_compiler=/h/GNAT/2015 # GCC 4.9.x
+    fi
+    export PATH=${_ext_compiler}/bin:${OPT_MINGW_PREFIX}/bin:/mingw64/bin:$PATH
+    export CC="${_ext_compiler}/bin/gcc"
+    export CXX="${_ext_compiler}/bin/g++"
+    export LD="${_ext_compiler}/bin/ld"
+    export GNATMAKE="${_ext_compiler}/bin/gnatmake"
+    export GNATBIND="${_ext_compiler}/bin/gnatbind"
+  fi
+  echo "PATH := $PATH"
 
-  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  msg "Configuring ${MSYSTEM} headers"
+  [[ -d ${srcdir}/headers-${MSYSTEM} ]] && rm -rf ${srcdir}/headers-${MSYSTEM}
+  mkdir -p ${srcdir}/headers-${MSYSTEM} && cd ${srcdir}/headers-${MSYSTEM}
 
   ${srcdir}/${_sourcedir}/mingw-w64-headers/configure \
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
-    --prefix=${OPT_MINGW_PREFIX}/${MINGW_CHOST} \
+    --prefix=${OPT_MINGW_PREFIX}${_include_sub_folder} \
     --enable-sdk=all \
     --enable-secure-api \
     --enable-idl --without-widl
 
-  msg "Installing local copy of ${MINGW_CHOST} headers"
-  cd ${srcdir}/headers-${MINGW_CHOST}
-  rm -fr ${srcdir}/${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include
+  msg "Installing local copy of ${MSYSTEM} headers"
+  cd ${srcdir}/headers-${MSYSTEM}
+  rm -fr ${srcdir}/${OPT_MINGW_PREFIX}${_include_sub_folder}/include
   make DESTDIR=${srcdir} install
 
-  msg "Building ${MINGW_CHOST} CRT"
+  msg "Building ${MSYSTEM} CRT"
   case "$CARCH" in
     i686)
       _crt_configure_args="--disable-lib64 --enable-lib32"
@@ -79,15 +104,15 @@ build() {
     ;;
   esac
 
-  [[ -d ${srcdir}/crt-${MINGW_CHOST} ]] && rm -rf ${srcdir}/crt-${MINGW_CHOST}
-  mkdir -p ${srcdir}/crt-${MINGW_CHOST} && cd ${srcdir}/crt-${MINGW_CHOST}
-  CFLAGS+=" -I${srcdir}/${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include" \
+  [[ -d ${srcdir}/crt-${MSYSTEM} ]] && rm -rf ${srcdir}/crt-${MSYSTEM}
+  mkdir -p ${srcdir}/crt-${MSYSTEM} && cd ${srcdir}/crt-${MSYSTEM}
+  CFLAGS+=" -I${srcdir}/${OPT_MINGW_PREFIX}${_include_sub_folder}/include" \
   ${srcdir}/${_sourcedir}/mingw-w64-crt/configure \
-    --prefix=${OPT_MINGW_PREFIX}/${MINGW_CHOST} \
+    --prefix=${OPT_MINGW_PREFIX}${_include_sub_folder} \
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
-    --with-sysroot=${OPT_MINGW_PREFIX}/${MINGW_CHOST} \
+    --with-sysroot=${OPT_MINGW_PREFIX}${_include_sub_folder} \
     --enable-wildcard \
     ${_crt_configure_args}
   make
@@ -96,8 +121,8 @@ build() {
 package_crt-git() {
   depends=("${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
 
-  msg "Installing ${MINGW_CHOST} crt"
-  cd ${srcdir}/crt-${MINGW_CHOST}
+  msg "Installing ${MSYSTEM} crt"
+  cd ${srcdir}/crt-${MSYSTEM}
   make DESTDIR=${pkgdir} install-strip
 }
 
@@ -106,13 +131,13 @@ package_headers-git() {
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-headers")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-headers")
 
-  msg "Copying ${MINGW_CHOST} headers"
-  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}
-  cp --recursive ${srcdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/
+  msg "Copying ${MSYSTEM} headers"
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}
+  cp --recursive ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/
 
-  rm ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/pthread_signal.h
-  rm ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/pthread_time.h
-  rm ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/pthread_unistd.h
+  rm ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_signal.h
+  rm ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_time.h
+  rm ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_unistd.h
 
   msg "Installing MinGW-w64 licenses"
   install -Dm644 ${srcdir}/${_sourcedir}/mingw-w64-headers/ddk/readme.txt ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/ddk-readme.txt
@@ -124,13 +149,13 @@ package_pthread-stub-headers-git() {
     pkgdesc="MinGW-w64 pthread stub headers for Windows"
     provides=("${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers")
     conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers" "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
-    msg "Copying ${MINGW_CHOST} pthread stub headers"
+    msg "Copying ${MSYSTEM} pthread stub headers"
 
-    mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include
+    mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include
 
-    cp ${srcdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/pthread_signal.h ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/
-    cp ${srcdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/pthread_time.h   ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/
-    cp ${srcdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/pthread_unistd.h ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/
+    cp ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_signal.h ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/
+    cp ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_time.h   ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/
+    cp ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_unistd.h ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/
 }
 
 # template start; name=mingw-w64-splitpkg-wrappers; version=1.0;
