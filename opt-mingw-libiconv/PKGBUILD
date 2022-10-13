@@ -2,7 +2,12 @@
 # Contributor: Alexey Pavlov <Alexpux@gmail.com>
 # Contributor: Renato Silva <br.renatosilva@gmail.com>
 
-_build_using_std_mingw_packages=no
+_build_using_std_mingw_packages=yes
+
+if [[ "$_build_using_std_mingw_packages" == "yes" && \
+       "${MSYSTEM_CARCH}" == "x86_64" ]]; then
+  _build_using_std_mingw_packages=no
+fi
 
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
