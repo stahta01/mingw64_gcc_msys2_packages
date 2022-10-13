@@ -2,6 +2,14 @@
 # Contributor: Alexey Pavlov <alexpux@gmail.com>
 # Contributor: Ray Donnelly <mingw.android@gmail.com>
 
+_build_using_external_compiler=no
+_build_using_std_mingw_compiler=yes
+
+if [[ "$_build_using_std_mingw_compiler" == "yes" && \
+       "${MSYSTEM_CARCH}" == "x86_64" ]]; then
+  _build_using_std_mingw_compiler=no
+fi
+
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
   OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
@@ -23,11 +31,26 @@ arch=('any')
 url="https://www.gnu.org/software/binutils/"
 license=('GPL')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
-depends=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
-         "${OPT_MINGW_PACKAGE_PREFIX}-gettext-runtime"
-         "${OPT_MINGW_PACKAGE_PREFIX}-zlib")
+depends=(
+  #$([[ "$_build_using_external_compiler" != "yes" ]] && echo 
+  "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
+  #$([[ "$_build_using_external_compiler" != "yes" ]] && echo 
+  "${OPT_MINGW_PACKAGE_PREFIX}-gettext-runtime"
+  #$([[ "$_build_using_external_compiler" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-gettext")
+  #$([[ "$_build_using_external_compiler" != "yes" ]] && echo 
+  "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
+  #$([[ "$_build_using_external_compiler" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-zlib")
+)
 #checkdepends=('dejagnu' 'bc')
-makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv" "${OPT_MINGW_PACKAGE_PREFIX}-zlib" "git")
+makedepends=(
+  #$([[ "$_build_using_external_compiler" != "yes" &&
+  $([[ "$_build_using_std_mingw_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_compiler" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
+  #$([[ "$_build_using_external_compiler" != "yes" ]] && echo 
+  "${OPT_MINGW_PACKAGE_PREFIX}-autotools"
+  #$([[ "$_build_using_external_compiler" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
+  "git"
+)
 options=('staticlibs' '!distcc' '!ccache' 'debug' '!strip')
 #install=binutils.install
 source=("${_sourcedir}"::"git+https://sourceware.org/git/binutils-gdb.git#branch=${_realname}-${_base_ver//./_}-branch"
@@ -64,10 +87,11 @@ prepare() {
 }
 
 build() {
+  declare -a extra_config
+
   if [ "${CARCH}" = "x86_64" ]; then
-    local _conf='--enable-64-bit-bfd'
+    extra_config+=('--enable-64-bit-bfd')
   else
-    local _conf=''
     LDFLAGS+=" -Wl,--large-address-aware"
   fi
 
@@ -75,7 +99,22 @@ build() {
     CFLAGS+=" -O0"
   fi
 
-  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  #if [[ "$_build_using_external_compiler" != "yes" ]]; then
+    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  #else
+    #local _ext_compiler=/h/GNAT/2015
+    #export PATH=${_ext_compiler}/bin:$PATH
+    #export CC="${_ext_compiler}/bin/gcc"
+    #export CXX="${_ext_compiler}/bin/g++"
+    #export LD="${_ext_compiler}/bin/ld"
+    #export GNATMAKE="${_ext_compiler}/bin/gnatmake"
+    #export GNATBIND="${_ext_compiler}/bin/gnatbind"
+  #fi
+  echo "PATH := $PATH"
+
+  #if [ "$_build_using_external_compiler" != "yes" ]; then
+    extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
+  #fi
 
   # Try Using during GCC version change in building of Binutils or CRT.
   # export LDFLAGS+=" -static-libgcc -static-libstdc++"
@@ -91,8 +130,7 @@ build() {
     --disable-werror \
     --enable-lto \
     --with-sysroot=${OPT_MINGW_PREFIX} \
-    --with-libiconv-prefix=${OPT_MINGW_PREFIX} \
-    $_conf \
+    "${extra_config[@]}" \
     --enable-nls \
     --disable-rpath \
     --disable-multilib \
