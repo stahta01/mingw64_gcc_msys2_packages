@@ -2,7 +2,7 @@
 # Contributor: Alexey Pavlov <Alexpux@gmail.com>
 # Contributor: Renato Silva <br.renatosilva@gmail.com>
 
-_build_cross_using_standard_packages=no
+_build_using_std_mingw_packages=no
 
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
@@ -33,10 +33,10 @@ sha256sums=('8f74213b56238c85a50a5329f77e06198771e70dd9a739779f4c02f65d971313'
 validpgpkeys=('9001B85AF9E1B83DF1BDA942F5BE8B267C6A406D')  # "Bruno Haible (Open Source Development) <bruno@clisp.org>"
 options=('!libtool' 'staticlibs')
 makedepends=(
-  $([[ "$_build_cross_using_standard_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
-  $([[ "$_build_cross_using_standard_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
-  $([[ "$_build_cross_using_standard_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
-  $([[ "$_build_cross_using_standard_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
 )
 
 apply_patch_with_msg() {
@@ -110,7 +110,7 @@ package_libiconv() {
 package_iconv() {
   pkgdesc='Character encoding conversion utility (mingw-w64)'
   depends=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv=${pkgver}-${pkgrel}")
-  if [[ "$_build_cross_using_standard_packages" != "yes" ]]; then
+  if [[ "$_build_using_std_mingw_packages" != "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gettext-runtime")
   else
     depends+=("${MINGW_PACKAGE_PREFIX}-gettext")
