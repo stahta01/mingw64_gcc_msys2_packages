@@ -1,0 +1,102 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Carlos Antunes <cmantunes@gmail.com>
+# Contributor: nanodude
+
+# regular cross compiler triplet
+_target=i686-w64-mingw32
+_build=${MINGW_CHOST}    # x86_64-w64-mingw32
+_host=${_build}
+#
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  _build_package=opt-ucrt-${MSYSTEM_CARCH}
+else
+  _build_package=opt-mingw-${MSYSTEM_CARCH}
+fi
+_build_prefix=/opt${MINGW_PREFIX}
+
+_realname=binutils
+pkgbase=mingw-cross-${_target}-${_realname}
+pkgname=("${_build_package}-${_target}-${_realname}")
+pkgver=2.24
+pkgrel=1
+pkgdesc="GNU Tools for i686 - Binutils (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64') # ucrt64 not tested
+url="https://www.gnu.org/software/binutils/"
+license=('GPL')
+groups=("${_build_package}-${_target}-toolchain")
+makedepends=("${_build_package}-gcc")
+options=('staticlibs')
+source=("https://mirrors.kernel.org/sources.redhat.com/${_realname}/releases/${_realname}-${pkgver}.tar.bz2"
+        010-2.23.52-install-libiberty.patch
+        020-add-bigobj-format.patch
+        030-binutils-mingw-gnu-print.patch
+        100-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
+        120-Bug-16858-weak-external-reference-has-wrong-value.patch
+        130-make-relocbase-unsigned.patch)
+sha256sums=('e5e8c5be9664e7f7f96e0d09919110ab5ad597794f5b1809871177a0f0f14137'
+            '108ee67ded6d24aef9bb1ad7a8f857dda8e28695e4b845262b040fa0e163ba5e'
+            '20f860973136b34a72ef5deb4cac5b9c9efb2d61b06c98e137b1a67c2c68c7e3'
+            '70ccade36efa57988945dbf3fde2ab7b89b712ba03fad1fa1a5b6e9510f3ca89'
+            'e04b82c4d14cf3758a200c1ff4a754f0525af8d60439aafd24c0f44fb23fd978'
+            '7f3614dc19a1798eee8d55dabdb1a7b1d5f76d082af5f8026f0928ef006fda2e'
+            'cdc4031313c017a9d5ec3995fe937bace944d881f85bb701ec2dc83f5d906bfc')
+prepare() {
+  cd ${srcdir}/${_realname}-${pkgver}
+  patch -p1 -i "${srcdir}"/010-2.23.52-install-libiberty.patch
+  [ -f gas/testsuite/gas/pe/big-obj.d ] && rm gas/testsuite/gas/pe/big-obj.d
+  [ -f gas/testsuite/gas/pe/big-obj.s ] && rm gas/testsuite/gas/pe/big-obj.s
+  patch -p1 -i "${srcdir}"/020-add-bigobj-format.patch
+  patch -p1 -i "${srcdir}"/030-binutils-mingw-gnu-print.patch
+  patch -p1 -i "${srcdir}"/100-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
+# 110-This-fixes-a-compile-time-warning.patch isn't needed for 2.24 and may not
+#  be needed after either; depending on what gets included in the next release.
+#  patch -p1 -i "${srcdir}"/110-This-fixes-a-compile-time-warning.patch
+# Fixes bug https://sourceware.org/bugzilla/show_bug.cgi?id=16858#c3
+  patch -p1 -i "${srcdir}"/120-Bug-16858-weak-external-reference-has-wrong-value.patch
+
+# I ran into a bug building Qt5Webkitd.dll
+# "final link failed: File truncated"
+# was due to a negative offset ending up in rel_filepos in _bfd_coff_final_link, this
+# attempts to double the amount of room we have.
+  patch -p1 -i "${srcdir}"/130-make-relocbase-unsigned.patch
+
+  #do not install libiberty
+  #sed -i 's/install_to_$(INSTALL_DEST) //' libiberty/Makefile.in
+  # hack! - libiberty configure tests for header files using "$CPP $CPPFLAGS"
+  #sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
+}
+
+build() {
+  if check_option "debug" "y"; then
+    CFLAGS+=" -g -O0"
+  fi
+  cd $srcdir
+  rm -rf build-${MSYSTEM}
+  mkdir -p build-${MSYSTEM} && cd build-${MSYSTEM}
+
+  export PATH="${_build_prefix}/bin:${PATH}"
+
+  ../${_realname}-${pkgver}/configure \
+    --build="${_build}" \
+    --host="${_host}" \
+    --target="${_target}" \
+    --prefix="${_build_prefix}" \
+    --disable-werror \
+    --disable-lto \
+    --with-sysroot="${_build_prefix}" \
+    --disable-nls \
+    --disable-rpath \
+    --enable-multilib \
+    --enable-interwork
+  make
+}
+
+package() {
+  cd ${srcdir}/build-${MSYSTEM}
+  make DESTDIR=${pkgdir} install
+
+  # Remove unwanted files
+  rm -rf ${pkgdir}${_build_prefix}/share/info
+  rm -f ${pkgdir}${_build_prefix}/lib/libiberty.a
+}
