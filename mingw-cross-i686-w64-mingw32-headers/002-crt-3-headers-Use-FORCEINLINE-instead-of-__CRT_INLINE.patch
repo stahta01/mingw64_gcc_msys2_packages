@@ -1,0 +1,23 @@
+From ad2c7c3d9f1b3fca1c16ffc5bf8feb232954a0af Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Tue, 16 Nov 2021 15:55:57 -0500
+Subject: headers: Use FORCEINLINE instead of __CRT_INLINE
+
+---
+ mingw-w64-headers/include/winnt.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mingw-w64-headers/include/winnt.h b/mingw-w64-headers/include/winnt.h
+index 4488b324b..13891a4a4 100644
+--- a/mingw-w64-headers/include/winnt.h
++++ b/mingw-w64-headers/include/winnt.h
+@@ -1779,7 +1779,7 @@ __buildmemorybarrier()
+ 
+ #define DbgRaiseAssertionFailure __int2c
+ 
+-  __CRT_INLINE struct _TEB *NtCurrentTeb(void)
++  FORCEINLINE struct _TEB *NtCurrentTeb(void)
+   {
+     return (struct _TEB *)__readfsdword(PcTeb);
+   }
+-- 
