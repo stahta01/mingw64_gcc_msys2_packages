@@ -68,6 +68,10 @@ prepare() {
 }
 
 build() {
+  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
+  export CFLAGS="-pipe"                         # Clear the MSys2 default value
+
   if check_option "debug" "y"; then
     CFLAGS+=" -g -O0"
   fi
