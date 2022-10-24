@@ -1,0 +1,11 @@
+GCC build technique     How GCC Configure option compares
+regular native              build==host==target
+regular cross               build==host!=target
+cross native                build!=host==target
+canadian cross              build!=host!=target
+
+When building MinGW64 GCC, in-tree GMP version 4.3.2 does not work with cross native build technique.
+
+Note: in-tree GMP means the source for GMP is placed in the GCC source tree.
+
+MinGW64 CRT 3.0 configure option "--host" is more like GCC "--target" instead of like GCC "--host".
