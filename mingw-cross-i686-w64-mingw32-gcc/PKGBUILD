@@ -14,7 +14,7 @@ else
 fi
 _build_prefix=/opt${MINGW_PREFIX}
 
-_enable_startup_mode=yes
+_enable_startup_mode=no
 if [[ "$_enable_startup_mode" == "yes" ]]; then
   _enable_ada=no
 else
