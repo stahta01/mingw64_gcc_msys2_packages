@@ -4,7 +4,7 @@
 # This package is based on
 # https://github.com/msys2/MINGW-packages/tree/master/mingw-w64-gettext
 
-_build_using_std_mingw_packages=yes
+_build_using_std_mingw_packages=no
 
 if [[ "$_build_using_std_mingw_packages" == "yes" && \
        "${MSYSTEM}" == "MINGW64" ]]; then
@@ -109,7 +109,9 @@ build() {
   export lt_cv_deplibs_check_method='pass_all'
   export MSYS2_ARG_CONV_EXCL="-DLOCALEDIR=;-DLIBDIR=;-DLOCALE_ALIAS_PATH="
 
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
+  export CFLAGS="-pipe"                         # Clear the MSys2 default value
 
   ../${_sourcedir}/configure \
     --prefix=${OPT_MINGW_PREFIX} \
