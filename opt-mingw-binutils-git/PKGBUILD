@@ -31,6 +31,7 @@ url="https://www.gnu.org/software/binutils/"
 license=('GPL')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 depends=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
+         "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
          "${OPT_MINGW_PACKAGE_PREFIX}-gettext-runtime")
 if [[ "$_build_using_std_mingw_packages" == "yes" ]]; then
   depends+=("${MINGW_PACKAGE_PREFIX}-libiconv")
