@@ -121,7 +121,7 @@ build() {
     --enable-lto \
     --with-sysroot=${OPT_MINGW_PREFIX} \
     "${extra_config[@]}" \
-    --enable-nls \
+    --disable-nls \
     --disable-rpath \
     --disable-multilib \
     --enable-install-libiberty \
