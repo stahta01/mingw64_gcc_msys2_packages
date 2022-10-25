@@ -1,7 +1,11 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
 # Contributor: Alexey Pavlov <alexpux@gmail.com>
 
-_build_using_external_compiler=no
+_build_using_cross_mingw64=no
+if [[ "$_build_using_cross_mingw64" == "yes" && \
+       "${MSYSTEM}" == "MINGW64" ]]; then
+  _build_using_cross_mingw64=no
+fi
 
 _include_sub_folder=/${MINGW_CHOST}
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
@@ -27,8 +31,9 @@ license=('custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 makedepends=(
   "git"
-  $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
-  #$([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-binutils")
+  $([[ "$_build_using_cross_mingw64" == "yes" ]] && echo "opt-mingw-x86_64-i686-w64-mingw32-gcc")
+  $([[ "$_build_using_cross_mingw64" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_cross_mingw64" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-binutils")
 )
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
@@ -43,8 +48,8 @@ _git_base_commit=
 
 pkgver() {
   cd "${srcdir}/${_sourcedir}"
-  local _major=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep '__MINGW64_VERSION_MAJOR' | sed -e 's/.* //' | tr '\n' '.' | sed 's/.$/\n/')
-  local _minor=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep '__MINGW64_VERSION_MINOR' | sed -e 's/.* //' | tr '\n' '.' | sed 's/.$/\n/')
+  local _major=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep 'define __MINGW64_VERSION_MAJOR' | sed -e 's/.*[\t ]//' | tr '\n' '.' | sed 's/.$/\n/')
+  local _minor=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep 'define __MINGW64_VERSION_MINOR' | sed -e 's/.*[\t ]//' | tr '\n' '.' | sed 's/.$/\n/')
   local _rev=0
   printf "%s.%s.%s.%s.%s" ${_major} ${_minor} ${_rev} "$(git rev-list --count ${_git_base_commit})" "$(git rev-parse --short=12 ${_git_base_commit})"
 }
@@ -58,16 +63,16 @@ prepare() {
 }
 
 build() {
-  if [[ "$_build_using_external_compiler" != "yes" ]]; then
-    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  if [[ "$_build_using_cross_mingw64" == "yes" ]]; then
+    local _compiler_toolchain_prefix=/opt/mingw64
+    export PATH=${OPT_MINGW_PREFIX}/bin:${_compiler_toolchain_prefix}/bin:$PATH
+    export AR="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-ar"
+    export AS="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-as"
+    export LD="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-ld"
+    export CC="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-gcc"
+    export CXX="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-g++"
   else
-    local _ext_compiler=/h/GNAT/2014
-    export PATH=${_ext_compiler}/bin:$PATH
-    export CC="${_ext_compiler}/bin/gcc"
-    export CXX="${_ext_compiler}/bin/g++"
-    export LD="${_ext_compiler}/bin/ld"
-    export GNATMAKE="${_ext_compiler}/bin/gnatmake"
-    export GNATBIND="${_ext_compiler}/bin/gnatbind"
+    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
   fi
   echo "PATH := $PATH"
 
