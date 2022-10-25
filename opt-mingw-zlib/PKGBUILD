@@ -4,6 +4,13 @@
 # Contributor: Renato Silva <br.renatosilva@gmail.com>
 # Contributor: Ray Donnelly <mingw.android@gmail.com>
 
+_build_using_std_mingw_packages=yes
+
+if [[ "$_build_using_std_mingw_packages" == "yes" && \
+       "${MSYSTEM}" == "MINGW64" ]]; then
+  _build_using_std_mingw_packages=no
+fi
+
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
   OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
@@ -23,7 +30,11 @@ mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
 license=(ZLIB)
 url="https://www.zlib.net/"
 depends=($([[ "$_external_minizip" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-bzip2"))
-makedepends=("${MINGW_PACKAGE_PREFIX}-cc" "${MINGW_PACKAGE_PREFIX}-autotools")
+makedepends=(
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
 options=('staticlibs')
 source=("https://zlib.net/current/${_realname}-${pkgver}.tar.gz"
         01-zlib-1.2.11-1-buildsys.mingw.patch
