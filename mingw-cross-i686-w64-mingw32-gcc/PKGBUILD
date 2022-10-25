@@ -154,6 +154,8 @@ build() {
     _languages+=",ada"
   fi
 
+  declare -a extra_config
+
   ../${_realname}-${pkgver}/configure \
     --build="${_build}" \
     --host="${_host}" \
@@ -189,7 +191,8 @@ build() {
     --with-gnu-ld \
     --with-python-dir="share/${_target}-${_realname}" \
     --with-host-libstdcxx="-static-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm" \
-    --with-sysroot="${_build_prefix}"
+    --with-sysroot="${_build_prefix}" \
+    "${extra_config[@]}"
 
   make -j1 all-gcc
   if [[ "$_enable_startup_mode" != "yes" ]]; then
