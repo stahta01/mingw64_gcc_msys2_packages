@@ -2,7 +2,7 @@
 # Contributor: Alexey Pavlov <Alexpux@gmail.com>
 # Contributor: Renato Silva <br.renatosilva@gmail.com>
 
-_build_using_std_mingw_packages=yes
+_build_using_std_mingw_packages=no
 
 if [[ "$_build_using_std_mingw_packages" == "yes" && \
        "${MSYSTEM_CARCH}" == "x86_64" ]]; then
