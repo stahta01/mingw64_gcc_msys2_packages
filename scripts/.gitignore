@@ -1,0 +1,10 @@
+/cross_gcc4.9_toolchain_mingw_packages/*.zst
+/gcc4.9.4_toolchain_mingw_32_packages/*.zst
+/gcc4.9.4_toolchain_mingw_64_packages/*.zst
+/extra_support_mingw_32_packages/*.zst
+/extra_support_mingw_64_packages/*.zst
+/extra_toolchain_mingw_32_packages/*.zst
+/extra_toolchain_mingw_64_packages/*.zst
+/support_mingw_32_packages/*.zst
+/support_mingw_64_packages/*.zst
+/*.zip
