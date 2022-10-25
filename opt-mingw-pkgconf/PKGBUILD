@@ -1,7 +1,7 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
 # Contributor: Ilya Rakhlin <i.rakhlin@gmail.com>
 
-_build_using_std_mingw_packages=yes
+_build_using_std_mingw_packages=no
 
 if [[ "$_build_using_std_mingw_packages" == "yes" && \
        "${MSYSTEM}" == "MINGW64" ]]; then
