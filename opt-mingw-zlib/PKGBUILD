@@ -4,7 +4,7 @@
 # Contributor: Renato Silva <br.renatosilva@gmail.com>
 # Contributor: Ray Donnelly <mingw.android@gmail.com>
 
-_build_using_std_mingw_packages=yes
+_build_using_std_mingw_packages=no
 
 if [[ "$_build_using_std_mingw_packages" == "yes" && \
        "${MSYSTEM}" == "MINGW64" ]]; then
@@ -35,6 +35,7 @@ makedepends=(
   $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
   $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
   $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
+)
 options=('staticlibs')
 source=("https://zlib.net/current/${_realname}-${pkgver}.tar.gz"
         01-zlib-1.2.11-1-buildsys.mingw.patch
@@ -73,6 +74,12 @@ prepare() {
 build() {
   [[ -d "${srcdir}/build-${MSYSTEM}" ]] && rm -rf "${srcdir}/build-${MSYSTEM}"
   mkdir -p "${srcdir}/build-${MSYSTEM}" && cd "${srcdir}/build-${MSYSTEM}"
+
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
+  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
+  export CFLAGS="-pipe"                         # Clear the MSys2 default value
 
   CHOST=${MINGW_CHOST} \
   ../${_realname}-${pkgver}/configure \
