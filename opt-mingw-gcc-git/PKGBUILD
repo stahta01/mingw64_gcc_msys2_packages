@@ -87,13 +87,14 @@ options=('staticlibs' '!emptydirs' '!strip' '!debug') # development options
 ### ICE means Internal Compiler Error
 ## graphite requires CLOOG in GCC 4.9;
 #   disabled graphite below GCC version 5.
-#_git_branch=releases/gcc-4.3
+#_git_branch=releases/gcc-4.2  # lowest version that might be tried to build
+#_git_branch=releases/gcc-4.3  # gcc6809
 #_git_branch=releases/gcc-4.4
 #_git_branch=releases/gcc-4.5
-#_git_branch=releases/gcc-4.6  # gnatbind: invalid switch: -C
-#_git_branch=releases/gcc-4.7  # built okay with CRT6 and binutils 2.25; but, fails to build binutils 2.25
+#_git_branch=releases/gcc-4.6  # gnatbind: invalid switch: -C  # Try to build 4.5
+ _git_branch=releases/gcc-4.7  # built okay with CRT3 and binutils 2.24
 #_git_branch=releases/gcc-4.8  # built okay with CRT6 and binutils 2.25
- _git_branch=releases/gcc-4.9  # built okay
+#_git_branch=releases/gcc-4.9  # built okay
 #_git_branch=releases/gcc-5    # Cannot use system built ISL 0.25
 #_git_branch=releases/gcc-6    # Can use system built ISL 0.25
 #_git_branch=releases/gcc-7    # Important version for building gcc-ada
@@ -113,7 +114,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran-git")
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
-pkgver=4.9.4+d20160726.r51.c10.g4f18db57daff
+pkgver=4.7.4+d20140612.r45.c9.g4d1f511d7f2f
 pkgrel=1
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
@@ -689,14 +690,6 @@ build() {
     _languages+=",ada"
   fi
 
-  if [[ "$_enable_std_libada" == "yes" && $_gcc_major_version -eq 4 ]]; then
-    # Disable libada for 4.7 and below
-    if ! [[ "${_gcc_version:0:3}" == "4.8" || \
-            "${_gcc_version:0:3}" == "4.9" ]]; then
-      _enable_std_libada=no
-    fi
-  fi
-
   if [[ "$_enable_ada" == "yes" && "$_enable_std_libada" == "no" ]]; then
     extra_config+=('--disable-libada')
   fi
@@ -715,8 +708,6 @@ build() {
   else
     if [[ "$_threads" == "posix" ]]; then
       extra_config+=("--enable-threads=posix")
-    elif [[ "$_threads" == "win32" ]]; then
-      extra_config+=("--enable-threads=mcf")
     elif [[ "$_threads" == "win32" ]]; then
       extra_config+=("--enable-threads=mcf")
     else
