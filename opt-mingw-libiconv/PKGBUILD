@@ -67,6 +67,10 @@ build() {
 
   export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
 
+  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
+  export CFLAGS="-pipe"                         # Clear the MSys2 default value
+
   ../${_realname}-${pkgver}/configure \
     --prefix=${OPT_MINGW_PREFIX} \
     --build=${MINGW_CHOST} \
