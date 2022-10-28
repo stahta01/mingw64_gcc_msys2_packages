@@ -88,7 +88,6 @@ options=('staticlibs' '!emptydirs' '!strip' '!debug') # development options
 _realname=gcc
 _sourcedir=${_realname}-git
 _base_ver=4.7
-_git_branch=releases/gcc-${_base_ver}
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git"
@@ -147,18 +146,8 @@ source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
         '141-gcc-4.4-ktietz-libgomp.patch'
         '0150-gcc-10.2.0-libgcc-ldflags.patch'
         '704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch'
-        '904-Ada-build-fix-for-GCC-4.8-building-GCC-4.7.patch')
-#
-_git_gcc_URL=git+https://github.com/stahta01/gcc4_main_development.git
-#_git_gcc_URL=git+https://github.com/gcc-mirror/gcc.git
-if [ -n "$_git_commit" ]; then
-  source+=(${_sourcedir}::"${_git_gcc_URL}#commit=${_git_commit}")
-elif [ -n "$_git_tag" ]; then
-  source+=(${_sourcedir}::"${_git_gcc_URL}#tag=${_git_tag}")
-else
-  source+=(${_sourcedir}::"${_git_gcc_URL}#branch=${_git_branch}")
-fi
-#
+        '904-Ada-build-fix-for-GCC-4.8-building-GCC-4.7.patch'
+        ${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=releases/gcc-${_base_ver}")
 sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
             '02500a4edd14875f94fe84cbeda4290425cb0c1c2474c6f75d75a303d64b4196'
             'c7e75a08a8d49d2082e4caee1591a05d11b9d5627514e678f02d66a124bcf2ba'
