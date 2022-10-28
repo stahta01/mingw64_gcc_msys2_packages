@@ -12,9 +12,9 @@ fi
 
 _realname=winpthreads
 _sourcedir=mingw-w64-git
-pkgbase=opt-mingw-${_realname}3-git
+pkgbase=opt-mingw-${_realname}3
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git" "${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread-git")
-pkgver=6.0.0.5242.a5d32c34c
+pkgver=3.4.0.3935.8c7e00886
 pkgrel=1
 _commit='8c7e00886f69c448270376601fe1c016392e26f9' # 3.4.0.3935.8c7e00886
 pkgdesc="MinGW-w64 winpthreads library"
