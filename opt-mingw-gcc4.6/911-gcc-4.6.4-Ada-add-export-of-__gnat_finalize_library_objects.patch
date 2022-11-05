@@ -1,0 +1,27 @@
+From cab826f5f27c0dcd5495e971250f1b1fa2b78203 Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Wed, 2 Nov 2022 10:38:28 -0400
+Subject: Ada add export of "__gnat_finalize_library_objects"
+
+---
+ gcc/ada/s-soflin.ads | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/gcc/ada/s-soflin.ads b/gcc/ada/s-soflin.ads
+index 783fd8878eb..c7f14e26fb4 100644
+--- a/gcc/ada/s-soflin.ads
++++ b/gcc/ada/s-soflin.ads
+@@ -224,6 +224,10 @@ package System.Soft_Links is
+    Finalize_Global_List : No_Param_Proc := Null_Finalize_Global_List'Access;
+    --  Performs finalization of global list for controlled objects
+ 
++   Finalize_Library_Objects : No_Param_Proc;
++   pragma Export (C, Finalize_Library_Objects,
++                  "__gnat_finalize_library_objects");
++
+    Adafinal : No_Param_Proc := Adafinal_NT'Access;
+    --  Performs the finalization of the Ada Runtime
+ 
+-- 
+2.38.1.windows.1
+
