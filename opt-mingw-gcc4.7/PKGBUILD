@@ -37,7 +37,7 @@ _enable_std_libada=yes    # Use yes for production
 _enable_libatomic=no
 
 _enable_gcc_plugin=no
-_enable_bootstrap=no     # Use yes for production
+_enable_bootstrap=yes     # Use yes for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
 _enable_backstrap_ada=no  # Use no for production
@@ -96,7 +96,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.7.4+d20140612.r45.c9.g4d1f511d7f2f
-pkgrel=2
+pkgrel=3
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
