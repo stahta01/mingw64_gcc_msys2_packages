@@ -86,7 +86,9 @@ build() {
     --prefix=${OPT_MINGW_PREFIX} \
     --shared
 
-  make
+  # 32 bit build was failing sometimes without targets
+  make static
+  make shared
 
   # build minizip
   if [ "${_external_minizip}" != "yes" ]; then
