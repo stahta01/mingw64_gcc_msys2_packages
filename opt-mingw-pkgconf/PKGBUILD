@@ -41,17 +41,31 @@ source=("https://github.com/pkgconf/pkgconf/archive/refs/tags/$_realname-$pkgver
 sha256sums=('e8b637c0dd8ae1decbcc95b24b64795cba81a8e3064fddb4424cacef411e59f9'
             '1db5975d6b1db946ba1d71cc3cf390dec567899a89d7ef53f56f24f0058cdbe3'
             'a7efeef61b4af1c0813d9d8a211cde669a3e3fa2c97ed21e55487667769c567a'
-            '93a4aa1475122d16b6ac8a84f771e004e1a53e1df982d3dd069b262c9815ebb4')
-
+            '07f4575a3237a5d6c75f6d43ddd16f1e529ed50393e4359cd9a3a81f679a1afd')
+# =========================================== #
+# Helper macros to help make tasks easier     #
+apply_patch_with_msg() {
+  for _patch in "$@"
+  do
+    if patch --dry-run -Rbp1 -i "${srcdir}/${_patch}" > /dev/null 2>&1 ; then
+      msg2 "Skipping ${_patch} because it likely was already applied"
+    else
+      msg2 "Applying ${_patch}"
+      patch -Nbp1 -i "${srcdir}/${_patch}"
+    fi
+  done
+}
+# =========================================== #
 prepare() {
   mv "${_realname}-${_realname}-${pkgver}" "${_realname}-${pkgver}"
   cd ${srcdir}/$_realname-$pkgver
 
-  # https://github.com/msys2/MINGW-packages/issues/8473
-  patch -R -p1 -i ${srcdir}/0004-default-pure-static.patch
+  apply_patch_with_msg \
+    0002-size-t-format.patch \
+    0003-printf-format.patch
 
-  patch -p1 -i ${srcdir}/0002-size-t-format.patch
-  patch -p1 -i ${srcdir}/0003-printf-format.patch
+  # https://github.com/msys2/MINGW-packages/issues/8473
+  apply_patch_with_msg 0004-default-pure-static.patch
 }
 
 build() {
