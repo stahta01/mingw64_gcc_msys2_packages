@@ -1,0 +1,29 @@
+From 7f38742da6f5f816f316726931d54a7feab53588 Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Fri, 4 Nov 2022 21:04:38 -0400
+Subject: ada: second try on GNAT build fix
+
+---
+ gcc/ada/bindgen.adb | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/gcc/ada/bindgen.adb b/gcc/ada/bindgen.adb
+index 0b595fe044c..fc6b1a7811c 100644
+--- a/gcc/ada/bindgen.adb
++++ b/gcc/ada/bindgen.adb
+@@ -62,6 +62,14 @@ package body Bindgen is
+    Num_Elab_Calls : Nat := 0;
+    --  Number of generated calls to elaboration routines
+ 
++   Gl_Priority_Specific_Dispatching : System.Address := Null_Address;
++   pragma Export (C, Gl_Priority_Specific_Dispatching,
++                     "__gl_priority_specific_dispatching");
++
++   Gl_Num_Specific_Dispatching : Integer := 0;
++   pragma Export (C, Gl_Num_Specific_Dispatching,
++                     "__gl_num_specific_dispatching");
++
+    ----------------------------------
+    -- Interface_State Pragma Table --
+    ----------------------------------
+-- 
