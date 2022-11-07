@@ -1,0 +1,193 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Ray Donnelly <mingw.android@gmail.com>
+
+_build_using_std_mingw_packages=no
+_build_using_external_compiler=no
+
+if [[ "$_build_using_std_mingw_packages" == "yes" && \
+       "${MSYSTEM}" != "MINGW32" ]]; then
+  _build_using_std_mingw_packages=no
+fi
+
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+
+_realname=binutils
+_sourcedir=${_realname}-git
+_base_ver=2.18
+pkgbase=opt-mingw-${_realname}${_base_ver}
+pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
+pkgver=2.18+r55352.c0.gbee8c06e0fcb
+pkgrel=1
+provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}=${pkgver}")
+conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgdesc="A set of programs to assemble and manipulate binary and object files"
+arch=('any')
+url="https://www.gnu.org/software/binutils/"
+license=('GPL')
+groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
+depends=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
+         "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
+         "${OPT_MINGW_PACKAGE_PREFIX}-gettext-runtime")
+if [[ "$_build_using_std_mingw_packages" == "yes" ]]; then
+  depends+=("${MINGW_PACKAGE_PREFIX}-libiconv")
+  depends+=("${MINGW_PACKAGE_PREFIX}-gettext")
+fi
+#checkdepends=('dejagnu' 'bc')
+makedepends=(
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-gcc")
+  $([[ "$_build_using_std_mingw_packages" != "yes" && "$_build_using_external_compiler" != "yes" ]] && \
+    echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  "${OPT_MINGW_PACKAGE_PREFIX}-autotools"
+  "git"
+)
+options=('staticlibs' '!distcc' '!ccache' 'debug' '!strip')
+#install=binutils.install
+source=("${_sourcedir}"::"git+https://sourceware.org/git/binutils-gdb.git#branch=${_realname}-${_base_ver//./_}-branch")
+sha256sums=('SKIP')
+# =========================================== #
+_git_base_commit=
+
+pkgver() {
+  cd "$srcdir/$_sourcedir"
+  printf "%s+r%s.c%s.g%s" "${_base_ver}" \
+    "$(git rev-list --count HEAD)" \
+    "$(git rev-list --count ${_git_base_commit}..HEAD)" \
+    "$(git rev-parse --short=12 ${_git_base_commit})"
+}
+
+prepare() {
+  cd ${srcdir}/${_sourcedir}
+
+  _git_base_commit=$(git rev-parse HEAD)
+  GIT_AM="git am --committer-date-is-author-date"
+
+  rm -rf gdb readline libdecnumber sim
+
+  #sed -i 's|#include <sys/stat.h>|//#include <sys/stat.h>|' binutils/rename.c
+
+  #do not install libiberty
+  sed -i 's/install_to_$(INSTALL_DEST) //' libiberty/Makefile.in
+  # hack! - libiberty configure tests for header files using "$CPP $CPPFLAGS"
+  sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
+}
+
+build() {
+  export LDFLAGS="-pipe"
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CFLAGS="-pipe"
+
+  if [[ "$_build_using_external_compiler" == "yes" ]]; then
+    # GCC 4.3.x from GNAT 2010 built binutils2.19 okay
+    # GCC 4.5.x from GNAT 2012 built binutils2.19 ???
+    # GCC 4.7.x from GNAT 2014 built binutils2.19 ???
+    local _ext_compiler=/h/GNAT/2010
+    export PATH=${OPT_MINGW_PREFIX}/bin:${_ext_compiler}/bin:$PATH
+    export CC="${_ext_compiler}/bin/gcc"
+    export CXX="${_ext_compiler}/bin/g++"
+    export LD="${_ext_compiler}/bin/ld"
+    export GNATMAKE="${_ext_compiler}/bin/gnatmake"
+    export GNATBIND="${_ext_compiler}/bin/gnatbind"
+  elif [[ "$_build_using_cross_mingw64" == "yes" ]]; then
+    local _compiler_toolchain_prefix=/opt/mingw64
+    export PATH=${OPT_MINGW_PREFIX}/bin:${_compiler_toolchain_prefix}/bin:$PATH
+    export AR="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-ar"
+    export AS="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-as"
+    export LD="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-ld"
+    export CC="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-gcc"
+    export CXX="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-g++"
+  else
+    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  fi
+  echo "PATH := $PATH"
+  ${CC} --version
+
+  declare -a extra_config
+
+  if [ "${CARCH}" = "x86_64" ]; then
+    extra_config+=('--enable-64-bit-bfd')
+  #else
+    #LDFLAGS+=" -Wl,--large-address-aware"
+  fi
+
+  if check_option "debug" "y"; then
+    CFLAGS+=" -O0"
+  fi
+
+  #if [[ "$_build_using_std_mingw_packages" != "yes" ]]; then
+    #export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+    extra_config+=(--with-libiconv-prefix=${OPT_MINGW_PREFIX})
+  #else
+    #extra_config+=(--with-build-sysroot=${MINGW_PREFIX})
+    #extra_config+=(--with-libiconv-prefix=${MINGW_PREFIX})
+  #fi
+  #echo "PATH := $PATH"
+
+  # Try Using during GCC version change in building of Binutils or CRT.
+  # export LDFLAGS+=" -static-libgcc -static-libstdc++"
+
+  cd $srcdir
+  rm -rf build-${MSYSTEM}
+  mkdir -p build-${MSYSTEM} && cd build-${MSYSTEM}
+
+  #CFLAGS+=" -I${OPT_MINGW_PREFIX}/include"
+  ../${_sourcedir}/configure \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --target=${MINGW_CHOST} \
+    --prefix=${OPT_MINGW_PREFIX} \
+    --disable-werror \
+    --disable-lto \
+    --with-sysroot=${OPT_MINGW_PREFIX} \
+    "${extra_config[@]}" \
+    --disable-nls \
+    --disable-rpath \
+    --disable-multilib \
+    --disable-install-libiberty \
+    --disable-plugins \
+    --disable-gold \
+    --disable-shared
+
+  # MAKEINFO=true should prevent building/erroring out on help files.
+  make MAKEINFO=true
+}
+
+check() {
+  cd ${srcdir}/build-${MSYSTEM}
+
+  # unset LDFLAGS as testsuite makes assumptions about which ones are active
+  # do not abort on errors - manually check log files
+  make LDFLAGS="" -k check || true
+}
+
+package() {
+  cd ${srcdir}/build-${MSYSTEM}
+
+  if [[ "$_build_using_std_mingw_packages" != "yes" ]]; then
+    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  fi
+
+  make MAKEINFO=true DESTDIR=${pkgdir} install
+
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/{lib,include}/${_realname}
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include
+  cp ${pkgdir}${OPT_MINGW_PREFIX}/include/ansidecl.h ${pkgdir}${OPT_MINGW_PREFIX}/${MINGW_CHOST}/include/
+  mv ${pkgdir}${OPT_MINGW_PREFIX}/include/*.h ${pkgdir}${OPT_MINGW_PREFIX}/include/${_realname}
+  mv ${pkgdir}${OPT_MINGW_PREFIX}/lib/*.a ${pkgdir}${OPT_MINGW_PREFIX}/lib/${_realname}
+
+  # Remove unwanted files
+  find ${pkgdir}${OPT_MINGW_PREFIX}/share/locale -type f -iname "bfd.*" -o -iname "opcodes.*" | xargs -rtl1 rm
+  # rm -rf ${pkgdir}${OPT_MINGW_PREFIX}/share
+  rm -f ${pkgdir}${OPT_MINGW_PREFIX}/share/info/dir
+
+  # Add some useful headers
+  #install -m644 ${srcdir}/${_realname}-${pkgver}/include/libiberty.h ${pkgdir}${OPT_MINGW_PREFIX}/include
+  #install -m644 ${srcdir}/${_realname}-${pkgver}/include/demangle.h ${pkgdir}${OPT_MINGW_PREFIX}/include
+
+  find  ${pkgdir}${OPT_MINGW_PREFIX}/share -type f -iname "opcodes.mo" -o -iname "bfd.mo" | xargs -rtl1 rm
+}
