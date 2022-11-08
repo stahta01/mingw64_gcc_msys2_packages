@@ -1,0 +1,67 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov <Alexpux@gmail.com>
+# Contributor: Karlson2k (Evgeny Grin) <k2k@narod.ru>
+
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+
+_realname=mpfr
+pkgbase=opt-mingw-${_realname}3
+pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+_pkgver=3.1.6
+pkgver=${_pkgver} # .p1
+pkgrel=1
+pkgdesc="Multiple-precision floating-point library (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
+license=('LGPL')
+options=('staticlibs')
+depends=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-cc"
+             "${OPT_MINGW_PACKAGE_PREFIX}-gmp"
+             "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+source=(https://ftp.gnu.org/gnu/mpfr/${_realname}-${_pkgver}.tar.xz)
+sha256sums=('7a62ac1a04408614fccdc506e4844b10cf0ad2c2b1677097f8f35d3a1344a950')
+
+prepare() {
+  cd "${srcdir}/${_realname}-${_pkgver}"
+
+  #patch -p1 -i ${srcdir}/patches.diff
+}
+
+build() {
+  # Replace the MSys2 default FLAG values
+  export LDFLAGS="-pipe"
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CFLAGS="-pipe"
+
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
+  [[ -d build-${MINGW_CHOST} ]] && rm -rf build-${MINGW_CHOST}
+  mkdir -p build-${MINGW_CHOST} && cd build-${MINGW_CHOST}
+
+  ../${_realname}-${_pkgver}/configure \
+    --build=${MINGW_CHOST} \
+    --prefix=${OPT_MINGW_PREFIX} \
+    --enable-static \
+    --disable-shared \
+    --with-gmp=${OPT_MINGW_PREFIX}
+
+  make
+}
+
+check() {
+  cd "${srcdir}/build-${MINGW_CHOST}"
+  make check
+}
+
+package() {
+  cd "${srcdir}/build-${MINGW_CHOST}"
+  make DESTDIR="${pkgdir}" install
+
+  rm -f ${pkgdir}${OPT_MINGW_PREFIX}/share/info/dir
+}
