@@ -8,4 +8,4 @@ cp -f ../opt-mingw-expat/opt-mingw-x86_64-expat-2.4.9-1-any.pkg.tar.zst ./extra_
 mkdir -p extra_support_mingw_32_packages
 rm -f ./extra_support_mingw_32_packages/*.zst
 
-cp -f ../opt-mingw-zlib/opt-mingw-i686-zlib-1.2.12-1-any.pkg.tar.zst ./extra_support_mingw_32_packages/
+cp -f ../opt-mingw-gmp5/opt-mingw-i686-gmp-5.1.3-1-any.pkg.tar.zst ./extra_support_mingw_32_packages/
