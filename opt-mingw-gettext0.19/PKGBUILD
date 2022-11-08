@@ -1,0 +1,160 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Renato Silva <br.renatosilva@gmail.com>
+# This package is based on
+# https://github.com/msys2/MINGW-packages/tree/master/mingw-w64-gettext
+
+_build_using_std_mingw_packages=no
+
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+
+_parentname=gettext
+_realname=gettext-runtime
+pkgbase=opt-mingw-${_parentname}
+pkgname="${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=0.19.4
+pkgrel=1
+_sourcedir=gettext-${pkgver}
+arch=('any')
+mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
+url="https://www.gnu.org/software/gettext/"
+pkgdesc="GNU internationalization library (mingw-w64)"
+# GPL3 for the package as a whole and LGPL for some parts, see the license files
+license=(GPL3 partial:'LGPL2.1')
+depends=()
+if [[ "$_build_using_std_mingw_packages" != "yes" ]]; then
+  depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
+else
+  depends+=("${MINGW_PACKAGE_PREFIX}-libiconv")
+fi
+makedepends=(
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
+)
+conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_parentname}")
+provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_parentname}")
+options=('strip' 'staticlibs')
+source=("https://ftp.gnu.org/pub/gnu/${_parentname}/${_parentname}-${pkgver}.tar.gz"
+        04-mingw-script-slash-fix.mingw.patch
+        05-always-use-libintl-vsnprintf.mingw.patch
+        06-dont-include-ctype-after-gnulibs-wctype.mingw.patch
+        07-fix-asprintf-conflict.mingw.patch
+        08-vs-compatible.patch
+        122-Use-LF-as-newline-in-envsubst.patch
+        200-tools-gnulib-define-installdir.patch)
+sha256sums=('8ac9f1ed1a5f8c4e656a2f37f5ba6b9ee04c4df79a575e876b0b6946aa417f3f'
+            'bebc791443a739f91ace5bca1dba3d45d50dff92706fae7629d150e197d2f411'
+            '51604823755d1ae669544bb9730c5a09b78b0f1b1978577c8604fbd6cafc073e'
+            '25aee9534c45772370ef5ca495da0d6a9f4d73e7a53d6ba91314883c6f3bb695'
+            '3b85e4d0b771b47a168c629a65463f5b87a5d5627b5f05000a45c3d2df96b66d'
+            '522715ac22936943a85b4b78274302a6058f4f5371439cf491193ed53d8fc729'
+            '2abfa598e1586abe14e982b867c8981790d8114e1ee575cb08b7ed49d4a46c74'
+            '71eb3554cbf37a8c866722e39c6102c3ae3a215b82e153000f61f2e80d3bfd1b')
+
+# Helper macros to help make tasks easier #
+apply_patch_with_msg() {
+  for _patch in "$@"
+  do
+    msg2 "Applying ${_patch}"
+    patch -Nbp1 -i "${srcdir}/${_patch}"
+  done
+}
+
+prepare() {
+  cd "${srcdir}/${_parentname}-${pkgver}"
+  rm -rf gettext-runtime/intl/canonicalize.c \
+         gettext-runtime/intl/canonicalize.h \
+         gettext-runtime/intl/relocatex.c \
+         gettext-runtime/intl/relocatex.h \
+         gettext-tools/woe32dll/c++color.cc \
+         gettext-tools/woe32dll/c++file-ostream.cc \
+         gettext-tools/woe32dll/c++html-ostream.cc \
+         gettext-tools/woe32dll/c++styled-ostream.cc \
+         gettext-tools/woe32dll/c++term-ostream.cc \
+         gettext-tools/woe32dll/c++write-catalog.cc \
+         gettext-tools/woe32dll/c++write-po.cc \
+         gettext-tools/woe32dll/c++write-properties.cc \
+         gettext-tools/woe32dll/c++write-stringtable.cc \
+         MINGW-PATCHES/README-relocatex-libintl.txt || true
+
+  patch -p0 -i ${srcdir}/04-mingw-script-slash-fix.mingw.patch
+  patch -p0 -i ${srcdir}/05-always-use-libintl-vsnprintf.mingw.patch
+  patch -p0 -i ${srcdir}/06-dont-include-ctype-after-gnulibs-wctype.mingw.patch
+  patch -p0 -i ${srcdir}/07-fix-asprintf-conflict.mingw.patch
+  patch -p0 -i ${srcdir}/08-vs-compatible.patch
+  patch -p1 -i ${srcdir}/122-Use-LF-as-newline-in-envsubst.patch
+  patch -p1 -i ${srcdir}/200-tools-gnulib-define-installdir.patch
+
+  libtoolize --automake --copy --force
+  WANT_AUTOMAKE=latest ./autogen.sh --skip-gnulib
+}
+
+build() {
+  [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
+  mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
+
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  export lt_cv_deplibs_check_method='pass_all'
+  export MSYS2_ARG_CONV_EXCL="-DLOCALEDIR=;-DLIBDIR=;-DLOCALE_ALIAS_PATH="
+
+  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
+  export CFLAGS="-pipe"                         # Clear the MSys2 default value
+
+  ../${_sourcedir}/configure \
+    --prefix=${OPT_MINGW_PREFIX} \
+    --host=${MINGW_CHOST} \
+    --target=${MINGW_CHOST} \
+    --build=${MINGW_CHOST} \
+    --disable-java \
+    --disable-native-java \
+    --disable-csharp \
+    --disable-curses \
+    --disable-acl \
+    --disable-openmp \
+    --disable-rpath \
+    --enable-static \
+    --disable-threads \
+    --enable-relocatable \
+    --without-emacs \
+    --without-cvs \
+    --without-git \
+    --without-bzip2 \
+    --without-xz \
+    --with-included-libcroco \
+    --with-included-libunistring \
+    --with-included-libxml \
+    --with-included-glib \
+    --disable-silent-rules
+
+  # to make relocate() in gnulib-lib work
+  sed -s "s|${OPT_MINGW_PREFIX}|$(cygpath -m ${OPT_MINGW_PREFIX})|g" -i gettext-tools/config.h
+
+  cd gettext-runtime
+  make --jobs=1 V=1
+}
+
+package() {
+  cd ${srcdir}/build-${MSYSTEM}
+  cd gettext-runtime
+  make DESTDIR="${pkgdir}" install
+
+  rm -f ${pkgdir}${OPT_MINGW_PREFIX}/share/info/dir
+
+  # Licenses
+  install -Dm644 "${srcdir}/${_parentname}-${pkgver}/COPYING"                                 "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_parentname}/COPYING"
+  install -Dm644 "${srcdir}/${_parentname}-${pkgver}/gettext-runtime/COPYING"                 "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_parentname}/gettext-runtime/COPYING"
+  install -Dm644 "${srcdir}/${_parentname}-${pkgver}/gettext-runtime/intl/COPYING.LIB"        "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_parentname}/gettext-runtime/intl/COPYING.LIB"
+  install -Dm644 "${srcdir}/${_parentname}-${pkgver}/gettext-runtime/libasprintf/COPYING"     "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_parentname}/gettext-runtime/libasprintf/COPYING"
+  install -Dm644 "${srcdir}/${_parentname}-${pkgver}/gettext-runtime/libasprintf/COPYING.LIB" "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_parentname}/gettext-runtime/libasprintf/COPYING.LIB"
+  #install -Dm644 "${srcdir}/${_parentname}-${pkgver}/gettext-tools/COPYING"                   "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_parentname}/gettext-tools/COPYING"
+  #install -Dm644 "${srcdir}/${_parentname}-${pkgver}/gettext-tools/gnulib-lib/libxml/COPYING" "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_parentname}/gettext-tools/gnulib-lib/libxml/COPYING"
+  install -Dm644 "${srcdir}/${_parentname}-${pkgver}/gnulib-local/lib/libxml/COPYING"         "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_parentname}/gnulib-local/lib/libxml/COPYING"
+}
