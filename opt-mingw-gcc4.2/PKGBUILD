@@ -18,7 +18,7 @@ _include_sub_folder=/${MINGW_CHOST}
 
 _build_using_external_compiler=no   # Use no for production
 _enable_ada=no                     # Use yes for production
-_enable_bootstrap=yes               # Use yes for production
+_enable_bootstrap=no                # Yes; gives out of memory error in stage 2
 
 _realname=gcc
 _sourcedir=${_realname}-git
@@ -39,8 +39,9 @@ makedepends=(
   #$([[ "$_enable_ada" == "yes" && \
        #"$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
   "${OPT_MINGW_PACKAGE_PREFIX}-crt"
-  "${OPT_MINGW_PACKAGE_PREFIX}-gmp"
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
+  #"${OPT_MINGW_PACKAGE_PREFIX}-gmp"  # needed by FORTRAN
+  #"${OPT_MINGW_PACKAGE_PREFIX}-mpfr" # needed by FORTRAN
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
