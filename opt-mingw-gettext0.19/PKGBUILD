@@ -33,9 +33,13 @@ else
   depends+=("${MINGW_PACKAGE_PREFIX}-libiconv")
 fi
 makedepends=(
-  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+  #$([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-pkgconf")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "autoconf-wrapper")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "automake-wrapper")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "libtool")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "make")
   $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
-  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
   $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
 )
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_parentname}")
