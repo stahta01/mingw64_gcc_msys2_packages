@@ -1,0 +1,77 @@
+From dcde74e15263033b419c05776581c4d48d46658b Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Sun, 30 Oct 2022 07:18:36 -0400
+Subject: Ada build fix for GCC-4.4 and GCC-4.3 building GCC-4.3
+
+Fixes unreachable code errors.
+
+This patch is to be used only to create an GCC Compiler with Ada;
+then that compiler needs to be rebuilt without this patch.
+---
+ gcc/ada/einfo.adb    | 4 ----
+ gcc/ada/sem_ch3.adb  | 1 -
+ gcc/ada/sem_elab.adb | 2 --
+ gcc/ada/sem_util.adb | 2 --
+ 4 files changed, 9 deletions(-)
+
+diff --git a/gcc/ada/einfo.adb b/gcc/ada/einfo.adb
+index d8be3e75932..f7e45568408 100644
+--- a/gcc/ada/einfo.adb
++++ b/gcc/ada/einfo.adb
+@@ -5636,8 +5636,6 @@ package body Einfo is
+             S := Scope (S);
+          end if;
+       end loop;
+-
+-      return S;
+    end Enclosing_Dynamic_Scope;
+ 
+    ----------------------
+@@ -6858,8 +6856,6 @@ package body Einfo is
+             end if;
+          end loop;
+       end if;
+-
+-      raise Program_Error;
+    end Root_Type;
+ 
+    -----------------
+diff --git a/gcc/ada/sem_ch3.adb b/gcc/ada/sem_ch3.adb
+index 920b1494040..a4b29a92366 100644
+--- a/gcc/ada/sem_ch3.adb
++++ b/gcc/ada/sem_ch3.adb
+@@ -13879,7 +13879,6 @@ package body Sem_Ch3 is
+                Ancestor := Etype (Ancestor);
+             end loop;
+ 
+-            return True;
+          end;
+       end if;
+    end Is_Visible_Component;
+diff --git a/gcc/ada/sem_elab.adb b/gcc/ada/sem_elab.adb
+index e3bd6897a1c..cc414aab527 100644
+--- a/gcc/ada/sem_elab.adb
++++ b/gcc/ada/sem_elab.adb
+@@ -3091,8 +3091,6 @@ package body Sem_Elab is
+             Scop := Scope (Scop);
+          end if;
+       end loop;
+-
+-      raise Program_Error;
+    end Within;
+ 
+    --------------------------
+diff --git a/gcc/ada/sem_util.adb b/gcc/ada/sem_util.adb
+index 344122a0df0..5311aea2cbd 100644
+--- a/gcc/ada/sem_util.adb
++++ b/gcc/ada/sem_util.adb
+@@ -5734,8 +5734,6 @@ package body Sem_Util is
+             T := Base_Type (Etyp);
+          end loop;
+       end if;
+-
+-      raise Program_Error;
+    end Is_Descendent_Of;
+ 
+    --------------
+-- 

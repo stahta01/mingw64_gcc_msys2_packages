@@ -1,0 +1,196 @@
+From 95230b5167ea693cab5456728c128a462cf2b623 Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Sun, 30 Oct 2022 07:54:58 -0400
+Subject: ada: Fix wrong case
+
+Use "NUL" instead of "nul" or "Nul".
+Change "Tc" to "TC".
+Change "Attribute_name" to "Attribute_Name".
+Change "Object_definition" to "Object_Definition".
+---
+ gcc/ada/ali.adb      |  2 +-
+ gcc/ada/errout.adb   |  2 +-
+ gcc/ada/exp_ch6.adb  |  2 +-
+ gcc/ada/exp_dbug.adb |  6 +++---
+ gcc/ada/exp_dist.adb | 10 +++++-----
+ gcc/ada/freeze.adb   |  2 +-
+ gcc/ada/s-os_lib.adb |  8 ++++----
+ gcc/ada/sem_util.adb |  2 +-
+ 8 files changed, 17 insertions(+), 17 deletions(-)
+
+diff --git a/gcc/ada/ali.adb b/gcc/ada/ali.adb
+index 8466ddd91d8..e60013fbd71 100644
+--- a/gcc/ada/ali.adb
++++ b/gcc/ada/ali.adb
+@@ -1822,7 +1822,7 @@ package body ALI is
+                   end if;
+                end loop;
+ 
+-               Add_Char_To_Name_Buffer (nul);
++               Add_Char_To_Name_Buffer (NUL);
+                Skip_Eol;
+             end if;
+ 
+diff --git a/gcc/ada/errout.adb b/gcc/ada/errout.adb
+index e0f649222d6..c476795c74a 100644
+--- a/gcc/ada/errout.adb
++++ b/gcc/ada/errout.adb
+@@ -2078,7 +2078,7 @@ package body Errout is
+       for J in Name_Buffer'Range loop
+          Name_Buffer (J) := Ident (J);
+ 
+-         if Name_Buffer (J) = ASCII.Nul then
++         if Name_Buffer (J) = ASCII.NUL then
+             Name_Len := J - 1;
+             exit;
+          end if;
+diff --git a/gcc/ada/exp_ch6.adb b/gcc/ada/exp_ch6.adb
+index e8f5c114ace..4c94a898f07 100644
+--- a/gcc/ada/exp_ch6.adb
++++ b/gcc/ada/exp_ch6.adb
+@@ -1016,7 +1016,7 @@ package body Exp_Ch6 is
+                            Low_Bound  =>
+                              Make_Attribute_Reference (Loc,
+                                Prefix => New_Occurrence_Of (Var, Loc),
+-                               Attribute_name => Name_First),
++                               Attribute_Name => Name_First),
+                            High_Bound =>
+                              Make_Attribute_Reference (Loc,
+                                Prefix => New_Occurrence_Of (Var, Loc),
+diff --git a/gcc/ada/exp_dbug.adb b/gcc/ada/exp_dbug.adb
+index 2f1137b41cf..6f51dbb4026 100644
+--- a/gcc/ada/exp_dbug.adb
++++ b/gcc/ada/exp_dbug.adb
+@@ -535,7 +535,7 @@ package body Exp_Dbug is
+       --  For all these cases, just return the name unchanged
+ 
+       then
+-         Name_Buffer (Name_Len + 1) := ASCII.Nul;
++         Name_Buffer (Name_Len + 1) := ASCII.NUL;
+          return;
+       end if;
+ 
+@@ -751,7 +751,7 @@ package body Exp_Dbug is
+          Get_Qualified_Name_And_Append (E);
+       end if;
+ 
+-      Name_Buffer (Name_Len + 1) := ASCII.Nul;
++      Name_Buffer (Name_Len + 1) := ASCII.NUL;
+    end Get_External_Name;
+ 
+    -----------------------------------
+@@ -784,7 +784,7 @@ package body Exp_Dbug is
+       if Has_Suffix then
+          Add_Str_To_Name_Buffer ("___");
+          Add_Str_To_Name_Buffer (Suffix);
+-         Name_Buffer (Name_Len + 1) := ASCII.Nul;
++         Name_Buffer (Name_Len + 1) := ASCII.NUL;
+       end if;
+    end Get_External_Name_With_Suffix;
+ 
+diff --git a/gcc/ada/exp_dist.adb b/gcc/ada/exp_dist.adb
+index 455cdb19e8b..8cc4afdcaf3 100644
+--- a/gcc/ada/exp_dist.adb
++++ b/gcc/ada/exp_dist.adb
+@@ -8795,7 +8795,7 @@ package body Exp_Dist is
+                                  Build_From_Any_Call (Etype (Field),
+                                    Build_Get_Aggregate_Element (Loc,
+                                      Any => Any,
+-                                     Tc  => Build_TypeCode_Call (Loc,
++                                     TC  => Build_TypeCode_Call (Loc,
+                                               Etype (Field), Decls),
+                                      Idx => Make_Integer_Literal (Loc,
+                                               Counter)),
+@@ -8835,7 +8835,7 @@ package body Exp_Dist is
+                                       Parameter_Associations => New_List (
+                                         Build_Get_Aggregate_Element (Loc,
+                                           Any => Any,
+-                                          Tc  => Make_Function_Call (Loc,
++                                          TC  => Make_Function_Call (Loc,
+                                             Name => New_Occurrence_Of (
+                                               RTE (RE_Any_Member_Type), Loc),
+                                             Parameter_Associations =>
+@@ -8924,7 +8924,7 @@ package body Exp_Dist is
+                                     Build_From_Any_Call (Disc_Type,
+                                       Build_Get_Aggregate_Element (Loc,
+                                         Any => Any_Parameter,
+-                                        Tc  => Build_TypeCode_Call
++                                        TC  => Build_TypeCode_Call
+                                                  (Loc, Disc_Type, Decls),
+                                         Idx => Make_Integer_Literal
+                                                  (Loc, Component_Counter)),
+@@ -9039,7 +9039,7 @@ package body Exp_Dist is
+                         Element_Any :=
+                           Build_Get_Aggregate_Element (Loc,
+                             Any => Any,
+-                            Tc  => Element_TC,
++                            TC  => Element_TC,
+                             Idx => New_Occurrence_Of (Counter, Loc));
+                      end;
+ 
+@@ -9132,7 +9132,7 @@ package body Exp_Dist is
+                                    Indt,
+                                    Build_Get_Aggregate_Element (Loc,
+                                      Any => Any_Parameter,
+-                                     Tc  => Build_TypeCode_Call (Loc,
++                                     TC  => Build_TypeCode_Call (Loc,
+                                               Indt, Decls),
+                                      Idx => Make_Integer_Literal (Loc, J - 1)),
+                                    Decls)));
+diff --git a/gcc/ada/freeze.adb b/gcc/ada/freeze.adb
+index f977e7a0e02..3b9d4fe8af2 100644
+--- a/gcc/ada/freeze.adb
++++ b/gcc/ada/freeze.adb
+@@ -1105,7 +1105,7 @@ package body Freeze is
+          New_N :=
+            Make_Object_Declaration (Loc,
+              Defining_Identifier => Temp,
+-             Object_definition => New_Occurrence_Of (Typ, Loc),
++             Object_Definition => New_Occurrence_Of (Typ, Loc),
+              Expression => Relocate_Node (E));
+          Insert_Before (Parent (E), New_N);
+          Analyze (New_N);
+diff --git a/gcc/ada/s-os_lib.adb b/gcc/ada/s-os_lib.adb
+index 7082ff0930c..e03ca313218 100755
+--- a/gcc/ada/s-os_lib.adb
++++ b/gcc/ada/s-os_lib.adb
+@@ -458,10 +458,10 @@ package body System.OS_Lib is
+          --  Copy attributes
+ 
+          C_From (1 .. Name'Length) := Name;
+-         C_From (C_From'Last) := ASCII.Nul;
++         C_From (C_From'Last) := ASCII.NUL;
+ 
+          C_To (1 .. To_Name'Length) := To_Name;
+-         C_To (C_To'Last) := ASCII.Nul;
++         C_To (C_To'Last) := ASCII.NUL;
+ 
+          case Preserve is
+ 
+@@ -1622,10 +1622,10 @@ package body System.OS_Lib is
+ 
+                --  If null terminated string, put the quote before
+ 
+-               if Res (J) = ASCII.Nul then
++               if Res (J) = ASCII.NUL then
+                   Res (J) := '"';
+                   J := J + 1;
+-                  Res (J) := ASCII.Nul;
++                  Res (J) := ASCII.NUL;
+ 
+                --  If argument is terminated by '\', then double it. Otherwise
+                --  the ending quote will be taken as-is. This is quite strange
+diff --git a/gcc/ada/sem_util.adb b/gcc/ada/sem_util.adb
+index 344122a0df0..7286d7817b3 100644
+--- a/gcc/ada/sem_util.adb
++++ b/gcc/ada/sem_util.adb
+@@ -3290,7 +3290,7 @@ package body Sem_Util is
+ 
+    begin
+       Res := Internal_Full_Qualified_Name (E);
+-      Store_String_Char (Get_Char_Code (ASCII.nul));
++      Store_String_Char (Get_Char_Code (ASCII.NUL));
+       return End_String;
+    end Full_Qualified_Name;
+ 
+-- 

@@ -1,0 +1,23 @@
+From 11cddb7f5f6375f9eecb4af42eb3dc7256e18a2b Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Sun, 30 Oct 2022 00:18:06 -0400
+Subject: ada: Add space between ")" and "return"
+
+---
+ gcc/ada/ali.adb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gcc/ada/ali.adb b/gcc/ada/ali.adb
+index e60013fbd71..28855fbec44 100644
+--- a/gcc/ada/ali.adb
++++ b/gcc/ada/ali.adb
+@@ -189,7 +189,7 @@ package body ALI is
+ 
+       function Get_Name
+         (Ignore_Spaces  : Boolean := False;
+-         Ignore_Special : Boolean := False)return Name_Id;
++         Ignore_Special : Boolean := False) return Name_Id;
+       --  Skip blanks, then scan out a name (name is left in Name_Buffer with
+       --  length in Name_Len, as well as being returned in Name_Id form).
+       --  If Lower is set to True then the Name_Buffer will be converted to
+-- 
