@@ -1,0 +1,248 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+
+# =========================================== #
+#
+# The code in this section should not normally be changed
+#
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+_include_sub_folder=/${MINGW_CHOST}
+#
+# End of code not normally changed
+#
+# =========================================== #
+
+_enable_ada=no                     # Use yes for production
+_enable_bootstrap=no                # no idea if this version supports it
+
+_realname=gcc
+_sourcedir=${_realname}-git
+_base_ver=4.1
+pkgbase=opt-mingw-${_realname}${_base_ver}
+pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
+pkgver=4.1.3+d20080704.r2.c3.g3124a818d29a
+pkgrel=1
+pkgdesc="GNU Compiler Collection ${_base_ver} (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw32')
+options=('staticlibs' '!emptydirs' '!strip' '!debug')
+url="https://gcc.gnu.org"
+license=('GPL' 'LGPL' 'FDL' 'custom')
+groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
+makedepends=(
+  'git'
+  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
+  #$([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+  "${OPT_MINGW_PACKAGE_PREFIX}-crt"
+  "${OPT_MINGW_PACKAGE_PREFIX}-headers"
+  #"${OPT_MINGW_PACKAGE_PREFIX}-gmp"  # needed by FORTRAN
+  #"${OPT_MINGW_PACKAGE_PREFIX}-mpfr" # needed by FORTRAN
+  "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
+  "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
+  "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
+)
+optdepends=()
+noextract=()
+source=('conftest.adb'
+        '122-gcc-4.9-Relocate-libintl.patch'
+        '131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch'
+        '913-gcc-4.2-ada-minor-code-fixes-to-fix-build.patch'
+        ${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=releases/gcc-${_base_ver}")
+sha256sums=('7270a08586d76b73d251d530f740a29a8bcc1ae11bf28a0fa35e811c9f39f2c1'
+            'd143713dfcb86afa0c32e53b12c1d3a9586729b6580c8e535d72e03003511914'
+            '7cd7f884b7d2f64846adfb06007e881834fd00e98f78c737b965a823ce6198b0'
+            '100d3af57a7d97cffb16562320dcd23b6d60104fe68b880e01569f77b2380aa6'
+            'SKIP')
+# =========================================== #
+# Helper macros to help make tasks easier     #
+apply_patch_with_msg() {
+  for _patch in "$@"
+  do
+    if patch --dry-run -Rbp1 -i "${srcdir}/${_patch}" > /dev/null 2>&1 ; then
+      msg2 "Skipping ${_patch} because it likely was already applied"
+    else
+      msg2 "Applying ${_patch}"
+      patch -Nbp1 -i "${srcdir}/${_patch}"
+    fi
+  done
+}
+del_file_exists() {
+  for _fname in "$@"
+  do
+    if [ -f ${_fname} ]; then
+      rm -rf ${_fname}
+    fi
+  done
+}
+_extract_to_gcc_folder() {
+    local tarfile="$1"
+    local subfolder="$(echo "$tarfile" | sed 's/-.*$//')"
+    if [ ! -d  "$_sourcedir/$subfolder" ]; then
+        echo "Extracting ${tarfile} to $_sourcedir/$subfolder"
+        mkdir -p "$_sourcedir/$subfolder"
+        tar -x --strip-components=1 -f "$tarfile" -C "$_sourcedir/$subfolder"
+    else
+        echo "Folder $_sourcedir/$subfolder already exists"
+    fi
+}
+# =========================================== #
+_git_base_commit=
+
+pkgver() {
+  cd ${srcdir}/${_sourcedir}
+  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
+  _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
+  printf "%s+d%s.r%s.c%s.g%s" "$_gcc_version" "$_gcc_date" \
+    $(git rev-list --count $(git log -1 --format=%H -- gcc/DATESTAMP)..${_git_base_commit}) \
+    $(git rev-list --count ${_git_base_commit}..HEAD) \
+    $(git rev-parse --short=12 ${_git_base_commit})
+}
+
+prepare() {
+  cd ${srcdir}/${_sourcedir}
+
+  del_file_exists intl/canonicalize.c intl/canonicalize.h \
+    intl/relocatex.c intl/relocatex.h
+
+  _git_base_commit=$(git rev-parse HEAD)
+  GIT_AM="git am --committer-date-is-author-date"
+
+  git am --abort || true
+
+  ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
+  ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
+  ${GIT_AM} ${srcdir}/913-gcc-4.2-ada-minor-code-fixes-to-fix-build.patch
+
+  sed -i 's|${prefix}/mingw/|${prefix}/|g' configure
+
+  # change hard coded /mingw prefix to the absolute forward slash prefix
+  local MINGW_NATIVE_PREFIX=$(cygpath -am ${OPT_MINGW_PREFIX}${_include_sub_folder})
+  sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/mingw32.h
+  # Replace "/mingw/" with the unix like path used
+  sed -i "s|/mingw/|${OPT_MINGW_PREFIX}${_include_sub_folder}/|g" gcc/config/i386/t-mingw32
+}
+
+build() {
+  # Replace the MSys2 default FLAG values
+  export LDFLAGS="-pipe"
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CFLAGS="-pipe"
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  echo "PATH := $PATH"
+  echo "installation root := $(cygpath -am /)"
+  ${CC} --version
+  pacman -Qs "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" | grep "${OPT_MINGW_PACKAGE_PREFIX}" || true
+
+  [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
+  mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
+
+  declare -a extra_config
+
+  case "${CARCH}" in
+    i686)
+      extra_config+=("--with-dwarf2")
+      extra_config+=("--disable-sjlj-exceptions")
+    ;;
+
+    x86_64)
+    ;;
+  esac
+
+  if [[ "$_enable_bootstrap" == "yes" ]]; then
+    extra_config+=("--enable-bootstrap")
+  elif [[ "$_enable_bootstrap" == "no" ]]; then
+    extra_config+=("--disable-bootstrap")
+  fi
+
+  local _languages="c"
+  if [ "$_enable_ada" == "yes" ]; then
+    _languages+=",ada"
+  fi
+
+  if [[ "$_enable_ada" != "yes" ]]; then
+    extra_config+=('--disable-libada')
+  fi
+
+  extra_config+=("--disable-libstdcxx-debug")
+  extra_config+=('--disable-libstdcxx')
+  extra_config+=('--disable-threads')
+  extra_config+=("--disable-libgomp")
+  extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
+  extra_config+=("--build=${MINGW_CHOST}")
+  #extra_config+=("with-system-zlib")
+
+  echo ""
+  echo "OPT_MINGW_PREFIX := ${OPT_MINGW_PREFIX}"
+  echo ""
+  echo "OPT_MINGW_PACKAGE_PREFIX := ${OPT_MINGW_PACKAGE_PREFIX}"
+  echo ""
+  echo "LDFLAGS := ${LDFLAGS}"
+  echo ""
+  echo "CC := ${CC}"
+  echo ""
+  echo "CPPFLAGS := ${CPPFLAGS}"
+  echo ""
+  echo "ADA_INCLUDE_PATH := ${ADA_INCLUDE_PATH}"
+  echo ""
+  echo "ADA_OBJECT_PATH := ${ADA_OBJECT_PATH}"
+  echo ""
+  echo "extra_config contains ${extra_config[@]}"
+  echo ""
+
+  if [[ "$_enable_ada" == "yes" ]]; then
+    # configure fails to give clear reason for failure
+    ${CC} -c ${srcdir}/conftest.adb
+  fi
+
+  ../${_sourcedir}/configure \
+    --prefix=${OPT_MINGW_PREFIX} \
+    --with-local-prefix=${OPT_MINGW_PREFIX}/local \
+    --host=${MINGW_CHOST} \
+    --target=${MINGW_CHOST} \
+    --libexecdir=${OPT_MINGW_PREFIX}/lib \
+    --enable-checking=release \
+    --enable-languages=${_languages} \
+    --disable-shared --enable-static \
+    --disable-fully-dynamic-string \
+    --disable-libstdcxx-pch \
+    --disable-multilib \
+    --disable-win32-registry \
+    --disable-nls \
+    --disable-werror \
+    --disable-symvers \
+    --with-pkgversion="Rev ${pkgver##*.g}-${pkgrel}, Built by stahta01" \
+    --with-bugurl="https://github.com/stahta01/mingw64_gcc_msys2_packages/issues" \
+    --with-gnu-as --with-gnu-ld \
+    "${extra_config[@]}"
+
+  make MAKEINFO=true pod2man=true all V=1 --jobs=1 # -k
+}
+
+package() {
+  depends=("${OPT_MINGW_PACKAGE_PREFIX}-crt"
+           "${OPT_MINGW_PACKAGE_PREFIX}-headers"
+           "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
+           "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest")
+  depends+=("${OPT_MINGW_PACKAGE_PREFIX}-binutils")
+  depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
+  provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
+            "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+  if [ "$_enable_ada" == "yes" ]; then
+    provides+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+    conflicts+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+  fi
+
+  cd "${srcdir}/build-${MSYSTEM}"
+
+  make MAKEINFO=true pod2man=true -j1 DESTDIR="${pkgdir}" install
+
+  # License files
+  mkdir -p                                                 "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}"
+  install -Dm644 "${srcdir}/${_sourcedir}/COPYING"         "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/"
+  install -Dm644 "${srcdir}/${_sourcedir}/COPYING.LIB"     "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/"
+}
