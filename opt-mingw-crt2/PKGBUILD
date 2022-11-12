@@ -23,13 +23,13 @@ _sourcedir=mingw-w64-git
 pkgbase=opt-mingw-${_realname}2
 pkgname=($([[ "$_build_headers_only" != "yes" ]] && echo  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
          "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
-pkgver=2.0.0.2656.06c5a4241b47
+pkgver=2.0.0.2777.24b1f9cdcf1d
 pkgrel=1
-#_commit='24b1f9cdcf1d425700312373b14e2a6e58c6d0aa' #
+ _commit='24b1f9cdcf1d425700312373b14e2a6e58c6d0aa' # 2.0.0.2777
 #_commit='ea32a0c5bf6f2a2473149d11314f7b92df63cdf4' # 2.0.0.2715 (v2.0.9)
 #_commit='696f2831b313e1be34799aec7cf4fc189d6666d5' # 2.0.0.2684 (v2.0.8)
 #_commit='56b79e1c0757237ea73c0632da4c41bf8c97a630' # 2.0.0.2668 (v2.0.7)
- _commit='06c5a4241b475e784dbed9c54f7735106ae6d991' # 2.0.0.2656 (v2.0.6)
+#_commit='06c5a4241b475e784dbed9c54f7735106ae6d991' # 2.0.0.2656 (v2.0.6)
 #_commit='aab0d078eab2d135c43d8a9453eade13c255244f' # (tag: v2.0.5)
 #_commit='854a72dcb3fdff19464e399a41b75156a839ba78' # (tag: v2.0.4)
 #_commit='1920f0dcafa23b0a7fd2e8a4407fe56989351941' # (tag: v2.0.3)
