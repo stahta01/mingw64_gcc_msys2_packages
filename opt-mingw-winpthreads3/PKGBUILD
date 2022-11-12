@@ -54,6 +54,10 @@ prepare() {
   [[ -f mingw-w64-libraries/winpthreads/src/libgcc/dll_frame_info.c ]] && rm -rf mingw-w64-libraries/winpthreads/src/libgcc/dll_frame_info.c
   git am --committer-date-is-author-date "${srcdir}"/0002-Define-__-de-register_frame_info-in-fake-libgcc_s.patch
 
+  # GCC 4.6.4 does not have option "-no-pthread" no idea which was first GCC with option
+  #sed -i 's|-L$(builddir)/fakelib -Wc,-no-pthread|-L$(builddir)/fakelib|' mingw-w64-libraries/winpthreads/Makefile.am
+  #sed -i 's|-L$(builddir)/fakelib -Wc,-no-pthread|-L$(builddir)/fakelib|' mingw-w64-libraries/winpthreads/Makefile.in
+
   cd "${srcdir}"/${_sourcedir}/mingw-w64-libraries/winpthreads
   autoreconf -vfi
 }
