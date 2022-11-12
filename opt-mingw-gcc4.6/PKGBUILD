@@ -7,13 +7,7 @@
 # Contributor: Kirill Müller
 # Contributor: Liu Hao
 
-_build_using_external_compiler=no
 _build_static_only_gcc=no
-
-if [[ "$_build_using_external_compiler" == "yes" && \
-       "${MSYSTEM}" == "MINGW64" ]]; then
-  _build_using_external_compiler=no
-fi
 
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
@@ -24,7 +18,7 @@ else
 fi
 _include_sub_folder=/${MINGW_CHOST}
 
-_enable_fortran=no       # Use ?yes? for production
+_enable_fortran=yes       # Use yes for production
 _enable_cxx=yes           # Use yes for production
 _enable_ada=yes           # Use yes for production
 _enable_lto=no           # Use ?yes? for production
@@ -32,15 +26,10 @@ _enable_lto=no           # Use ?yes? for production
 _enable_threads=no       # Use yes for production
 _threads="posix"         # posix does not work
 _enable_libquadmath=no
-_enable_std_libada=yes    # Use yes for production
 _enable_libatomic=no
 
-_enable_gcc_plugin=no
 _enable_bootstrap=no     # Use yes for production
-# set _enable_backstrap_ada to yes when building Ada GCC using a newer
-#   version of GCC
-_enable_backstrap_ada=no  # Use no for production
-
+#
 # =========================================== #
 
 if [[ "$_enable_threads" == "yes" && "$_threads" == "posix" ]]; then
@@ -59,29 +48,6 @@ if [[ "$_enable_bootstrap" != "yes" && "$MSYSTEM" == "UCRT64" ]]; then
   _enable_bootstrap=yes
 fi
 
-if [[ "$_enable_std_libada" == "yes" && "$_enable_ada" != "yes" ]]; then
-  _enable_std_libada=no
-fi
-
-if [[ "$_enable_ada" == "yes" ]]; then
-  _enable_build_ada=yes
-fi
-
-### Exit block start
-#if [[ "$_enable_std_libada" == "yes" && "$_enable_gcc_plugin" == "yes" ]]; then
-   #warning "Both Ada Library and GCC plugins together error outs!"
-   #exit 1
-#fi
-
-if [[ "$_enable_ada" == "yes" && "$_enable_gcc_plugin" == "yes" && "$_enable_bootstrap" == "yes" ]]; then
-   warning "All three of Ada, GCC plugins, and GCC Bootstrap error outs!"
-   exit 1
-fi
-### Exit block end
-
-#options=('staticlibs' '!emptydirs') # '!strip' 'debug') # production options
-options=('staticlibs' '!emptydirs' '!strip' '!debug') # development options
-
 ####
 #
 _realname=gcc
@@ -99,13 +65,14 @@ pkgrel=1
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
+#options=('staticlibs' '!emptydirs') # '!strip' 'debug') # production options
+options=('staticlibs' '!emptydirs' '!strip' '!debug') # development options
 url="https://gcc.gnu.org"
 license=('GPL' 'LGPL' 'FDL' 'custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 makedepends=(
-  $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
-  $([[ "$_enable_build_ada" == "yes" && \
-       "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
+  $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
   "${OPT_MINGW_PACKAGE_PREFIX}-crt"
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
@@ -141,11 +108,7 @@ source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
         '131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch'
         '132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch'
         '141-gcc-4.4-ktietz-libgomp.patch'
-        '0150-gcc-10.2.0-libgcc-ldflags.patch'
         '704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch'
-        '906-Ada-build-fix-for-GCC-4.7-building-GCC-4.6.patch'
-        '910-Ada-build-fix-for-GNAT-GCC-4.5-building-GCC-4.6.patch'
-        '911-gcc-4.6.4-Ada-add-export-of-__gnat_finalize_library_objects.patch'
         ${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=releases/gcc-${_base_ver}")
 sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
             '02500a4edd14875f94fe84cbeda4290425cb0c1c2474c6f75d75a303d64b4196'
@@ -160,11 +123,7 @@ sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
             '7cd7f884b7d2f64846adfb06007e881834fd00e98f78c737b965a823ce6198b0'
             'd122ee00238f2cef746639cc5d8807dffd7d4f06a33e1bb146fa1b28a7dae14a'
             '388220ee08a71e065ecd631855dba082e0b833cafec2b3b281a268d5d4d0f265'
-            '7f0b4e45d933e18c9d8bd2afcd83e4f52e97e2e25dd41bfa0cba755c70e591c7'
             'c5782bca021e1b96ada60001e98052648bc07207d0a6e5066bc0b69f1efb692e'
-            '3e80046a5f66e6a87762ff0e8595ceb2bfb9e0e12212bb56f5f956b6e6dc56ec'
-            '6859297ea3754f649133398e18b9f36372cb5b77137d630eb66de1181f390c35'
-            'eb39e4f1e86d639a322f0a751a1d39aa2327be06be807331acb3f4740e060b08'
             'SKIP')
 # =========================================== #
 # Helper macros to help make tasks easier     #
@@ -260,18 +219,6 @@ prepare() {
   ${GIT_AM} ${srcdir}/141-gcc-4.4-ktietz-libgomp.patch
   ${GIT_AM} ${srcdir}/704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch
 
-  if [[ "$_enable_ada" == "yes" && "$_enable_backstrap_ada" == "yes" && \
-        "$_build_using_external_compiler" != "yes"                   ]]; then
-    ${GIT_AM} ${srcdir}/906-Ada-build-fix-for-GCC-4.7-building-GCC-4.6.patch
-  fi
-
-  if [[ "$_enable_ada" == "yes" && "$_build_using_external_compiler" == "yes" ]]; then
-    ${GIT_AM} ${srcdir}/910-Ada-build-fix-for-GNAT-GCC-4.5-building-GCC-4.6.patch
-    ${GIT_AM} ${srcdir}/911-gcc-4.6.4-Ada-add-export-of-__gnat_finalize_library_objects.patch
-  fi
-
-  # apply_patch_with_msg 0150-gcc-10.2.0-libgcc-ldflags.patch
-
   # do not expect $prefix/mingw symlink - this should be superceded by
   # 0004-Windows-Don-t-ignore-native-system-header-dir.patch .. but isn't!
   sed -i 's|${prefix}/mingw/|${prefix}/|g' configure
@@ -297,21 +244,7 @@ build() {
   export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
   export CFLAGS="-pipe -march=pentium4"
 
-  if [[ "$_build_using_external_compiler" == "yes" ]]; then
-    # GCC 4.3.x from GNAT 2010 building gcc4.6 worked okay without libada
-    # GCC 4.5.x from GNAT 2011 ?built? gcc4.6 ??? TODO
-    # GCC 4.5.x from GNAT 2012 Failed to build gcc4.6 with Ada
-    local _GNAT_year=2011
-    local _ext_compiler=/h/GNAT/${_GNAT_year}
-    export PATH=${OPT_MINGW_PREFIX}/bin:${_ext_compiler}/bin:$PATH
-    export CC="${_ext_compiler}/bin/gcc"
-    export CXX="${_ext_compiler}/bin/g++"
-    export LD="${_ext_compiler}/bin/ld"
-    export GNATMAKE="${_ext_compiler}/bin/gnatmake"
-    export GNATBIND="${_ext_compiler}/bin/gnatbind"
-  else
-    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
-  fi
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
   echo "PATH := $PATH"
   ${CC} --version
   pacman -Qs "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" | grep ${OPT_MINGW_PACKAGE_PREFIX} \
@@ -332,7 +265,6 @@ build() {
       extra_config+=("--with-dwarf2")
       extra_config+=("--disable-sjlj-exceptions")
 
-      #LDFLAGS+=" -Wl,--large-address-aware"
       local _arch=i686
     ;;
 
@@ -348,26 +280,15 @@ build() {
   fi
 
   local _LDFLAGS_FOR_TARGET="$LDFLAGS"
-  if [[ "$_enable_gcc_plugin" == "yes" ]]; then
-    extra_config+=("--enable-plugin")
-    extra_config+=("LDFLAGS_FOR_TARGET=${_LDFLAGS_FOR_TARGET}")
-    extra_config+=('--with-boot-ldflags="-static-libstdc++"')
-  else
-    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105507#c3
-    # At least with mingw32 + dwarf-2 exceptions there can only be one libgcc in
-    # process, or exceptions will no longer work. Since some of the gcc deps are
-    # linked dynamically like gmp/zlib/zstd and those pull in libgcc we can't
-    # allow libgcc to be linked statically. The default is "-static-libstdc++
-    # -static-libgcc" for both, so we drop "-static-libgcc" here:
-    extra_config+=('--with-boot-ldflags="-static-libstdc++"')
-  fi
-  extra_config+=('--with-stage1-ldflags="-static-libstdc++"')
 
-  # Binutils 2.25 errors out on disable-dynamicbase
-  #LDFLAGS+=" -Wl,--disable-dynamicbase"
-  #if [ "${CARCH}" = 'x86_64' ]; then
-  #  LDFLAGS+=",--default-image-base-low"
-  #fi
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105507#c3
+  # At least with mingw32 + dwarf-2 exceptions there can only be one libgcc in
+  # process, or exceptions will no longer work. Since some of the gcc deps are
+  # linked dynamically like gmp/zlib/zstd and those pull in libgcc we can't
+  # allow libgcc to be linked statically. The default is "-static-libstdc++
+  # -static-libgcc" for both, so we drop "-static-libgcc" here:
+  extra_config+=('--with-boot-ldflags="-static-libstdc++"')
+  extra_config+=('--with-stage1-ldflags="-static-libstdc++"')
 
   local _languages="c"
   if [ "$_enable_lto" == "yes" ]; then
@@ -386,7 +307,7 @@ build() {
     _languages+=",ada"
   fi
 
-  if [[ "$_enable_ada" == "yes" && "$_enable_std_libada" == "no" ]]; then
+  if [[ "$_enable_ada" != "yes" ]]; then
     extra_config+=('--disable-libada')
   fi
 
@@ -439,6 +360,15 @@ build() {
   # so libgomp DLL gets built despide static libdl
   export lt_cv_deplibs_check_method='pass_all'
 
+  extra_config+=("--build=${MINGW_CHOST}")
+  extra_config+=("--with-system-zlib")
+
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    extra_config+=("--enable-shared")
+  else
+    extra_config+=("--disable-shared")
+  fi
+
   echo ""
   echo "OPT_MINGW_PREFIX := ${OPT_MINGW_PREFIX}"
   echo ""
@@ -456,20 +386,6 @@ build() {
   echo ""
   echo "extra_config contains ${extra_config[@]}"
   echo ""
-
-# --with-headers=${MINGW_PREFIX}/${_target}/include
-
-  extra_config+=("--build=${MINGW_CHOST}")
-
-  if [[ "$_build_using_external_compiler" != "yes" ]]; then
-    extra_config+=("--with-system-zlib")
-  fi
-
-  if [[ "$_build_static_only_gcc" != "yes" ]]; then
-    extra_config+=("--enable-shared")
-  else
-    extra_config+=("--disable-shared")
-  fi
 
   if [[ "$_enable_ada" == "yes" ]]; then
     # configure fails to give clear reason for failure
@@ -513,7 +429,7 @@ build() {
   rm -rf ${srcdir}${OPT_MINGW_PREFIX}
 
   make --jobs=1 DESTDIR=${srcdir} install
-  if [[ "$_enable_std_libada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
+  if [[ "$_enable_ada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     mv ${srcdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib/*.dll ${srcdir}${OPT_MINGW_PREFIX}/bin/
   fi
 }
@@ -624,9 +540,6 @@ package_gcc-git() {
   cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/ssp      ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/
   cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include-fixed    ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/install-tools    ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  if [[ "$_enable_gcc_plugin" == "yes" ]]; then
-    cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/plugin         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  fi
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/cc1.exe             ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/collect2.exe        ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/crt*.o              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
@@ -722,7 +635,7 @@ package_gcc-fortran-git() {
   mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}
   cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/finclude        ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/f951.exe           ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libcaf_single.a    ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  #cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libcaf_single.a    ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   cp lib/libgfortran*                                        ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1
   cp share/man/man1/gfortran.1*                         ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
@@ -741,18 +654,18 @@ package_gcc-ada-git() {
   cd ${srcdir}${OPT_MINGW_PREFIX}
 
   cp bin/gnat*.exe                                          ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  if [[ "$_enable_std_libada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
+  if [[ "$_enable_ada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/{libgnarl*,libgnat*}.dll                           ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
 
   mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/gnat1.exe         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
 
-  if [ "$_enable_std_libada" == "yes" ]; then
+  if [ "$_enable_ada" == "yes" ]; then
     cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adainclude     ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
-  if [ "$_enable_std_libada" == "yes" ]; then
+  if [ "$_enable_ada" == "yes" ]; then
     cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
