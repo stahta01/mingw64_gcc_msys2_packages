@@ -1,0 +1,50 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov
+
+OPT_PREFIX=/opt/usr
+
+_realname=bison
+pkgbase=opt-${_realname}3.0
+pkgname=bison3.0
+pkgver=3.0.5
+pkgrel=1
+pkgdesc="The GNU general-purpose parser generator"
+arch=('i686' 'x86_64')
+license=('GPL3')
+url="https://www.gnu.org/software/bison/bison.html"
+depends=('m4' 'sh' 'libiconv' 'libintl')
+groups=('opt-devel')
+options=('staticlibs')
+makedepends=('flex' 'autotools' 'gcc' 'gettext-devel' 'libiconv-devel' 'help2man')
+source=(https://ftp.gnu.org/gnu/bison/${_realname}-${pkgver}.tar.xz
+        bison-3.0.5-msys2.patch
+        bison-3.0.5-gettext-0.19.patch)
+sha256sums=('075cef2e814642e30e10e8155e93022e4a91ca38a65aa1d5467d4e969f97f338'
+            '012c3055c57a83525b05fd51056b949810a3289335e0accdb74d55d32648dddc'
+            '100f3ff1cd68a080b803a4f4a86a0a11b660e2b3b89f7ec95afa0437ee2b2b5c')
+
+prepare() {
+  cd ${srcdir}/${_realname}-${pkgver}
+  patch -p1 -i ${srcdir}/bison-3.0.5-msys2.patch
+  patch -p1 -i ${srcdir}/bison-3.0.5-gettext-0.19.patch
+
+  autoreconf -vfi
+}
+
+build() {
+  cd ${srcdir}/${_realname}-${pkgver}
+  ./configure --prefix=${OPT_PREFIX}
+  make
+}
+
+check() {
+  cd ${srcdir}/${_realname}-${pkgver}
+  make check
+}
+
+package() {
+  cd ${srcdir}/${_realname}-${pkgver}
+  make DESTDIR=${pkgdir} install
+
+  rm -f ${pkgdir}${OPT_PREFIX}/share/info/dir
+}
