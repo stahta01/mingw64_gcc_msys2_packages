@@ -1,13 +1,14 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
-# Contributor: Alexey Pavlov <alexpux@gmail.com>
-# Contributor: Alexey Borzenkov <snaury@gmail.com>
-# Contributor: Ray Donnelly <mingw.android@gmail.com>
-# Contributor: Renato Silva <br.renatosilva@gmail.com>
-# Contributor: wirx6 <wirx654@gmail.com>
-# Contributor: Kirill Müller <krlmlr@mailbox.org>
-# Contributor: Liu Hao <lh_mouse@126.com>
+# Contributor: Alexey Pavlov
+# Contributor: Alexey Borzenkov
+# Contributor: Ray Donnelly
+# Contributor: Renato Silva
+# Contributor: wirx6
+# Contributor: Kirill Müller
+# Contributor: Liu Hao
 
 _build_using_external_compiler=no
+_build_static_only_gcc=no
 
 if [[ "$_build_using_external_compiler" == "yes" && \
        "${MSYSTEM}" == "MINGW64" ]]; then
@@ -24,28 +25,23 @@ fi
 _include_sub_folder=/${MINGW_CHOST}
 
 _enable_fortran=no       # Use ?yes? for production
-_enable_cxx=no           # Use yes for production
-_enable_ada=no           # Use yes for production
+_enable_cxx=yes           # Use yes for production
+_enable_ada=yes           # Use yes for production
 _enable_lto=no           # Use ?yes? for production
 
 _enable_threads=no       # Use yes for production
-_threads="posix"
-_enable_libstdcxx=yes     # Use yes for production
+_threads="posix"         # posix does not work
 _enable_libquadmath=no
-_enable_std_libada=no    # Use yes for production
+_enable_std_libada=yes    # Use yes for production
 _enable_libatomic=no
 
 _enable_gcc_plugin=no
-_enable_bootstrap=yes     # Use yes for production
+_enable_bootstrap=no     # Use yes for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
 _enable_backstrap_ada=no  # Use no for production
 
 # =========================================== #
-
-if [[ "$_enable_libstdcxx" == "yes" && "$_enable_cxx" != "yes" ]]; then
-  _enable_libstdcxx=no
-fi
 
 if [[ "$_enable_threads" == "yes" && "$_threads" == "posix" ]]; then
   _enable_libgomp=yes
@@ -297,12 +293,9 @@ build() {
   _gcc_major_version=${_gcc_version%%.*}
   echo "_gcc_major_version := $_gcc_major_version"
 
-  [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
-  mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
-
   export LDFLAGS="-pipe"
   export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
-  export CFLAGS="-pipe"
+  export CFLAGS="-pipe -march=pentium4"
 
   if [[ "$_build_using_external_compiler" == "yes" ]]; then
     # GCC 4.3.x from GNAT 2010 building gcc4.6 worked okay without libada
@@ -321,13 +314,18 @@ build() {
   fi
   echo "PATH := $PATH"
   ${CC} --version
+  pacman -Qs "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" | grep ${OPT_MINGW_PACKAGE_PREFIX} \
+    | sed "s|(${OPT_MINGW_PACKAGE_PREFIX}-toolchain)||" || true
+
+  [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
+  mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
 
   declare -a extra_config
-  if check_option "debug" "n"; then
+  #if check_option "debug" "n"; then
     extra_config+=("--disable-libstdcxx-debug")
-  else
-    extra_config+=("--enable-libstdcxx-debug")
-  fi
+  #else
+    #extra_config+=("--enable-libstdcxx-debug")
+  #fi
 
   case "${CARCH}" in
     i686)
@@ -396,8 +394,10 @@ build() {
     extra_config+=('--disable-libquadmath')
   fi
 
-  if [[ "$_enable_libstdcxx" != "yes" ]]; then
+  if [[ "$_enable_cxx" != "yes" ]]; then
     extra_config+=('--disable-libstdcxx')
+  else
+    extra_config+=('--enable-libstdcxx-time')
   fi
 
   if [[ "$_enable_threads" != "yes" ]]; then
@@ -465,6 +465,12 @@ build() {
     extra_config+=("--with-system-zlib")
   fi
 
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    extra_config+=("--enable-shared")
+  else
+    extra_config+=("--disable-shared")
+  fi
+
   if [[ "$_enable_ada" == "yes" ]]; then
     # configure fails to give clear reason for failure
     ${CC} -c ${srcdir}/conftest.adb
@@ -481,9 +487,8 @@ build() {
     --with-arch=${_arch} \
     --with-tune=generic \
     --enable-languages=${_languages} \
-    --enable-shared --enable-static \
+    --enable-static \
     --enable-fully-dynamic-string \
-    --enable-libstdcxx-time \
     --disable-libstdcxx-pch \
     --disable-multilib \
     --disable-rpath \
@@ -507,8 +512,8 @@ build() {
 
   rm -rf ${srcdir}${OPT_MINGW_PREFIX}
 
-  make -j1 DESTDIR=${srcdir} install
-  if [ "$_enable_std_libada" == "yes" ]; then
+  make --jobs=1 DESTDIR=${srcdir} install
+  if [[ "$_enable_std_libada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     mv ${srcdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib/*.dll ${srcdir}${OPT_MINGW_PREFIX}/bin/
   fi
 }
@@ -519,9 +524,11 @@ package_gcc-libs-git() {
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread")
   fi
-  provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs"
-            "${OPT_MINGW_PACKAGE_PREFIX}-libssp")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
+  provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    provides+=("${OPT_MINGW_PACKAGE_PREFIX}-libssp")
+  fi
 
   # Licensing information
 
@@ -547,17 +554,19 @@ ENDFILE
 
   cd ${srcdir}${OPT_MINGW_PREFIX}
   # libitm* and libvtv* are disbled until fixed
-  cp bin/{libgcc*,libssp*}.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  if [[ "$_enable_libquadmath" == "yes" ]]; then
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    cp bin/{libgcc*,libssp*}.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  fi
+  if [[ "$_enable_libquadmath" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/libquadmath*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
-  if [[ "$_enable_libstdcxx" == "yes" ]]; then
+  if [[ "$_enable_cxx" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/libstdc*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
-  if [[ "$_enable_threads" == "yes" ]]; then
+  if [[ "$_enable_threads" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/libgomp*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
-  if [[ "$_enable_libatomic" == "yes" ]]; then
+  if [[ "$_enable_libatomic" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/libatomic*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
 }
@@ -567,8 +576,10 @@ package_gcc-git() {
   depends=("${OPT_MINGW_PACKAGE_PREFIX}-crt"
            "${OPT_MINGW_PACKAGE_PREFIX}-headers"
            "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
-           "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}"
            "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest")
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}")
+  fi
   depends+=("${OPT_MINGW_PACKAGE_PREFIX}-binutils")
   depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
   if [[ "$_enable_threads" == "yes" ]]; then
@@ -606,7 +617,7 @@ package_gcc-git() {
   #cp bin/${MINGW_CHOST}-gcc-ranlib.exe                  ${pkgdir}${OPT_MINGW_PREFIX}/bin/
 
   mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include
-  if [[ "$_enable_libstdcxx" == "yes" ]]; then
+  if [[ "$_enable_cxx" == "yes" ]]; then
     cp -r include/c++                                         ${pkgdir}${OPT_MINGW_PREFIX}/include/
   fi
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/*.h         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/
@@ -631,7 +642,9 @@ package_gcc-git() {
   if [[ "$_enable_libatomic" == "yes" ]]; then
     cp lib/libatomic*                                         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
-  cp lib/libgcc*                                              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    cp lib/libgcc*                                            ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  fi
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libgcc*             ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
 
   if [[ "$_enable_threads" == "yes" ]]; then
@@ -643,7 +656,7 @@ package_gcc-git() {
   fi
   cp lib/libssp*                                              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   #cp lib/libvtv*                                              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  if [[ "$_enable_libstdcxx" == "yes" ]]; then
+  if [[ "$_enable_cxx" == "yes" ]]; then
     cp lib/libstdc++*                                         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
     cp lib/libsupc++*                                         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
@@ -664,7 +677,7 @@ package_gcc-git() {
   fi
 
   #cp share/locale/* ${pkgdir}${OPT_MINGW_PREFIX}/share/locale/
-  if [[ "$_enable_libstdcxx" == "yes" ]]; then
+  if [[ "$_enable_cxx" == "yes" ]]; then
     mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/share/gcc-${pkgver%%+*}/python
     cp -r share/gcc-${pkgver%%+*}/python/libstdcxx       ${pkgdir}${OPT_MINGW_PREFIX}/share/gcc-${pkgver%%+*}/python/
   fi
@@ -682,7 +695,9 @@ package_gcc-git() {
 
 package_gcc-libgfortran-git() {
   pkgdesc="GNU Compiler Collection (libgfortran) for MinGW-w64"
-  depends=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}")
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    depends=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}")
+  fi
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libgfortran")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libgfortran")
 
@@ -726,7 +741,7 @@ package_gcc-ada-git() {
   cd ${srcdir}${OPT_MINGW_PREFIX}
 
   cp bin/gnat*.exe                                          ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  if [ "$_enable_std_libada" == "yes" ]; then
+  if [[ "$_enable_std_libada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/{libgnarl*,libgnat*}.dll                           ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
 
