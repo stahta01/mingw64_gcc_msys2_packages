@@ -23,20 +23,12 @@ _enable_cxx=yes           # Use yes for production
 _enable_ada=yes           # Use yes for production
 _enable_lto=no           # Use ?yes? for production
 
-_enable_threads=no       # Use yes for production
-_threads="posix"         # posix does not work
+_enable_threads=yes       # Use yes for production
 _enable_libquadmath=no
-_enable_libatomic=no
 
 _enable_bootstrap=no     # Use yes for production
 #
 # =========================================== #
-
-if [[ "$_enable_threads" == "yes" && "$_threads" == "posix" ]]; then
-  _enable_libgomp=yes
-else
-  _enable_libgomp=no
-fi
 
 if [[ "$_enable_fortran" == "yes" && "$_enable_libquadmath" != "yes" ]]; then
    warning "when building FORTRAN; libquadmath is enabled"
@@ -60,7 +52,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran-git")
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
-pkgver=4.6.4+d20130412.r45.c6.g66cc0b3cf5bc
+pkgver=4.6.4+d20130412.r45.c5.g66cc0b3cf5bc
 pkgrel=1
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
@@ -78,7 +70,6 @@ makedepends=(
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
-  $([[ "$_enable_threads" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
 )
 #checkdepends=('dejagnu')
 optdepends=()
@@ -107,7 +98,6 @@ source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
         '122-gcc-4.9-Relocate-libintl.patch'
         '131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch'
         '132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch'
-        '141-gcc-4.4-ktietz-libgomp.patch'
         '704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch'
         ${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=releases/gcc-${_base_ver}")
 sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
@@ -122,7 +112,6 @@ sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
             'd143713dfcb86afa0c32e53b12c1d3a9586729b6580c8e535d72e03003511914'
             '7cd7f884b7d2f64846adfb06007e881834fd00e98f78c737b965a823ce6198b0'
             'd122ee00238f2cef746639cc5d8807dffd7d4f06a33e1bb146fa1b28a7dae14a'
-            '388220ee08a71e065ecd631855dba082e0b833cafec2b3b281a268d5d4d0f265'
             'c5782bca021e1b96ada60001e98052648bc07207d0a6e5066bc0b69f1efb692e'
             'SKIP')
 # =========================================== #
@@ -216,15 +205,11 @@ prepare() {
   ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
   ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
   ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
-  ${GIT_AM} ${srcdir}/141-gcc-4.4-ktietz-libgomp.patch
   ${GIT_AM} ${srcdir}/704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch
 
-  # do not expect $prefix/mingw symlink - this should be superceded by
-  # 0004-Windows-Don-t-ignore-native-system-header-dir.patch .. but isn't!
   sed -i 's|${prefix}/mingw/|${prefix}/|g' configure
 
-  # change hardcoded /mingw prefix to the real prefix .. isn't this rubbish?
-  # it might work at build time and could be important there but beyond that?!
+  # change hard coded /mingw prefix to the absolute forward slash prefix
   local MINGW_NATIVE_PREFIX=$(cygpath -am ${OPT_MINGW_PREFIX}${_include_sub_folder})
   sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/mingw32.h
   # Replace "/mingw/" with the unix like path used
@@ -323,31 +308,13 @@ build() {
 
   if [[ "$_enable_threads" != "yes" ]]; then
     extra_config+=('--disable-threads')
-    _enable_libatomic=no
   else
-    if [[ "$_threads" == "posix" ]]; then
-      extra_config+=("--enable-threads=posix")
-    elif [[ "$_threads" == "win32" ]]; then
-      extra_config+=("--enable-threads=mcf")
-    else
-      extra_config+=("--enable-threads=single")
-    fi
+    extra_config+=("--enable-threads")
   fi
 
-  if [[ $_gcc_major_version -eq 4 ]]; then
-    _enable_libatomic=no
-  fi
-  if [[ "$_enable_libatomic" != "yes" ]]; then
-    extra_config+=('--disable-libatomic')
-  else
-    extra_config+=('--enable-libatomic')
-  fi
+  extra_config+=('--disable-libatomic')
 
-  if [ "$_enable_libgomp" == "yes" ]; then
-    extra_config+=("--enable-libgomp")
-  elif [ "$_enable_libgomp" == "no" ]; then
-    extra_config+=("--disable-libgomp")
-  fi
+  extra_config+=("--disable-libgomp")
 
   extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
 
@@ -356,9 +323,6 @@ build() {
   else
     extra_config+=('--disable-graphite')
   fi
-
-  # so libgomp DLL gets built despide static libdl
-  export lt_cv_deplibs_check_method='pass_all'
 
   extra_config+=("--build=${MINGW_CHOST}")
   extra_config+=("--with-system-zlib")
@@ -417,14 +381,7 @@ build() {
     --with-gnu-as --with-gnu-ld \
     "${extra_config[@]}"
 
-  # While we're debugging -fopenmp problems at least.
-  # .. we may as well not strip anything.
-  if check_option "strip" "n"; then
-    sed -i 's,^STRIP = .*$,STRIP = true,g'                   Makefile
-    sed -i 's,^STRIP_FOR_TARGET=.*$,STRIP_FOR_TARGET=true,g' Makefile
-  fi
-
-  make V=1 all --jobs=1
+  make all V=1 --jobs=1
 
   rm -rf ${srcdir}${OPT_MINGW_PREFIX}
 
@@ -437,9 +394,6 @@ build() {
 package_gcc-libs-git() {
   pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
   depends=()
-  if [[ "$_enable_threads" == "yes" ]]; then
-    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread")
-  fi
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
   if [[ "$_build_static_only_gcc" != "yes" ]]; then
@@ -479,12 +433,8 @@ ENDFILE
   if [[ "$_enable_cxx" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/libstdc*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
-  if [[ "$_enable_threads" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
-    cp bin/libgomp*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  fi
-  if [[ "$_enable_libatomic" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
-    cp bin/libatomic*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  fi
+  #cp bin/libgomp*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  #cp bin/libatomic*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
 }
 
 package_gcc-git() {
@@ -498,9 +448,6 @@ package_gcc-git() {
   fi
   depends+=("${OPT_MINGW_PACKAGE_PREFIX}-binutils")
   depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
-  if [[ "$_enable_threads" == "yes" ]]; then
-    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
-  fi
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
             "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-base"
             "${OPT_MINGW_PACKAGE_PREFIX}-cc")
@@ -552,17 +499,13 @@ package_gcc-git() {
     cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/cc1plus.exe       ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
-  if [[ "$_enable_libatomic" == "yes" ]]; then
-    cp lib/libatomic*                                         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  fi
+  #cp lib/libatomic*                                           ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   if [[ "$_build_static_only_gcc" != "yes" ]]; then
     cp lib/libgcc*                                            ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libgcc*             ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
 
-  if [[ "$_enable_threads" == "yes" ]]; then
-    cp lib/libgomp*                                           ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  fi
+  #cp lib/libgomp*                                             ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   #cp lib/libitm*                                              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   if [[ "$_enable_libquadmath" == "yes" ]]; then
     cp lib/libquadmath*                                       ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
@@ -582,9 +525,7 @@ package_gcc-git() {
   cp share/info/gccinstall.info*                         ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
   cp share/info/gccint.info*                             ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
   #cp share/info/libitm.info*                             ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
-  if [[ "$_enable_threads" == "yes" ]]; then
-    cp share/info/libgomp.info*                          ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
-  fi
+  #cp share/info/libgomp.info*                            ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
   if [[ "$_enable_libquadmath" == "yes" ]]; then
     cp share/info/libquadmath.info*                      ${pkgdir}${OPT_MINGW_PREFIX}/share/info/
   fi
