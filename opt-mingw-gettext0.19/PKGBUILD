@@ -15,9 +15,9 @@ fi
 
 _parentname=gettext
 _realname=gettext-runtime
-pkgbase=opt-mingw-${_parentname}
+pkgbase=opt-mingw-${_parentname}0.19
 pkgname="${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=0.19.4
+pkgver=0.19.8.1
 pkgrel=1
 _sourcedir=gettext-${pkgver}
 arch=('any')
@@ -46,19 +46,25 @@ conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_parentname}")
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_parentname}")
 options=('strip' 'staticlibs')
 source=("https://ftp.gnu.org/pub/gnu/${_parentname}/${_parentname}-${pkgver}.tar.gz"
+        00-relocatex-libintl-0.18.3.1.patch
+        120-Fix-Woe32-link-errors-when-compiling-with-O0.patch
         04-mingw-script-slash-fix.mingw.patch
         05-always-use-libintl-vsnprintf.mingw.patch
         06-dont-include-ctype-after-gnulibs-wctype.mingw.patch
         07-fix-asprintf-conflict.mingw.patch
         08-vs-compatible.patch
+        09-asm-underscore-mingw.patch
         122-Use-LF-as-newline-in-envsubst.patch
         200-tools-gnulib-define-installdir.patch)
-sha256sums=('8ac9f1ed1a5f8c4e656a2f37f5ba6b9ee04c4df79a575e876b0b6946aa417f3f'
+sha256sums=('ff942af0e438ced4a8b0ea4b0b6e0d6d657157c5e2364de57baa279c1c125c43'
+            '030987c317279c27eea503ef257c7c3cf4ff947de8ea71d84fdf5eea802ee587'
+            '8f51c320c104c94e1ab3c8630905185214ca0c7ecf5423f20001c8694ead454c'
             'bebc791443a739f91ace5bca1dba3d45d50dff92706fae7629d150e197d2f411'
             '51604823755d1ae669544bb9730c5a09b78b0f1b1978577c8604fbd6cafc073e'
             '25aee9534c45772370ef5ca495da0d6a9f4d73e7a53d6ba91314883c6f3bb695'
             '3b85e4d0b771b47a168c629a65463f5b87a5d5627b5f05000a45c3d2df96b66d'
             '522715ac22936943a85b4b78274302a6058f4f5371439cf491193ed53d8fc729'
+            '2ffc73f1b8d66d88ff5ce640be211e5a927daba13788cb2319b97fc885444eac'
             '2abfa598e1586abe14e982b867c8981790d8114e1ee575cb08b7ed49d4a46c74'
             '71eb3554cbf37a8c866722e39c6102c3ae3a215b82e153000f61f2e80d3bfd1b')
 
@@ -88,11 +94,14 @@ prepare() {
          gettext-tools/woe32dll/c++write-stringtable.cc \
          MINGW-PATCHES/README-relocatex-libintl.txt || true
 
+  patch -p1 -i ${srcdir}/00-relocatex-libintl-0.18.3.1.patch
   patch -p0 -i ${srcdir}/04-mingw-script-slash-fix.mingw.patch
   patch -p0 -i ${srcdir}/05-always-use-libintl-vsnprintf.mingw.patch
   patch -p0 -i ${srcdir}/06-dont-include-ctype-after-gnulibs-wctype.mingw.patch
   patch -p0 -i ${srcdir}/07-fix-asprintf-conflict.mingw.patch
   patch -p0 -i ${srcdir}/08-vs-compatible.patch
+  patch -p1 -i ${srcdir}/09-asm-underscore-mingw.patch
+  patch -p1 -i ${srcdir}/120-Fix-Woe32-link-errors-when-compiling-with-O0.patch
   patch -p1 -i ${srcdir}/122-Use-LF-as-newline-in-envsubst.patch
   patch -p1 -i ${srcdir}/200-tools-gnulib-define-installdir.patch
 
@@ -106,6 +115,7 @@ build() {
 
   export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
   export lt_cv_deplibs_check_method='pass_all'
+
   export MSYS2_ARG_CONV_EXCL="-DLOCALEDIR=;-DLIBDIR=;-DLOCALE_ALIAS_PATH="
 
   export LDFLAGS="-pipe"                        # Clear the MSys2 default value
@@ -117,6 +127,7 @@ build() {
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
     --build=${MINGW_CHOST} \
+    --disable-c++ \
     --disable-java \
     --disable-native-java \
     --disable-csharp \
