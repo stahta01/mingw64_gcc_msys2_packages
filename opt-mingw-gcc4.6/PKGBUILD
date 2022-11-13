@@ -373,7 +373,7 @@ build() {
     --disable-multilib \
     --disable-rpath \
     --disable-win32-registry \
-    --disable-nls \
+    --enable-nls \
     --disable-werror \
     --disable-symvers \
     --with-pkgversion="Rev ${pkgver##*.g}-${pkgrel}, Built by stahta01" \
