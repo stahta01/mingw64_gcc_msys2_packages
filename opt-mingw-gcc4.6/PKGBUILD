@@ -7,8 +7,7 @@
 # Contributor: Kirill Müller
 # Contributor: Liu Hao
 
-_build_static_only_gcc=no
-
+# =========================================== #
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
@@ -17,6 +16,7 @@ else
   OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
 fi
 _include_sub_folder=/${MINGW_CHOST}
+# =========================================== #
 
 _enable_fortran=no       # Use yes for production
 _enable_cxx=yes           # Use yes for production
@@ -26,7 +26,10 @@ _enable_lto=yes           # Use yes for production
 _enable_threads=yes       # Use yes for production
 _enable_libquadmath=no
 
+_enable_graphite=no      # Yes is currently broken
 _enable_bootstrap=no     # Use yes for production
+_build_static_only_gcc=no # Use no for production
+
 #
 # =========================================== #
 
@@ -74,25 +77,19 @@ makedepends=(
 #checkdepends=('dejagnu')
 optdepends=()
 
-# Parma Polyhedra Library (PPL) version 0.11
-# https://gcc.gnu.org/pub/gcc/infrastructure/ppl-0.11.tar.gz
-# https://gcc.gnu.org/pub/gcc/infrastructure/cloog-ppl-0.15.11.tar.gz
-PPL_VERSION=0.11
-CLOOG_VERSION=0.18.1   # version 0.15 or CLooG 0.16 recommended
-ISL_VERSION=0.16.1
+PPL_VERSION=0.11       # Parma Polyhedra Library
+CLOOG_VERSION=0.15.11  # version 0.15 recommended for gcc 4.6.x
 MPFR_VERSION=2.4.2     # min 2.4.2
 GMP_VERSION=4.3.2      # min 4.3.2
 MPC_VERSION=0.8.1      # min 0.8.1
-noextract=("isl-${ISL_VERSION}.tar.bz2" "mpfr-${MPFR_VERSION}.tar.bz2"
-           "cloog-${CLOOG_VERSION}.tar.gz"
+noextract=("mpfr-${MPFR_VERSION}.tar.bz2"
+           "cloog-ppl-${CLOOG_VERSION}.tar.gz" "ppl-${PPL_VERSION}.tar.gz"
            "gmp-${GMP_VERSION}.tar.bz2" "mpc-${MPC_VERSION}.tar.gz")
-source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
-        ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-${CLOOG_VERSION}.tar.gz
+source=(ftp://gcc.gnu.org/pub/gcc/infrastructure/ppl-${PPL_VERSION}.tar.gz
+        ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-ppl-${CLOOG_VERSION}.tar.gz
         ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${MPFR_VERSION}.tar.bz2
         ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${GMP_VERSION}.tar.bz2
         ftp://gcc.gnu.org/pub/gcc/infrastructure/mpc-${MPC_VERSION}.tar.gz
-        isl-0.12.1-msys2.patch
-        isl-0.14.1-no-undefined.patch
         'conftest.adb'
         '111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch'
         '122-gcc-4.9-Relocate-libintl.patch'
@@ -100,13 +97,11 @@ source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
         '132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch'
         '704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch'
         ${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=releases/gcc-${_base_ver}")
-sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
-            '02500a4edd14875f94fe84cbeda4290425cb0c1c2474c6f75d75a303d64b4196'
+sha256sums=('3453064ac192e095598576c5b59ecd81a26b268c597c53df05f18921a4f21c77'
+            '7cd634d0b2b401b04096b545915ac67f883556e9a524e8e803a6bf6217a84d5f'
             'c7e75a08a8d49d2082e4caee1591a05d11b9d5627514e678f02d66a124bcf2ba'
             '936162c0312886c21581002b79932829aa048cfaf9937c6265aeaa14f1cd1775'
             'e664603757251fd8a352848276497a4c79b7f8b21fd8aedd5cc0598a38fee3e4'
-            '659430857ccd7429671ccdf6c8239be8eb8c53f9a4c279d4023fd6a4e2a9694f'
-            '83655a7202f0a0dcce1782d4b365252bf1ad12a522b7ad82ab578ee5ec46433b'
             '7270a08586d76b73d251d530f740a29a8bcc1ae11bf28a0fa35e811c9f39f2c1'
             'cba7c512a4e0e6a738e0f4ad1026930260a73c7b39bedf36df0b16bae312206b'
             'd143713dfcb86afa0c32e53b12c1d3a9586729b6580c8e535d72e03003511914'
@@ -173,22 +168,12 @@ prepare() {
   _extract_to_gcc_folder            gmp-${GMP_VERSION}.tar.bz2
   _extract_to_gcc_folder            mpc-${MPC_VERSION}.tar.gz
 
-  rm -fr ${srcdir}/${_sourcedir}/isl
-  if [[ $_gcc_major_version -gt 4 ]]; then
-    _extract_to_gcc_folder          isl-${ISL_VERSION}.tar.bz2
-    if [[ "${_gcc_version:0:3}" == "4.9" ]]; then
-      _extract_to_gcc_folder        cloog-${CLOOG_VERSION}.tar.gz
-    fi
-
-    cd ${srcdir}/${_sourcedir}/isl
-    apply_patch_with_msg \
-      isl-0.12.1-msys2.patch \
-      isl-0.14.1-no-undefined.patch
-
-    autoreconf -fi
+  if [[ "$_enable_graphite" == "yes"  ]]; then
+    _extract_to_gcc_folder          cloog-ppl-${CLOOG_VERSION}.tar.gz
+    _extract_to_gcc_folder          ppl-${PPL_VERSION}.tar.gz
   else
     rm -fr ${srcdir}/${_sourcedir}/cloog
-    rm -fr ${srcdir}/${_sourcedir}/isl
+    rm -fr ${srcdir}/${_sourcedir}/ppl
   fi
 
   cd ${srcdir}/${_sourcedir}
@@ -318,8 +303,13 @@ build() {
 
   extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
 
-  if [[ $_gcc_major_version -gt 4 ]]; then
-    extra_config+=('--enable-graphite') # requires ISL
+  if [[ "$_enable_graphite" == "yes"  ]]; then
+    extra_config+=('--enable-graphite') # requires CLOOG
+    #extra_config+=("--with-gmp-build=${srcdir}/${_sourcedir}/gmp") # causes error in intree mpfr
+    #configure: error: Do not use --with-gmp-build and other --with-gmp options simultaneously.
+    extra_config+=("--with-gmp-include=${srcdir}/${_sourcedir}/gmp")
+    extra_config+=("--with-gmp-lib=${srcdir}/${_sourcedir}/gmp")
+    # --enable-cloog-backend=ppl
   else
     extra_config+=('--disable-graphite')
   fi
