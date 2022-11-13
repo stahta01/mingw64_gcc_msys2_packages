@@ -21,7 +21,7 @@ _include_sub_folder=/${MINGW_CHOST}
 _enable_fortran=no       # Use yes for production
 _enable_cxx=yes           # Use yes for production
 _enable_ada=yes           # Use yes for production
-_enable_lto=no           # Use ?yes? for production
+_enable_lto=yes           # Use yes for production
 
 _enable_threads=yes       # Use yes for production
 _enable_libquadmath=no
