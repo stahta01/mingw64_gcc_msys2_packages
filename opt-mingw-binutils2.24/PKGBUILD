@@ -22,7 +22,7 @@ _base_ver=2.24
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
 pkgver=2.24+r78636.c2.gcd3813a8c9e5
-pkgrel=1
+pkgrel=2
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}=${pkgver}")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 pkgdesc="A set of programs to assemble and manipulate binary and object files"
@@ -80,11 +80,21 @@ prepare() {
 }
 
 build() {
-  declare -a extra_config
+  # Set good default FLAGS
+  export LDFLAGS="-pipe"
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
 
-  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
-  export CFLAGS="-pipe"                         # Clear the MSys2 default value
+  if [ "${CARCH}" = "x86_64" ]; then
+    CXXFLAGS+=" -march=nocona -msahf -mtune=generic"
+    CFLAGS+=" -march=nocona -msahf -mtune=generic"
+  else
+    CXXFLAGS+=" -march=pentium4 -mtune=generic"
+    CFLAGS+=" -march=pentium4 -mtune=generic"
+  fi
+
+  declare -a extra_config
 
   if [ "${CARCH}" = "x86_64" ]; then
     extra_config+=('--enable-64-bit-bfd')
@@ -122,7 +132,7 @@ build() {
     --enable-lto \
     --with-sysroot=${OPT_MINGW_PREFIX} \
     "${extra_config[@]}" \
-    --enable-nls \
+    --disable-nls \
     --disable-rpath \
     --disable-multilib \
     --enable-install-libiberty \
