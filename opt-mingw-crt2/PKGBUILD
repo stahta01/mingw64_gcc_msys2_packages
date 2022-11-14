@@ -1,5 +1,5 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
-# Contributor: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Alexey Pavlov
 
 _build_headers_only=no
 
@@ -84,8 +84,8 @@ build() {
     CXXFLAGS+=" -march=nocona -msahf -mtune=generic"
     CFLAGS+=" -march=nocona -msahf -mtune=generic"
   else
-    CXXFLAGS+=" -march=pentium4 -mtune=generic"
-    CFLAGS+=" -march=pentium4 -mtune=generic"
+    CXXFLAGS+=" -mtune=generic"
+    CFLAGS+=" -mtune=generic"
   fi
 
   if [[ "$_build_using_external_compiler" == "yes" ]]; then
@@ -119,8 +119,7 @@ build() {
     --host=${MINGW_CHOST} \
     --prefix=${OPT_MINGW_PREFIX} \
     --enable-sdk=all \
-    --enable-secure-api \
-    --without-widl
+    --enable-secure-api
 
   msg "Installing local copy of ${MSYSTEM} headers"
   cd ${srcdir}/headers-${MSYSTEM}
