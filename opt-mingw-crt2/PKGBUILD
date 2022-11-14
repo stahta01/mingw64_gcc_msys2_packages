@@ -24,7 +24,7 @@ pkgbase=opt-mingw-${_realname}2
 pkgname=($([[ "$_build_headers_only" != "yes" ]] && echo  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
          "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
 pkgver=2.0.0.2777.24b1f9cdcf1d
-pkgrel=1
+pkgrel=2
  _commit='24b1f9cdcf1d425700312373b14e2a6e58c6d0aa' # 2.0.0.2777
 #_commit='ea32a0c5bf6f2a2473149d11314f7b92df63cdf4' # 2.0.0.2715 (v2.0.9)
 #_commit='696f2831b313e1be34799aec7cf4fc189d6666d5' # 2.0.0.2684 (v2.0.8)
@@ -74,9 +74,19 @@ prepare() {
 }
 
 build() {
+  # Set good default FLAGS
   export LDFLAGS="-pipe"
   export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
   export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
+
+  if [ "${CARCH}" = "x86_64" ]; then
+    CXXFLAGS+=" -march=nocona -msahf -mtune=generic"
+    CFLAGS+=" -march=nocona -msahf -mtune=generic"
+  else
+    CXXFLAGS+=" -march=pentium4 -mtune=generic"
+    CFLAGS+=" -march=pentium4 -mtune=generic"
+  fi
 
   if [[ "$_build_using_external_compiler" == "yes" ]]; then
     # GCC 4.1.x from GNAT 2007 builds CRT2 status unknown
