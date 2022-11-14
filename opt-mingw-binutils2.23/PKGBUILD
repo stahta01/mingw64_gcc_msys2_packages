@@ -78,9 +78,19 @@ prepare() {
 }
 
 build() {
+  # Set good default FLAGS
   export LDFLAGS="-pipe"
   export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
   export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
+
+  if [ "${CARCH}" = "x86_64" ]; then
+    CXXFLAGS+=" -march=nocona -msahf -mtune=generic"
+    CFLAGS+=" -march=nocona -msahf -mtune=generic"
+  else
+    CXXFLAGS+=" -mtune=generic"
+    CFLAGS+=" -mtune=generic"
+  fi
 
   if [[ "$_build_using_external_compiler" == "yes" ]]; then
     # GCC 4.3.x from GNAT 2010 built binutils2.23 okay
