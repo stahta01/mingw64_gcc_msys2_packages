@@ -123,11 +123,11 @@ build() {
 
   msg "Installing local copy of ${MSYSTEM} headers"
   cd ${srcdir}/headers-${MSYSTEM}
-  rm -fr ${srcdir}/${OPT_MINGW_PREFIX}${_include_sub_folder}/include
+  rm -fr ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include
   make DESTDIR=${srcdir} install
 
   # create file if it does not exist; update time if it does
-  touch ${srcdir}/${OPT_MINGW_PREFIX}${_include_sub_folder}/include/x86intrin.h
+  touch ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/x86intrin.h
 
 if [[ "$_build_headers_only" != "yes" ]]; then
 
@@ -143,7 +143,7 @@ if [[ "$_build_headers_only" != "yes" ]]; then
 
   [[ -d ${srcdir}/crt-${MSYSTEM} ]] && rm -rf ${srcdir}/crt-${MSYSTEM}
   mkdir -p ${srcdir}/crt-${MSYSTEM} && cd ${srcdir}/crt-${MSYSTEM}
-  CFLAGS+=" -I${srcdir}/${OPT_MINGW_PREFIX}${_include_sub_folder}/include" \
+  CFLAGS+=" -I${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include" \
   ${srcdir}/${_sourcedir}/mingw-w64-crt/configure \
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
