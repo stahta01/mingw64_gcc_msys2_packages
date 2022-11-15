@@ -18,7 +18,8 @@ fi
 _include_sub_folder=/${MINGW_CHOST}
 # =========================================== #
 
-_enable_bootstrap=no     # Use yes for production; yes errors out at start of stage 2
+_enable_bootstrap=yes     # Use yes for production; yes errors out at start of stage 2
+_build_static_only_gcc=yes # Use no for production
 
 _enable_fortran=no       # Use ?yes? for production
 _enable_cxx=no           # Use yes for production
@@ -51,7 +52,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.5.4+d20120702.r42.c7.g41eccc86828f
-pkgrel=1
+pkgrel=2
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32')
@@ -175,12 +176,9 @@ prepare() {
   ${GIT_AM} ${srcdir}/704-gcc-4.5-Fix-texi-docs-syntax-errors.patch
   ${GIT_AM} ${srcdir}/706-gcc-4.5-backport-SVN-196004-LN_S_RECURSIVE.patch
 
-  # do not expect $prefix/mingw symlink - this should be superceded by
-  # 0004-Windows-Don-t-ignore-native-system-header-dir.patch .. but isn't!
   sed -i 's|${prefix}/mingw/|${prefix}/|g' configure
 
-  # change hardcoded /mingw prefix to the real prefix .. isn't this rubbish?
-  # it might work at build time and could be important there but beyond that?!
+  # change hard coded /mingw prefix to the absolute forward slash prefix
   local MINGW_NATIVE_PREFIX=$(cygpath -am ${OPT_MINGW_PREFIX}${_include_sub_folder})
   sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/mingw32.h
   # Replace "/mingw/" with the unix like path used
@@ -188,17 +186,20 @@ prepare() {
   sed -i "s|/mingw/|${OPT_MINGW_PREFIX}${_include_sub_folder}/|g" gcc/config/i386/t-mingw32
 
   mkdir -p ${OPT_MINGW_PREFIX}${_include_sub_folder}/include
+  #/opt/mingw32/opt/mingw32/i686-w64-mingw32/include
 }
 
 build() {
-  [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
-  mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
-
+  # Set good default FLAGS
   export LDFLAGS="-pipe"
   export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
   export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
 
-  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  local MINGW_INSTALL="/$(cygpath -am / | tr -d ':')"
+  local MINGW_NATIVE_ABS_UNIX_PREFIX=${MINGW_INSTALL}$(cygpath -u ${OPT_MINGW_PREFIX})
+
+  export PATH=${MINGW_NATIVE_ABS_UNIX_PREFIX}/bin:${MINGW_NATIVE_ABS_UNIX_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}:$PATH
   echo "PATH := $PATH"
   echo "CC := ${CC}"
   echo "CXX := ${CXX}"
@@ -207,6 +208,9 @@ build() {
   ${CC} --version
   pacman -Qs "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" | grep ${OPT_MINGW_PACKAGE_PREFIX} \
     | sed "s|(${OPT_MINGW_PACKAGE_PREFIX}-toolchain)||" || true
+
+  [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
+  mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
 
   declare -a extra_config
   if check_option "debug" "n"; then
@@ -297,7 +301,12 @@ build() {
   #fi
 
   extra_config+=("--with-system-zlib")
-  extra_config+=(--with-build-time-tools=${OPT_MINGW_PREFIX}/bin)
+
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    extra_config+=("--enable-shared")
+  else
+    extra_config+=("--disable-shared")
+  fi
 
   echo ""
   echo "OPT_MINGW_PREFIX := ${OPT_MINGW_PREFIX}"
@@ -318,6 +327,7 @@ build() {
   echo ""
 
 # --with-headers=${MINGW_PREFIX}/${_target}/include
+# --with-sysroot=${OPT_MINGW_PREFIX} \
 
   if [[ "$_enable_ada" == "yes" ]]; then
     # configure fails to give clear reason for failure
@@ -330,13 +340,14 @@ build() {
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
+    --with-build-time-tools=${OPT_MINGW_PREFIX}/bin \
     --with-native-system-header-dir=${OPT_MINGW_PREFIX}${_include_sub_folder}/include \
     --libexecdir=${OPT_MINGW_PREFIX}/lib \
     --enable-checking=release \
     --with-arch=${_arch} \
     --with-tune=generic \
     --enable-languages=${_languages} \
-    --enable-shared --enable-static \
+    --enable-static \
     --enable-fully-dynamic-string \
     --enable-libstdcxx-time \
     --disable-libstdcxx-pch \
@@ -357,7 +368,7 @@ build() {
   rm -rf ${srcdir}${OPT_MINGW_PREFIX}
 
   make -j1 DESTDIR=${srcdir} install
-  if [ "$_enable_ada" == "yes" ]; then
+  if [[ "$_enable_ada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     mv ${srcdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib/*.dll ${srcdir}${OPT_MINGW_PREFIX}/bin/
   fi
 }
@@ -393,7 +404,9 @@ ENDFILE
 
   cd ${srcdir}${OPT_MINGW_PREFIX}
   # libitm* and libvtv* are disbled until fixed
-  cp bin/{libgcc*,libssp*}.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    cp bin/{libgcc*,libssp*}.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  fi
   if [[ "$_enable_libquadmath" == "yes" ]]; then
     cp bin/libquadmath*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
@@ -409,10 +422,12 @@ ENDFILE
 }
 
 package_gcc-git() {
-  pkgdesc="GNU Compiler Collection (C,C++,OpenMP) for MinGW-w64"
+  pkgdesc="GNU Compiler Collection for MinGW-w64"
   depends=("${OPT_MINGW_PACKAGE_PREFIX}-zlib"
-           "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}"
            "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest")
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}")
+  fi
   depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
   depends+=("${OPT_MINGW_PACKAGE_PREFIX}-crt"
             "${OPT_MINGW_PACKAGE_PREFIX}-headers")  
@@ -557,7 +572,7 @@ package_gcc-ada-git() {
   cd ${srcdir}${OPT_MINGW_PREFIX}
 
   cp bin/gnat*.exe                                          ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  if [ "$_enable_ada" == "yes" ]; then
+  if [[ "$_enable_ada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/{libgnarl*,libgnat*}.dll                           ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
 
