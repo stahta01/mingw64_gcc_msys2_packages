@@ -31,7 +31,7 @@
 #--disable-libstdcxx,
 #--disable-libgomp,
 
-_build_using_external_compiler=no   # Use no for production
+_build_using_external_compiler=yes   # Use no for production
 
 _enable_ada=yes           # Use yes for production
 
@@ -75,7 +75,7 @@ _base_ver=4.3
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
 pkgver=4.3.6+d20110627.r39.c8.g6503c21eb909
-pkgrel=1
+pkgrel=2
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -212,27 +212,23 @@ prepare() {
 }
 
 build() {
+  # Set good default FLAGS
+  export LDFLAGS="-pipe"
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CFLAGS="-pipe"
+  #export CXXFLAGS="-pipe"
+  if [[ "$_build_using_external_compiler" == "yes" ]]; then
+    export CFLAGS+=" -std=gnu99" # GNAT GCC 4.1.3 defaults to a too low of std
+  fi
+
   cd ${srcdir}/${_sourcedir}
 
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
 
-  # Replace the MSys2 default FLAG values
-  export LDFLAGS="-pipe"
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
-  if [[ "$_build_using_external_compiler" == "yes" ]]; then
-    export CFLAGS="-pipe -std=gnu99" # GNAT GCC 4.1.3 defaults to a too low of std
-  else
-    export CFLAGS="-pipe" # GCC 4.3.6 considers "-std=gnu99" too high of std
-  fi
-
   if [[ "$_build_using_external_compiler" == "yes" ]]; then
     # GCC 4.1.3 from GNAT 2007 builds GCC4.3.x w/o Ada status works
     # GCC 4.1.3 from GNAT 2007 builds GCC4.3.x with Ada status works
-    # GCC 4.3.4 from GNAT 2009 builds GCC4.3.x w/o Ada status unknown
-    # GCC 4.3.4 from GNAT 2009 builds GCC4.3.x with Ada status unknown
-    # GCC 4.3.6 from GNAT 2010 builds GCC4.3.x w/o Ada status unknown
-    # GCC 4.3.6 from GNAT 2010 builds GCC4.3.x with Ada status unknown
     local _GNAT_year=2007
     if [ "$_GNAT_year" == "2007" ]; then
       local _compiler_toolchain_host=pentium-mingw32msv
@@ -293,10 +289,9 @@ build() {
     extra_config+=('--disable-libada')
   fi
 
-  extra_config+=('--disable-libstdcxx')
+  #extra_config+=('--disable-libstdcxx')
   extra_config+=('--disable-threads')
-  extra_config+=("--disable-libgomp")
-  extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
+  #extra_config+=("--disable-libgomp")
 
   echo ""
   echo "OPT_MINGW_PREFIX := ${OPT_MINGW_PREFIX}"
@@ -316,8 +311,6 @@ build() {
   echo "extra_config contains ${extra_config[@]}"
   echo ""
 
-  extra_config+=("--build=${MINGW_CHOST}")
-
   if [[ "$_enable_ada" == "yes" ]]; then
     # configure fails to give clear reason for failure
     ${CC} -c ${srcdir}/conftest.adb
@@ -326,6 +319,7 @@ build() {
   ../${_sourcedir}/configure \
     --prefix=${OPT_MINGW_PREFIX} \
     --with-local-prefix=${OPT_MINGW_PREFIX}/local \
+    --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
     --libexecdir=${OPT_MINGW_PREFIX}/lib \
@@ -340,6 +334,7 @@ build() {
     --disable-werror \
     --disable-symvers \
     --with-system-zlib \
+    --with-libiconv-prefix=${OPT_MINGW_PREFIX} \
     --with-pkgversion="Rev ${pkgver##*.g}-${pkgrel}, Built by stahta01" \
     --with-bugurl="https://github.com/stahta01/mingw64_gcc_msys2_packages/issues" \
     --with-gnu-as --with-gnu-ld \
