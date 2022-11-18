@@ -187,12 +187,12 @@ prepare() {
 
   git am --abort || true
 
-  if [[ "$_build_using_external_compiler" != "yes" ]]; then
-    ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
-  fi
+  #if [[ "$_build_using_external_compiler" != "yes" ]]; then
+    #${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
+  #fi
   ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
   ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
-  ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
+  #${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
   ${GIT_AM} ${srcdir}/201-gcc-4.3-ada-Fix-wrong-case.patch
   ${GIT_AM} ${srcdir}/202-gcc-4.3-ada-Add-space-between-and-return.patch
   ${GIT_AM} ${srcdir}/704-gcc-4.3-Fix-texi-docs-syntax-errors.patch
