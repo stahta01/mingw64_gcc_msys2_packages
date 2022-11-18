@@ -18,19 +18,23 @@ fi
 _include_sub_folder=/${MINGW_CHOST}
 # =========================================== #
 
-_enable_bootstrap=yes     # Use yes for production; yes errors out at start of stage 2
-_build_static_only_gcc=yes # Use no for production
+_build_using_external_compiler=yes   # Use no for production
+_build_using_external_adadriver=yes  # Use no for production
+_enable_bootstrap=no               # Use yes for production; yes errors out at start of stage 2
+_build_static_only_gcc=yes           # Use no for production
 
-_enable_fortran=no       # Use ?yes? for production
-_enable_cxx=no           # Use yes for production
-_enable_ada=yes           # Use yes for production
-_enable_lto=no           # Use ?yes? for production
+_enable_fortran=no                 # Use ?yes? for production
+_enable_cxx=no                     # Use yes for production
+_enable_ada=yes                     # Use yes for production
+_enable_lto=no                     # Use ?yes? for production
 
-_enable_threads=no       # Use yes for production
-_enable_libstdcxx=no     # Use yes for production
+_enable_threads=no                 # Use yes for production
+_enable_libstdcxx=no               # Use yes for production
 _enable_libquadmath=no
-_enable_libatomic=no      # yes will likely not work
-_enable_libgomp=no        # yes will likely not work
+_enable_libssp=no                  # Use yes for production
+_enable_libada=no                  # Use yes for production
+_enable_libatomic=no                # yes will likely not work
+_enable_libgomp=no                  # yes will likely not work
 
 # =========================================== #
 if [[ "$_enable_fortran" == "yes" && "$_enable_libquadmath" != "yes" ]]; then
@@ -51,8 +55,8 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran-git")
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
-pkgver=4.5.4+d20120702.r42.c7.g41eccc86828f
-pkgrel=2
+pkgver=4.5.4+d20120702.r42.c6.g41eccc86828f
+pkgrel=3
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32')
@@ -62,8 +66,9 @@ url="https://gcc.gnu.org"
 license=('GPL' 'LGPL' 'FDL' 'custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 makedepends=(
-  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada"
-  $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
+  $([[ "$_enable_ada" == "yes" && \
+       "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
   "${OPT_MINGW_PACKAGE_PREFIX}-crt"
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
@@ -168,7 +173,9 @@ prepare() {
 
   git am --abort || true
 
-  ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
+  #if [[ "$_build_using_external_compiler" != "yes" ]]; then
+    #${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
+  #fi
   ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
   ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
   ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
@@ -195,11 +202,44 @@ build() {
   export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
   export CFLAGS="-pipe"
   export CXXFLAGS="-pipe"
+  if [[ "$_build_using_external_compiler" == "yes" ]]; then
+    export CFLAGS+=" -std=gnu99" # GNAT GCC 4.1.3 defaults to a too low of std
+  fi
 
-  local MINGW_INSTALL="/$(cygpath -am / | tr -d ':')"
-  local MINGW_NATIVE_ABS_UNIX_PREFIX=${MINGW_INSTALL}$(cygpath -u ${OPT_MINGW_PREFIX})
+  declare -a extra_config
 
-  export PATH=${MINGW_NATIVE_ABS_UNIX_PREFIX}/bin:${MINGW_NATIVE_ABS_UNIX_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}:$PATH
+  if [[ "$_build_using_external_compiler" == "yes" ]]; then
+    # GCC 4.1.3 from GNAT 2007 builds GCC4.5.x with Ada w/o libada status failed
+    local _GNAT_year=2007
+    if [ "$_GNAT_year" == "2007" ]; then
+      local _compiler_toolchain_host=pentium-mingw32msv
+    else
+      local _compiler_toolchain_host=i686-pc-mingw32
+    fi
+    local _compiler_toolchain_prefix=/h/GNAT/${_GNAT_year}
+    export PATH=${OPT_MINGW_PREFIX}/bin:${_compiler_toolchain_prefix}/bin:${MINGW_PREFIX}/bin:/usr/local/bin:/usr/bin:/bin:/c/Windows/SysWOW64
+    export AR="${OPT_MINGW_PREFIX}/bin/ar"
+    export AS="${OPT_MINGW_PREFIX}/bin/as"
+    export LD="${OPT_MINGW_PREFIX}/bin/ld"
+    if [ "$_enable_ada" == "yes" ]; then
+      export GNATMAKE="${_compiler_toolchain_prefix}/bin/gnatmake"
+      export GNATBIND="${_compiler_toolchain_prefix}/bin/gnatbind"
+      #export ADA_INCLUDE_PATH="${_compiler_toolchain_prefix}/lib/gcc/${_compiler_toolchain_host}/4.1.3/adainclude"
+    fi
+    if [[ "$_enable_ada" == "yes" && "$_build_using_external_adadriver" == "yes" ]]; then
+      extra_config+=("--build=${_compiler_toolchain_host}")
+      export CC="${_compiler_toolchain_prefix}/bin/${_compiler_toolchain_host}-gcc"
+    else
+      extra_config+=("--build=${MINGW_CHOST}")
+      export CC="${OPT_MINGW_PREFIX}/bin/gcc"
+      if [ "$_enable_cxx" == "yes" ]; then
+        export CXX="${OPT_MINGW_PREFIX}/bin/g++"
+      fi    
+    fi
+  else
+    extra_config+=("--build=${MINGW_CHOST}")
+    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  fi
   echo "PATH := $PATH"
   echo "CC := ${CC}"
   echo "CXX := ${CXX}"
@@ -212,7 +252,6 @@ build() {
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
 
-  declare -a extra_config
   if check_option "debug" "n"; then
     extra_config+=("--disable-libstdcxx-debug")
   else
@@ -300,7 +339,14 @@ build() {
     extra_config+=('--disable-graphite')
   #fi
 
-  extra_config+=("--with-system-zlib")
+  if [[ "$_build_using_external_compiler" != "yes" ]]; then
+    extra_config+=("--with-system-zlib")
+  else
+    extra_config+=('--disable-libada')
+    _enable_libada=no
+    extra_config+=("--disable-libssp")
+    _enable_libssp=no
+  fi
 
   if [[ "$_build_static_only_gcc" != "yes" ]]; then
     extra_config+=("--enable-shared")
@@ -308,6 +354,12 @@ build() {
     extra_config+=("--disable-shared")
   fi
 
+  echo ""
+  echo "CARCH := ${CARCH}"
+  echo ""
+  echo "MSYSTEM_CARCH := ${MSYSTEM_CARCH}"
+  echo ""
+  echo "MINGW_CHOST := ${MINGW_CHOST}"
   echo ""
   echo "OPT_MINGW_PREFIX := ${OPT_MINGW_PREFIX}"
   echo ""
@@ -337,7 +389,6 @@ build() {
   ../${_sourcedir}/configure \
     --prefix=${OPT_MINGW_PREFIX} \
     --with-local-prefix=${OPT_MINGW_PREFIX}/local \
-    --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
     --with-build-time-tools=${OPT_MINGW_PREFIX}/bin \
@@ -376,8 +427,8 @@ build() {
 package_gcc-libs-git() {
   pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
   depends=()
-  provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs"
-            "${OPT_MINGW_PACKAGE_PREFIX}-libssp")
+  provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
+            #"${OPT_MINGW_PACKAGE_PREFIX}-libssp")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
 
   # Licensing information
@@ -405,7 +456,10 @@ ENDFILE
   cd ${srcdir}${OPT_MINGW_PREFIX}
   # libitm* and libvtv* are disbled until fixed
   if [[ "$_build_static_only_gcc" != "yes" ]]; then
-    cp bin/{libgcc*,libssp*}.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+    cp bin/libgcc*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  fi
+  if [[ "$_enable_libssp" == "yes" ]]; then
+    cp bin/libssp*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
   if [[ "$_enable_libquadmath" == "yes" ]]; then
     cp bin/libquadmath*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
@@ -459,7 +513,9 @@ package_gcc-git() {
     cp -r include/c++                                         ${pkgdir}${OPT_MINGW_PREFIX}/include/
   fi
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/*.h         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/
-  cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/ssp      ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/
+  if [[ "$_enable_libssp" == "yes" ]]; then
+    cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/ssp    ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/
+  fi
   cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include-fixed    ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/install-tools    ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/cc1.exe             ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
@@ -579,11 +635,11 @@ package_gcc-ada-git() {
   mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/gnat1.exe         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
 
-  if [ "$_enable_ada" == "yes" ]; then
+  if [ "$_enable_libada" == "yes" ]; then
     cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adainclude     ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
-  if [ "$_enable_ada" == "yes" ]; then
+  if [ "$_enable_libada" == "yes" ]; then
     cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
