@@ -18,7 +18,7 @@ _realname=gettext-runtime
 pkgbase=opt-mingw-${_parentname}0.19
 pkgname="${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
 pkgver=0.19.8.1
-pkgrel=1
+pkgrel=2
 _sourcedir=gettext-${pkgver}
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
@@ -110,17 +110,21 @@ prepare() {
 }
 
 build() {
+  export LDFLAGS="-pipe"
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CFLAGS="-pipe"
+
+  local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+  #echo "_GCC_VERSION := ${_GCC_VERSION}"
+  export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
+  export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
 
-  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
   export lt_cv_deplibs_check_method='pass_all'
 
   export MSYS2_ARG_CONV_EXCL="-DLOCALEDIR=;-DLIBDIR=;-DLOCALE_ALIAS_PATH="
-
-  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
-  export CFLAGS="-pipe"                         # Clear the MSys2 default value
 
   ../${_sourcedir}/configure \
     --prefix=${OPT_MINGW_PREFIX} \
