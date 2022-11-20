@@ -23,7 +23,7 @@ _realname=zlib
 pkgbase=opt-mingw-${_realname}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 pkgver=1.2.12
-pkgrel=1
+pkgrel=2
 pkgdesc="Compression library implementing the deflate compression method found in gzip and PKZIP (mingw-w64)"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
@@ -72,14 +72,17 @@ prepare() {
 }
 
 build() {
+  export LDFLAGS="-pipe"
+  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CFLAGS="-pipe"
+
+  local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+  echo "_GCC_VERSION := ${_GCC_VERSION}"
+  export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
+  export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+
   [[ -d "${srcdir}/build-${MSYSTEM}" ]] && rm -rf "${srcdir}/build-${MSYSTEM}"
   mkdir -p "${srcdir}/build-${MSYSTEM}" && cd "${srcdir}/build-${MSYSTEM}"
-
-  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
-
-  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
-  export CFLAGS="-pipe"                         # Clear the MSys2 default value
 
   CHOST=${MINGW_CHOST} \
   ../${_realname}-${pkgver}/configure \
