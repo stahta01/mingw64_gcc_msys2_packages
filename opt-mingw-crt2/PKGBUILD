@@ -24,7 +24,7 @@ pkgbase=opt-mingw-${_realname}2
 pkgname=($([[ "$_build_headers_only" != "yes" ]] && echo  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
          "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
 pkgver=2.0.0.2656.06c5a4241b47
-pkgrel=1
+pkgrel=2
 #_commit='24b1f9cdcf1d425700312373b14e2a6e58c6d0aa' # 2.0.0.2777
 #_commit='ea32a0c5bf6f2a2473149d11314f7b92df63cdf4' # 2.0.0.2715 (v2.0.9)
 #_commit='696f2831b313e1be34799aec7cf4fc189d6666d5' # 2.0.0.2684 (v2.0.8)
@@ -104,11 +104,15 @@ build() {
     export GNATMAKE="${_ext_compiler}/bin/gnatmake"
     export GNATBIND="${_ext_compiler}/bin/gnatbind"
   else
-    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+    local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+    echo "_GCC_VERSION := ${_GCC_VERSION}"
+    export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
+    export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
   fi
   echo "PATH := $PATH"
   ${CC} --version
-  pacman -Qs "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" || true
+  pacman -Qs "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" | grep ${OPT_MINGW_PACKAGE_PREFIX} \
+    | sed "s|(${OPT_MINGW_PACKAGE_PREFIX}-toolchain)||" || true
 
   msg "Configuring ${MSYSTEM} headers"
   [[ -d ${srcdir}/headers-${MSYSTEM} ]] && rm -rf ${srcdir}/headers-${MSYSTEM}
