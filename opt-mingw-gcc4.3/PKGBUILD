@@ -12,6 +12,8 @@
 # --disable-sjlj-exceptions
 # --disable-threads
 # --enable-languages
+# --with-pkgversion
+# --with-bugurl
 
 # Should be valid configure options for libstdc++-v3 folder
 # --enable-fully-dynamic-string
@@ -19,17 +21,11 @@
 # --disable-libstdcxx-pch
 # --disable-symvers
 
-# Should be valid configure options for multiple folders or at least config
+# Should be valid configure options for multiple folders
 # --disable-nls
 # --disable-werror
 # --with-libiconv-prefix
-# --with-bugurl
 # --enable-bootstrap
-
-# ???
-#--with-pkgversion,
-#--disable-libstdcxx,
-#--disable-libgomp,
 
 _PERL_VERSION=`pacman -Q perl | tr -d 'perl' | tr -d ' '`
 if [[ ${_PERL_VERSION:0:4} > "5.32" ]]; then
@@ -39,14 +35,14 @@ if [[ ${_PERL_VERSION:0:4} > "5.32" ]]; then
   exit 1
 fi
 
-_build_using_external_compiler=yes   # Use no for production
+_build_using_external_compiler=no   # Use no for production
 
-_enable_ada=yes           # Use yes for production
+_enable_ada=yes                     # Use yes for production
 
-_enable_bootstrap=yes     # Use yes for production
+_enable_bootstrap=no               # Use yes for production; GMP fails to build
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
-_enable_backstrap_ada=no  # Use no for production
+_enable_backstrap_ada=no            # Use no for production
 #
 # =========================================== #
 # The code in this section should not normally be changed
@@ -82,7 +78,7 @@ _sourcedir=${_realname}-git
 _base_ver=4.3
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
-pkgver=4.3.6+d20110627.r39.c6.g6503c21eb909
+pkgver=4.3.6+d20110627.r39.c5.g6503c21eb909
 pkgrel=2
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
@@ -349,17 +345,19 @@ build() {
     --with-gnu-as --with-gnu-ld \
     "${extra_config[@]}"
 
-  if [[ "$_enable_ada" == "yes" && "$_enable_backstrap_ada" == "yes" ]]; then
-    make all-gcc V=1 --jobs=1 -k || true
-  else
-    make all-gcc V=1 --jobs=1
-  fi
-  make all-target-libgcc V=1 --jobs=1
+  make all V=1 --jobs=1
 
-  if [ "$_enable_ada" == "yes" ]; then
-    make all-gnattools V=1 --jobs=1 -k
-    make all-target-libada V=1 --jobs=1 -k
-  fi
+  #if [[ "$_enable_ada" == "yes" && "$_enable_backstrap_ada" == "yes" ]]; then
+    #make all-gcc V=1 --jobs=1 -k || true
+  #else
+    #make all-gcc V=1 --jobs=1
+  #fi
+  #make all-target-libgcc V=1 --jobs=1
+
+  #if [ "$_enable_ada" == "yes" ]; then
+    #make all-gnattools V=1 --jobs=1 -k
+    #make all-target-libada V=1 --jobs=1 -k
+  #fi
 }
 
 package() {
@@ -381,12 +379,14 @@ package() {
   cd "${srcdir}/build-${MSYSTEM}"
   export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
 
-  make -j1 DESTDIR="${pkgdir}" install-gcc
-  make -j1 DESTDIR="${pkgdir}" install-target-libgcc
-  if [ "$_enable_ada" == "yes" ]; then
-    make install-gnattools V=1 --jobs=1
-    make install-target-libada V=1 --jobs=1
-  fi
+  make -j1 DESTDIR="${pkgdir}" install
+
+  #make -j1 DESTDIR="${pkgdir}" install-gcc
+  #make -j1 DESTDIR="${pkgdir}" install-target-libgcc
+  #if [ "$_enable_ada" == "yes" ]; then
+    #make install-gnattools V=1 --jobs=1
+    #make install-target-libada V=1 --jobs=1
+  #fi
 
   rm -f ${pkgdir}${OPT_MINGW_PREFIX}/info/dir
 
