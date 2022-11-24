@@ -23,7 +23,7 @@ _base_ver=2.23
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
 pkgver=2.23+r74545.c0.g9f514a29752a
-pkgrel=1
+pkgrel=2
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}=${pkgver}")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 pkgdesc="A set of programs to assemble and manipulate binary and object files"
