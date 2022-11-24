@@ -31,6 +31,14 @@
 #--disable-libstdcxx,
 #--disable-libgomp,
 
+_PERL_VERSION=`pacman -Q perl | tr -d 'perl' | tr -d ' '`
+if [[ ${_PERL_VERSION:0:4} > "5.32" ]]; then
+  echo "perl version is $_PERL_VERSION"
+  echo "perl version 5.32.1-3 is know to work"
+  echo "perl version 5.36.0-1 is know to not work"
+  exit 1
+fi
+
 _build_using_external_compiler=yes   # Use no for production
 
 _enable_ada=yes           # Use yes for production
