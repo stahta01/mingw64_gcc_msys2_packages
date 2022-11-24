@@ -7,6 +7,14 @@
 # Contributor: Kirill Müller
 # Contributor: Liu Hao
 
+_PERL_VERSION=`pacman -Q perl | tr -d 'perl' | tr -d ' '`
+if [[ ${_PERL_VERSION:0:4} > "5.32" ]]; then
+  echo "perl version is $_PERL_VERSION"
+  echo "perl version 5.32.1-3 is know to work"
+  echo "perl version 5.36.0-1 is know to not work"
+  exit 1
+fi
+
 # =========================================== #
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
@@ -18,21 +26,21 @@ fi
 _include_sub_folder=/${MINGW_CHOST}
 # =========================================== #
 
-_build_using_external_compiler=yes   # Use no for production
-_build_using_external_adadriver=yes  # Use no for production
+_build_using_external_compiler=no   # Use no for production
+_build_using_external_adadriver=no  # Use no for production
 _enable_bootstrap=no               # Use yes for production; yes errors out at start of stage 2
-_build_static_only_gcc=yes           # Use no for production
+_build_static_only_gcc=no           # Use no for production
 
 _enable_fortran=no                 # Use ?yes? for production
 _enable_cxx=no                     # Use yes for production
 _enable_ada=yes                     # Use yes for production
-_enable_lto=no                     # Use ?yes? for production
+_enable_lto=no                      # Use no for production
 
 _enable_threads=no                 # Use yes for production
 _enable_libstdcxx=no               # Use yes for production
 _enable_libquadmath=no
 _enable_libssp=no                  # Use yes for production
-_enable_libada=no                  # Use yes for production
+_enable_libada=yes                  # Use yes for production
 _enable_libatomic=no                # yes will likely not work
 _enable_libgomp=no                  # yes will likely not work
 
@@ -55,8 +63,8 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran-git")
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
-pkgver=4.5.4+d20120702.r42.c6.g41eccc86828f
-pkgrel=3
+pkgver=4.5.4+d20120702.r42.c7.g41eccc86828f
+pkgrel=2
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32')
@@ -173,9 +181,9 @@ prepare() {
 
   git am --abort || true
 
-  #if [[ "$_build_using_external_compiler" != "yes" ]]; then
-    #${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
-  #fi
+  if [[ "$_build_using_external_compiler" != "yes" ]]; then
+    ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
+  fi
   ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
   ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
   ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
