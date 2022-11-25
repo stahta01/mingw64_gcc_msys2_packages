@@ -19,11 +19,12 @@ _include_sub_folder=/${MINGW_CHOST}
 # =========================================== #
 
 _enable_fortran=no       # Use yes for production
-_enable_cxx=no           # Use yes for production
+_enable_cxx=yes           # Use yes for production
 _enable_ada=yes           # Use yes for production
-_enable_lto=no           # Use yes for production
+_enable_lto=no            # Use no for production
 
 _enable_threads=yes       # Use yes for production
+_enable_libstdcxx=no     # Use yes for production
 _enable_libquadmath=no
 
 _enable_graphite=no      # Yes is currently broken
@@ -56,7 +57,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.6.4+d20130412.r45.c5.g66cc0b3cf5bc
-pkgrel=2
+pkgrel=3
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -295,10 +296,12 @@ build() {
     extra_config+=('--disable-libquadmath')
   fi
 
-  if [[ "$_enable_cxx" != "yes" ]]; then
+  if [[ "$_enable_libstdcxx" != "yes" ]]; then
     extra_config+=('--disable-libstdcxx')
   else
     extra_config+=('--enable-libstdcxx-time')
+    extra_config+=('--enable-fully-dynamic-string')
+    extra_config+=('--disable-libstdcxx-pch')
   fi
 
   if [[ "$_enable_threads" != "yes" ]]; then
@@ -368,8 +371,6 @@ build() {
     --with-tune=generic \
     --enable-languages=${_languages} \
     --enable-static \
-    --enable-fully-dynamic-string \
-    --disable-libstdcxx-pch \
     --disable-multilib \
     --disable-rpath \
     --disable-win32-registry \
