@@ -29,7 +29,6 @@ _enable_ada=yes                     # Use yes for production
 _enable_lto=no                      # Use no for production
 
 _enable_threads=no                 # Use yes for production
-_enable_libstdcxx=no               # Use yes for production
 _enable_libquadmath=no
 _enable_libssp=no                  # Use yes for production
 _enable_libada=yes                  # Use yes for production
@@ -305,9 +304,10 @@ build() {
     extra_config+=('--disable-libquadmath')
   fi
 
-  if [[ "$_enable_libstdcxx" != "yes" ]]; then
-    extra_config+=('--disable-libstdcxx')
-  fi
+  # GCC 4.8 and above has disable-libstdcxx option
+  #if [[ "$_enable_libstdcxx" != "yes" ]]; then
+    #extra_config+=('--disable-libstdcxx')
+  #fi
 
   if [[ "$_enable_threads" != "yes" ]]; then
     extra_config+=('--disable-threads')
@@ -464,7 +464,7 @@ ENDFILE
   if [[ "$_enable_libquadmath" == "yes" ]]; then
     cp bin/libquadmath*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
-  if [[ "$_enable_libstdcxx" == "yes" ]]; then
+  if [[ "$_enable_cxx" == "yes" ]]; then
     cp bin/libstdc*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
@@ -509,7 +509,7 @@ package_gcc-git() {
   cp bin/${MINGW_CHOST}-gcc.exe                         ${pkgdir}${OPT_MINGW_PREFIX}/bin/
 
   mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include
-  if [[ "$_enable_libstdcxx" == "yes" ]]; then
+  if [[ "$_enable_cxx" == "yes" ]]; then
     cp -r include/c++                                         ${pkgdir}${OPT_MINGW_PREFIX}/include/
   fi
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/*.h         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/include/
@@ -545,7 +545,7 @@ package_gcc-git() {
   fi
   #cp lib/libssp*                                              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   #cp lib/libvtv*                                              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  if [[ "$_enable_libstdcxx" == "yes" ]]; then
+  if [[ "$_enable_cxx" == "yes" ]]; then
     cp lib/libstdc++*                                         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
     cp lib/libsupc++*                                         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
@@ -566,7 +566,7 @@ package_gcc-git() {
   fi
 
   #cp share/locale/* ${pkgdir}${OPT_MINGW_PREFIX}/share/locale/
-  if [[ "$_enable_libstdcxx" == "yes" ]]; then
+  if [[ "$_enable_cxx" == "yes" ]]; then
     mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/share/gcc-${pkgver%%+*}/python
     cp -r share/gcc-${pkgver%%+*}/python/libstdcxx       ${pkgdir}${OPT_MINGW_PREFIX}/share/gcc-${pkgver%%+*}/python/
   fi
