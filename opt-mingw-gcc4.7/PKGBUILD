@@ -1,11 +1,11 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
-# Contributor: Alexey Pavlov <alexpux@gmail.com>
-# Contributor: Alexey Borzenkov <snaury@gmail.com>
-# Contributor: Ray Donnelly <mingw.android@gmail.com>
-# Contributor: Renato Silva <br.renatosilva@gmail.com>
-# Contributor: wirx6 <wirx654@gmail.com>
-# Contributor: Kirill Müller <krlmlr@mailbox.org>
-# Contributor: Liu Hao <lh_mouse@126.com>
+# Contributor: Alexey Pavlov
+# Contributor: Alexey Borzenkov
+# Contributor: Ray Donnelly
+# Contributor: Renato Silva
+# Contributor: wirx6
+# Contributor: Kirill Müller
+# Contributor: Liu Hao
 
 _build_using_cross_mingw64=no
 
@@ -33,11 +33,11 @@ _enable_threads=no       # Use yes for production
 _threads="posix"
 _enable_libstdcxx=yes     # Use yes for production
 _enable_libquadmath=no
-_enable_std_libada=yes    # Use yes for production
+_enable_libada=yes        # Use yes for production
 _enable_libatomic=no
 
 _enable_gcc_plugin=no
-_enable_bootstrap=yes     # Use yes for production
+_enable_bootstrap=no     # Use yes for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
 _enable_backstrap_ada=no  # Use no for production
@@ -60,16 +60,12 @@ if [[ "$_enable_bootstrap" != "yes" && "$MSYSTEM" == "UCRT64" ]]; then
   _enable_bootstrap=yes
 fi
 
-if [[ "$_enable_std_libada" == "yes" && "$_enable_ada" != "yes" ]]; then
-  _enable_std_libada=no
-fi
-
-if [[ "$_enable_ada" == "yes" ]]; then
-  _enable_build_ada=yes
+if [[ "$_enable_libada" == "yes" && "$_enable_ada" != "yes" ]]; then
+  _enable_libada=no
 fi
 
 ### Exit block start
-#if [[ "$_enable_std_libada" == "yes" && "$_enable_gcc_plugin" == "yes" ]]; then
+#if [[ "$_enable_libada" == "yes" && "$_enable_gcc_plugin" == "yes" ]]; then
    #warning "Both Ada Library and GCC plugins together error outs!" 
    #exit 1
 #fi
@@ -96,7 +92,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.7.4+d20140612.r45.c9.g4d1f511d7f2f
-pkgrel=3
+pkgrel=4
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -105,7 +101,7 @@ license=('GPL' 'LGPL' 'FDL' 'custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 makedepends=(
   $([[ "$_build_using_cross_mingw64" == "yes" ]] && echo "opt-mingw-x86_64-i686-w64-mingw32-gcc")
-  $([[ "$_enable_build_ada" == "yes" && \
+  $([[ "$_enable_ada" == "yes" && \
        "$_build_using_cross_mingw64" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
   "${OPT_MINGW_PACKAGE_PREFIX}-crt"
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
@@ -387,7 +383,7 @@ build() {
     _languages+=",ada"
   fi
 
-  if [[ "$_enable_ada" == "yes" && "$_enable_std_libada" == "no" ]]; then
+  if [[ "$_enable_ada" == "yes" && "$_enable_libada" == "no" ]]; then
     extra_config+=('--disable-libada')
   fi
 
@@ -514,7 +510,7 @@ build() {
   rm -rf ${srcdir}${OPT_MINGW_PREFIX}
 
   make -j1 DESTDIR=${srcdir} install
-  if [ "$_enable_std_libada" == "yes" ]; then
+  if [ "$_enable_libada" == "yes" ]; then
     mv ${srcdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib/*.dll ${srcdir}${OPT_MINGW_PREFIX}/bin/
   fi
 }
@@ -736,18 +732,18 @@ package_gcc-ada-git() {
   cd ${srcdir}${OPT_MINGW_PREFIX}
 
   cp bin/gnat*.exe                                          ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  if [ "$_enable_std_libada" == "yes" ]; then
+  if [ "$_enable_libada" == "yes" ]; then
     cp bin/{libgnarl*,libgnat*}.dll                           ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
 
   mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/gnat1.exe         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
 
-  if [ "$_enable_std_libada" == "yes" ]; then
+  if [ "$_enable_libada" == "yes" ]; then
     cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adainclude     ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
-  if [ "$_enable_std_libada" == "yes" ]; then
+  if [ "$_enable_libada" == "yes" ]; then
     cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
