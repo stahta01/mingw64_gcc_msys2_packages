@@ -293,6 +293,10 @@ prepare() {
 
   #apply_patch_with_msg 0820-libiberty-mingw-host-shared.patch
 
+  # weird build error work around; should not be needed after first build
+  sed -i 's|if __cplusplus >= 201103L|if defined(_GCC_MAX_ALIGN_T) \&\& __cplusplus >= 201103L|g' libstdc++-v3/include/c_global/cstddef
+  sed -i 's|if __cplusplus >= 201103L|if defined(_GCC_MAX_ALIGN_T) \&\& __cplusplus >= 201103L|g' libstdc++-v3/include/c_std/cstddef
+
   # do not expect $prefix/mingw symlink - this should be superceded by
   # 0004-Windows-Don-t-ignore-native-system-header-dir.patch .. but isn't!
   sed -i 's|${prefix}/mingw/|${prefix}/|g' configure
