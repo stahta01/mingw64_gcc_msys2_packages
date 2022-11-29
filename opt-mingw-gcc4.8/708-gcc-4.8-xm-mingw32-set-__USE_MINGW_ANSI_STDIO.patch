@@ -1,0 +1,30 @@
+From f992b9fcead262b283e47ef4a78c577b949f8f75 Mon Sep 17 00:00:00 2001
+From: Kai Tietz <ktietz@redhat.com>
+Date: Mon, 25 Mar 2013 15:52:48 +0100
+Subject: backport SVN 197049 from 4.9 branch
+
+Patch edited by Tim S.
+
+        * config/i386/xm-mingw32.h (__USE_MINGW_ANSI_STDIO): Enable
+        POSIX-printf for mingw-hosted  builds.
+---
+ gcc/config/i386/xm-mingw32.h | 6 ++++++
+
+diff --git a/gcc/config/i386/xm-mingw32.h b/gcc/config/i386/xm-mingw32.h
+index 3e20481fb6c..3d90dec7749 100644
+--- a/gcc/config/i386/xm-mingw32.h
++++ b/gcc/config/i386/xm-mingw32.h
+@@ -29,6 +29,12 @@ along with GCC; see the file COPYING3.  If not see
+ /*  The st_ino field of struct stat is always 0.  */
+ #define HOST_LACKS_INODE_NUMBERS
+ 
++#ifdef __MINGW32__
++#undef __USE_MINGW_ANSI_STDIO
++#define __USE_MINGW_ANSI_STDIO 1
++#else
+ /* MSVCRT does not support the "ll" format specifier for printing
+    "long long" values.  Instead, we use "I64".  */
+ #define HOST_LONG_LONG_FORMAT "I64"
++#endif
++
+-- 
