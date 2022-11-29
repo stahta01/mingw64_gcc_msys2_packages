@@ -319,22 +319,19 @@ build() {
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
 
-  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
-  export CFLAGS="-pipe"                         # Clear the MSys2 default value
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
 
   if [[ "$_build_using_cross_mingw64" == "yes" ]]; then
     local _compiler_toolchain_prefix=/opt/mingw64
     export PATH=${OPT_MINGW_PREFIX}/bin:${_compiler_toolchain_prefix}/bin:$PATH
-    #export AR="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-ar"
-    #export AS="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-as"
-    #export LD="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-ld"
     export CC="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-gcc"
     export CXX="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-g++"
     export GNATMAKE="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-gnatmake"
     export GNATBIND="${_compiler_toolchain_prefix}/bin/i686-w64-mingw32-gnatbind"
     export ADA_INCLUDE_PATH="${_compiler_toolchain_prefix}/lib/gcc/x86_64-w64-mingw32/4.9.4/adainclude"
-    #export ADA_OBJECT_PATH="${_compiler_toolchain_prefix}/lib/gcc/x86_64-w64-mingw32/4.9.4/adalib"
   else
     export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
   fi
@@ -415,6 +412,7 @@ build() {
     extra_config+=('--enable-libstdcxx-time')
     extra_config+=('--disable-libstdcxx-pch') 
     extra_config+=('--enable-fully-dynamic-string')
+    extra_config+=('--disable-wchar_t') # likely needed when using GCC 4.7 or below to build
     if check_option "debug" "n"; then
       extra_config+=("--disable-libstdcxx-debug")
     else
