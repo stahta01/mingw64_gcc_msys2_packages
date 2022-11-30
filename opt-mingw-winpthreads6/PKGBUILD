@@ -36,16 +36,21 @@ source=("${_sourcedir}"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#comm
 sha256sums=('SKIP'
             'd9e8af81682d9bf70e3d87506f51156cec61260b810a234bce861cb2eb3a5919')
 
+# Declare global variables; begin with underscore to avoid name conflicts
+_git_base_commit=
+
 pkgver() {
   cd "${srcdir}/${_sourcedir}"
   local _major=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep '__MINGW64_VERSION_MAJOR' | sed -e 's/.* //' | tr '\n' '.' | sed 's/.$/\n/')
   local _minor=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep '__MINGW64_VERSION_MINOR' | sed -e 's/.* //' | tr '\n' '.' | sed 's/.$/\n/')
   local _rev=0
-  printf "%s.%s.%s.%s.%s" ${_major} ${_minor} ${_rev} "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  printf "%s.%s.%s.%s.%s" ${_major} ${_minor} ${_rev} "$(git rev-list --count ${_git_base_commit})" "$(git rev-parse --short=12 ${_git_base_commit})"
 }
 
 prepare() {
   cd "${srcdir}/${_sourcedir}"
+  _git_base_commit=$(git rev-parse HEAD)
+
   [[ -f mingw-w64-libraries/winpthreads/src/libgcc/dll_frame_info.c ]] && rm -rf mingw-w64-libraries/winpthreads/src/libgcc/dll_frame_info.c
   git am --committer-date-is-author-date "${srcdir}"/0001-Define-__-de-register_frame_info-in-fake-libgcc_s.patch
   cd "${srcdir}"/${_sourcedir}/mingw-w64-libraries/winpthreads
