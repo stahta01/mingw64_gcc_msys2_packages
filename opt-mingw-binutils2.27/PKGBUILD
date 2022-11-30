@@ -38,7 +38,7 @@ if [[ "$_build_using_std_mingw_packages" == "yes" ]]; then
   depends+=("${MINGW_PACKAGE_PREFIX}-gettext")
 fi
 #checkdepends=('dejagnu' 'bc')
-makedepends=(
+makedepends=( 'bison' 'flex' 'texinfo'
   $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-gcc")
   $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
   "${OPT_MINGW_PACKAGE_PREFIX}-autotools"
