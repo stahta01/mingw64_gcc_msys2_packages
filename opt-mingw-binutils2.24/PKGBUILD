@@ -21,8 +21,8 @@ _sourcedir=${_realname}-git
 _base_ver=2.24
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
-pkgver=2.24+r78636.c2.gcd3813a8c9e5
-pkgrel=2
+pkgver=2.24+r78634.c2.gcd3813a8c9e5
+pkgrel=1
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}=${pkgver}")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 pkgdesc="A set of programs to assemble and manipulate binary and object files"
