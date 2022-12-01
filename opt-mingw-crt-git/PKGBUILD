@@ -1,4 +1,5 @@
-# Maintainer: Alexey Pavlov <alexpux@gmail.com>
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov
 
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 _include_sub_folder= # /${MINGW_CHOST}
