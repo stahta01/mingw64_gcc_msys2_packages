@@ -34,16 +34,20 @@ options=('strip' '!buildflags' 'staticlibs' '!emptydirs' '!debug')
 source=("${_sourcedir}"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#commit=$_commit")
 sha256sums=('SKIP')
 
+# Declare global variables; begin with underscore to avoid name conflicts
+_git_base_commit=
+
 pkgver() {
   cd "${srcdir}/${_sourcedir}"
   local _major=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep '__MINGW64_VERSION_MAJOR' | sed -e 's/.* //' | tr '\n' '.' | sed 's/.$/\n/')
   local _minor=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep '__MINGW64_VERSION_MINOR' | sed -e 's/.* //' | tr '\n' '.' | sed 's/.$/\n/')
   local _rev=0
-  printf "%s.%s.%s.%s.%s" ${_major} ${_minor} ${_rev} "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  printf "%s.%s.%s.%s.%s" ${_major} ${_minor} ${_rev} "$(git rev-list --count ${_git_base_commit})" "$(git rev-parse --short=12 ${_git_base_commit})"
 }
 
 prepare() {
   cd "${srcdir}/${_sourcedir}"
+  _git_base_commit=$(git rev-parse HEAD)
 
   cd "${srcdir}"/${_sourcedir}/mingw-w64-libraries/winpthreads
   autoreconf -vfi
