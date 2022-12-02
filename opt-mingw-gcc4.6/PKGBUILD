@@ -144,13 +144,11 @@ _extract_to_gcc_folder() {
 }
 # =========================================== #
 _git_base_commit=
-_gcc_version=
-_gcc_date=
 
 pkgver() {
   cd ${srcdir}/${_sourcedir}
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
   printf "%s+d%s.r%s.c%s.g%s" "$_gcc_version" "$_gcc_date" \
     $(git rev-list --count $(git log -1 --format=%H -- gcc/DATESTAMP)..${_git_base_commit}) \
     $(git rev-list --count ${_git_base_commit}..HEAD) \
@@ -158,11 +156,6 @@ pkgver() {
 }
 
 prepare() {
-  cd ${srcdir}/${_sourcedir}
-
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  _gcc_major_version=${_gcc_version%%.*}
-
   cd ${srcdir}
 
   _extract_to_gcc_folder            mpfr-${MPFR_VERSION}.tar.bz2
@@ -220,16 +213,13 @@ build() {
   fi
 
   cd ${srcdir}/${_sourcedir}
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  echo "_gcc_version := $_gcc_version"
-  _gcc_major_version=${_gcc_version%%.*}
-  echo "_gcc_major_version := $_gcc_major_version"
 
-  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  local _BUILD_GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+  echo "_BUILD_GCC_VERSION := $_BUILD_GCC_VERSION"
+  export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_BUILD_GCC_VERSION}:$PATH
   echo "PATH := $PATH"
   ${CC} --version
-  pacman -Qs "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" | grep ${OPT_MINGW_PACKAGE_PREFIX} \
-    | sed "s|(${OPT_MINGW_PACKAGE_PREFIX}-toolchain)||" || true
+  pacman -Qg "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" | sed "s|(${OPT_MINGW_PACKAGE_PREFIX}-toolchain)||" || true
 
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
@@ -354,10 +344,10 @@ build() {
   echo "extra_config contains ${extra_config[@]}"
   echo ""
 
-  if [[ "$_enable_ada" == "yes" ]]; then
-    # configure fails to give clear reason for failure
-    ${CC} -c ${srcdir}/conftest.adb
-  fi
+  #if [[ "$_enable_ada" == "yes" ]]; then
+    ## configure fails to give clear reason for failure
+    #${CC} -c ${srcdir}/conftest.adb
+  #fi
 
   ../${_sourcedir}/configure \
     --prefix=${OPT_MINGW_PREFIX} \
@@ -465,9 +455,6 @@ package_gcc-git() {
   #cp bin/gcc-nm.exe                                     ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   #cp bin/gcc-ranlib.exe                                 ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   cp bin/gcov.exe                                       ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  if [[ $_gcc_major_version -gt 4 ]]; then
-    cp bin/gcov-tool.exe                                ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  fi
   if [[ "$_enable_cxx" == "yes" ]]; then
     cp bin/c++.exe                                      ${pkgdir}${OPT_MINGW_PREFIX}/bin/
     cp bin/g++.exe                                      ${pkgdir}${OPT_MINGW_PREFIX}/bin/
