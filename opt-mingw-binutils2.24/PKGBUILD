@@ -143,13 +143,13 @@ build() {
   make
 }
 
-check() {
-  cd ${srcdir}/build-${MSYSTEM}
+#check() {
+  #cd ${srcdir}/build-${MSYSTEM}
 
-  # unset LDFLAGS as testsuite makes assumptions about which ones are active
-  # do not abort on errors - manually check log files
-  make LDFLAGS="" -k check || true
-}
+  ## unset LDFLAGS as testsuite makes assumptions about which ones are active
+  ## do not abort on errors - manually check log files
+  #make LDFLAGS="" -k check || true
+#}
 
 package() {
   cd ${srcdir}/build-${MSYSTEM}
