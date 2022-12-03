@@ -12,7 +12,7 @@ _realname=gmp
 pkgbase=opt-mingw-${_realname}5
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 pkgver=5.1.3
-pkgrel=2
+pkgrel=3
 pkgdesc="A free library for arbitrary precision arithmetic (mingw-w64)"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
@@ -68,15 +68,15 @@ build() {
     --disable-shared
   make
 
-  # Build shared version
-  mkdir -p "${srcdir}/shared-${MINGW_CHOST}" && cd "${srcdir}/shared-${MINGW_CHOST}"
-  ../${_realname}-${pkgver}/configure --build=${MINGW_CHOST} \
-    --prefix=${OPT_MINGW_PREFIX} \
-    --disable-cxx \
-    "${extra_config[@]}" \
-    --disable-static \
-    --enable-shared
-  make
+  ## Build shared version
+  #mkdir -p "${srcdir}/shared-${MINGW_CHOST}" && cd "${srcdir}/shared-${MINGW_CHOST}"
+  #../${_realname}-${pkgver}/configure --build=${MINGW_CHOST} \
+    #--prefix=${OPT_MINGW_PREFIX} \
+    #--disable-cxx \
+    #"${extra_config[@]}" \
+    #--disable-static \
+    #--enable-shared
+  #make
 }
 
 check() {
@@ -90,8 +90,8 @@ package() {
 
   rm -f ${pkgdir}${OPT_MINGW_PREFIX}/share/info/dir
 
-  cd ${srcdir}/shared-${MINGW_CHOST}
-  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/{bin,lib}
-  cp .libs/libgmp*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  #cp .libs/libgmp*.dll.a ${pkgdir}${OPT_MINGW_PREFIX}/lib/
+  #cd ${srcdir}/shared-${MINGW_CHOST}
+  #mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/{bin,lib}
+  #cp .libs/libgmp*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  ##cp .libs/libgmp*.dll.a ${pkgdir}${OPT_MINGW_PREFIX}/lib/
 }
