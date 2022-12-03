@@ -57,15 +57,15 @@ build() {
     --disable-shared
   make
 
-  # Build shared version
-  mkdir -p "${srcdir}/shared-${MINGW_CHOST}" && cd "${srcdir}/shared-${MINGW_CHOST}"
-  ../${_realname}-${pkgver}/configure --build=${MINGW_CHOST} \
-    --prefix=${OPT_MINGW_PREFIX} \
-    --enable-cxx \
-    "${extra_config[@]}" \
-    --disable-static \
-    --enable-shared
-  make
+  ## Build shared version
+  #mkdir -p "${srcdir}/shared-${MINGW_CHOST}" && cd "${srcdir}/shared-${MINGW_CHOST}"
+  #../${_realname}-${pkgver}/configure --build=${MINGW_CHOST} \
+    #--prefix=${OPT_MINGW_PREFIX} \
+    #--enable-cxx \
+    #"${extra_config[@]}" \
+    #--disable-static \
+    #--enable-shared
+  #make
 }
 
 check() {
@@ -79,8 +79,8 @@ package() {
 
   rm -f ${pkgdir}${OPT_MINGW_PREFIX}/share/info/dir
 
-  cd ${srcdir}/shared-${MINGW_CHOST}
-  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/{bin,lib}
-  cp .libs/libgmp*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  cp .libs/libgmp*.dll.a ${pkgdir}${OPT_MINGW_PREFIX}/lib/
+  #cd ${srcdir}/shared-${MINGW_CHOST}
+  #mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/{bin,lib}
+  #cp .libs/libgmp*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  #cp .libs/libgmp*.dll.a ${pkgdir}${OPT_MINGW_PREFIX}/lib/
 }
