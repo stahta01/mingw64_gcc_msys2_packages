@@ -7,15 +7,6 @@
 # Contributor: Kirill Müller
 # Contributor: Liu Hao
 
-_build_using_cross_mingw64=no
-
-if [[ "$_build_using_cross_mingw64" == "yes" && \
-       "${MSYSTEM}" == "MINGW64" ]]; then
-  _build_using_cross_mingw64=no
-fi
-
-_use_system_gmp_mpfr_mpc=no
-
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
@@ -24,6 +15,15 @@ else
   OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
 fi
 _include_sub_folder=/${MINGW_CHOST}
+
+_build_using_cross_mingw64=no
+
+if [[ "$_build_using_cross_mingw64" == "yes" && \
+       "${MSYSTEM}" == "MINGW64" ]]; then
+  _build_using_cross_mingw64=no
+fi
+
+_use_system_gmp_mpfr_mpc=no
 
 _enable_fortran=no
 _enable_ada=yes           # Use yes for production
@@ -112,28 +112,27 @@ makedepends=(
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-gmp")
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-mpc")
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-mpfr")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
   $([[ "$_enable_threads" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
 )
 #checkdepends=('dejagnu')
 optdepends=()
 
-CLOOG_VERSION=0.18.1
 ISL_VERSION=0.16.1
-MPFR_VERSION=2.4.2
-GMP_VERSION=4.3.2
-MPC_VERSION=0.8.1
+MPFR_VERSION=3.1.6
+GMP_VERSION=5.1.3
+MPC_VERSION=1.1.0
 noextract=("isl-${ISL_VERSION}.tar.bz2" "mpfr-${MPFR_VERSION}.tar.bz2"
-           "cloog-${CLOOG_VERSION}.tar.gz"
-           "gmp-${GMP_VERSION}.tar.bz2" "mpc-${MPC_VERSION}.tar.gz")
+           "gmp-${GMP_VERSION}.tar.xz" "mpc-${MPC_VERSION}.tar.gz")
 source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
-        ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-${CLOOG_VERSION}.tar.gz
         ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${MPFR_VERSION}.tar.bz2
-        ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${GMP_VERSION}.tar.bz2
-        ftp://gcc.gnu.org/pub/gcc/infrastructure/mpc-${MPC_VERSION}.tar.gz
+        #ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${GMP_VERSION}.tar.bz2
+        https://gmplib.org/download/gmp-${GMP_VERSION}/gmp-${GMP_VERSION}.tar.xz
+        #ftp://gcc.gnu.org/pub/gcc/infrastructure/mpc-${MPC_VERSION}.tar.gz
+        https://ftp.gnu.org/gnu/mpc/mpc-${MPC_VERSION}.tar.gz
         isl-0.12.1-msys2.patch
         isl-0.14.1-no-undefined.patch
         'conftest.adb'
@@ -157,10 +156,9 @@ source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
         ${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=releases/gcc-${_base_ver}")
 #
 sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
-            '02500a4edd14875f94fe84cbeda4290425cb0c1c2474c6f75d75a303d64b4196'
-            'c7e75a08a8d49d2082e4caee1591a05d11b9d5627514e678f02d66a124bcf2ba'
-            '936162c0312886c21581002b79932829aa048cfaf9937c6265aeaa14f1cd1775'
-            'e664603757251fd8a352848276497a4c79b7f8b21fd8aedd5cc0598a38fee3e4'
+            'cf4f4b2d80abb79e820e78c8077b6725bbbb4e8f41896783c899087be0e94068'
+            'dee2eda37f4ff541f30019932db0c37f6f77a30ba3609234933b1818f9b07071'
+            '6985c538143c1208dcb1ac42cedad6ff52e267b47e5f970183a3e75125b43c2e'
             '659430857ccd7429671ccdf6c8239be8eb8c53f9a4c279d4023fd6a4e2a9694f'
             '83655a7202f0a0dcce1782d4b365252bf1ad12a522b7ad82ab578ee5ec46433b'
             '7270a08586d76b73d251d530f740a29a8bcc1ae11bf28a0fa35e811c9f39f2c1'
@@ -216,13 +214,11 @@ _extract_to_gcc_folder() {
 }
 # =========================================== #
 _git_base_commit=
-_gcc_version=
-_gcc_date=
 
 pkgver() {
   cd ${srcdir}/${_sourcedir}
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
   printf "%s+d%s.r%s.c%s.g%s" "$_gcc_version" "$_gcc_date" \
     $(git rev-list --count $(git log -1 --format=%H -- gcc/DATESTAMP)..${_git_base_commit}) \
     $(git rev-list --count ${_git_base_commit}..HEAD) \
@@ -230,16 +226,11 @@ pkgver() {
 }
 
 prepare() {
-  cd ${srcdir}/${_sourcedir}
-
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  _gcc_major_version=${_gcc_version%%.*}
-
   cd ${srcdir}
 
-  if [[ $_gcc_major_version -eq 4 ]]; then
+  if [[ "$_use_system_gmp_mpfr_mpc" != "yes" ]]; then
     _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
-    _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.bz2
+    _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.xz
     _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
   else
     rm -fr ${srcdir}/${_sourcedir}/mpfr
@@ -248,11 +239,8 @@ prepare() {
   fi
 
   rm -fr ${srcdir}/${_sourcedir}/isl
-  if [[ $_gcc_major_version -gt 4 ]]; then
+  #if [[ $_gcc_major_version -gt 4 ]]; then
     _extract_to_gcc_folder          isl-${ISL_VERSION}.tar.bz2
-    if [[ "${_gcc_version:0:3}" == "4.9" ]]; then
-      _extract_to_gcc_folder        cloog-${CLOOG_VERSION}.tar.gz
-    fi
 
     cd ${srcdir}/${_sourcedir}/isl
     apply_patch_with_msg \
@@ -260,10 +248,9 @@ prepare() {
       isl-0.14.1-no-undefined.patch
 
     autoreconf -fi
-  else
-    rm -fr ${srcdir}/${_sourcedir}/cloog
-    rm -fr ${srcdir}/${_sourcedir}/isl
-  fi
+  #else
+    #rm -fr ${srcdir}/${_sourcedir}/isl
+  #fi
 
   cd ${srcdir}/${_sourcedir}
 
@@ -318,16 +305,14 @@ prepare() {
 }
 
 build() {
-  cd ${srcdir}/${_sourcedir}
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  echo "_gcc_version := $_gcc_version"
+  # Replace the MSys2 default FLAG values
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
 
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
-
-  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
-  export CFLAGS="-pipe"                         # Clear the MSys2 default value
 
   if [[ "$_build_using_cross_mingw64" == "yes" ]]; then
     local _compiler_toolchain_prefix=/opt/mingw64
@@ -447,14 +432,14 @@ build() {
   fi
 
   if [ "$_use_system_gmp_mpfr_mpc" == "yes" ]; then
-    extra_config+=("--with-mpc=${MINGW_PREFIX}")
-    extra_config+=("--with-mpfr=${MINGW_PREFIX}")
-    extra_config+=("--with-gmp=${MINGW_PREFIX}")
+    extra_config+=("--with-mpc=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-gmp=${OPT_MINGW_PREFIX}")
   fi
 
   extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
 
-  extra_config+=('--enable-graphite') # requires ISL or CLOOG
+  extra_config+=('--enable-graphite') # requires ISL
 
   # so libgomp DLL gets built despide static libdl
   export lt_cv_deplibs_check_method='pass_all'
@@ -537,7 +522,7 @@ package_gcc-libs-git() {
   pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
   depends=()
   if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
-    depends+=("${MINGW_PACKAGE_PREFIX}-gmp")
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread")
@@ -598,7 +583,7 @@ package_gcc-git() {
   fi
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
   if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
-    depends+=("${MINGW_PACKAGE_PREFIX}-gmp")
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
