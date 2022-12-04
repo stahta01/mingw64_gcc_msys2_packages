@@ -25,12 +25,14 @@ fi
 
 _use_system_gmp_mpfr_mpc=no
 
+_enable_d=yes
 _enable_fortran=no
 _enable_ada=yes           # Use yes for production
 _enable_lto=no            # Use yes for production
 
 _enable_threads=no       # Use yes for production
 _threads="posix"
+_enable_libphobos=yes     # will likely fail to build
 _enable_libstdcxx=yes     # Use yes for production
 _enable_libquadmath=no
 _enable_std_libada=yes    # Use yes for production
@@ -43,6 +45,10 @@ _enable_bootstrap=no     # Use yes for production
 _enable_backstrap_ada=no  # Use no for production
 
 # =========================================== #
+
+if [[ "$_enable_d" != "yes" && "$_enable_libphobos" == "yes" ]]; then
+  _enable_libphobos=no
+fi
 
 if [[ "$_enable_threads" == "yes" && "$_threads" == "posix" ]]; then
   _enable_libgomp=yes
@@ -173,7 +179,7 @@ sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
             '513a824ee500d063f09ec920a9ad317a3a117e5468bf201aaf3f70dd0000e769'
             'ec58aafba0174313451c282339bbd67ed0b11bca034c29023e0138b61441cf71'
             'bb99f727c713232b47b89ffd096e296b9ef359dea1e259e7a36fff78f8512a98'
-            '60a58ed41389691a68ef4b7d47a0328df4d28d26e6c680a6b06b31191481ca65'
+            '21e31addcf13bc6fa6650b02ed0f2e195a1226260ae48c536840cc9230de2cfc'
             '262c6fb0f6c9951d69e4c2dcc27949aa8f2cca8e672faf66740a7dbba4a4cd2c'
             '09f27e0dae8d962f2a46a33a9891f2d14303629bb40f91ed8c5824c90da653a9'
             '4b488f88b7c59b315c026e7bbb2bd05b0bed201ca73b2aa2ab81bca954af849f'
@@ -391,6 +397,9 @@ build() {
   if [ "$_enable_fortran" == "yes" ]; then
     _languages+=",fortran"
   fi
+  if [ "$_enable_d" == "yes" ]; then
+    _languages+=",d"
+  fi
   if [ "$_enable_ada" == "yes" ]; then
     _languages+=",ada"
   fi
@@ -405,6 +414,10 @@ build() {
 
   if [[ "$_enable_libstdcxx" != "yes" ]]; then
     extra_config+=('--disable-libstdcxx')
+  fi
+
+  if [[ "$_enable_libphobos" == "yes" ]]; then
+    extra_config+=('--enable-libphobos')
   fi
 
   if [[ "$_enable_threads" != "yes" ]]; then
