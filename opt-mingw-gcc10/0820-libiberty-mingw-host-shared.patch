@@ -1,0 +1,24 @@
+# HG changeset patch
+# Parent  f264df6081a4d694dbdac14fbe6568b2d77eca56
+
+diff --git a/gcc/Makefile.in b/gcc/Makefile.in
+--- a/gcc/Makefile.in
++++ b/gcc/Makefile.in
+@@ -1041,12 +1041,15 @@ ALL_COMPILERFLAGS = $(ALL_CXXFLAGS)
+ # This is the variable to use when using $(LINKER).
+ ALL_LINKERFLAGS = $(ALL_CXXFLAGS)
+ 
+ # Build and host support libraries.
+ 
+-# Use the "pic" build of libiberty if --enable-host-shared.
+-ifeq ($(enable_host_shared),yes)
++# Use the "pic" build of libiberty if --enable-host-shared,
++# except when building for a mingw target, in which case the
++# regular libiberty.a is position independent anyway, and
++# the pic variant is neither required, nor supported.
++ifeq ($(if $(findstring mingw,$(target)),never,$(enable_host_shared)),yes)
+ LIBIBERTY = ../libiberty/pic/libiberty.a
+ BUILD_LIBIBERTY = $(build_libobjdir)/libiberty/pic/libiberty.a
+ else
+ LIBIBERTY = ../libiberty/libiberty.a
+ BUILD_LIBIBERTY = $(build_libobjdir)/libiberty/libiberty.a
