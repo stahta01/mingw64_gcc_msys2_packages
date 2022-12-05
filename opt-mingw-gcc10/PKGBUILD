@@ -28,15 +28,15 @@ _use_system_gmp_mpfr_mpc=no
 _enable_d=yes
 _enable_fortran=no
 _enable_ada=yes           # Use yes for production
-_enable_lto=no            # Use yes for production
+_enable_lto=no           # Use yes for production
 
 _enable_threads=no       # Use yes for production
 _threads="posix"
-_enable_libphobos=yes     # will likely fail to build
+_enable_libphobos=no      # yes fails to build
 _enable_libstdcxx=yes     # Use yes for production
 _enable_libquadmath=no
 _enable_std_libada=yes    # Use yes for production
-_enable_libatomic=no
+_enable_libatomic=no     # Use yes for production
 
 _enable_gcc_plugin=no
 _enable_bootstrap=no     # Use yes for production
@@ -418,6 +418,8 @@ build() {
 
   if [[ "$_enable_libphobos" == "yes" ]]; then
     extra_config+=('--enable-libphobos')
+  elif [[ "$_enable_d" == "yes" ]]; then
+    extra_config+=('--with-libphobos-druntime-only')
   fi
 
   if [[ "$_enable_threads" != "yes" ]]; then
