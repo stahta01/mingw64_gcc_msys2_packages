@@ -1,0 +1,132 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Carlos Antunes
+# Contributor: Alexey Pavlov
+# Contributor: nanodude
+
+# regular cross compiler triplet
+_target=x86_64-w64-mingw32
+#_build=${MINGW_CHOST}    # i686-w64-mingw32
+#_host=${_build}
+#
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  _build_package=opt-ucrt-${MSYSTEM_CARCH}
+else
+  _build_package=opt-mingw-${MSYSTEM_CARCH}
+fi
+_build_prefix=/opt${MINGW_PREFIX}
+
+_base_pkgver=2
+
+_realname=headers
+_sourcedir=mingw-w64-git
+pkgbase=mingw-cross-${_target}-${_realname}
+pkgname=("${_build_package}-${_target}-headers-git")
+pkgver=2.0.0.2777.24b1f9cdcf1d
+pkgrel=1
+if [[ "${_base_pkgver}" == "2" ]]; then
+  _commit='24b1f9cdcf1d425700312373b14e2a6e58c6d0aa' # 2.0.0.2777
+elif [[ "${_base_pkgver}" == "3" ]]; then
+  _commit='8c7e00886f69c448270376601fe1c016392e26f9' # 3.4.0.3935
+fi
+#_commit='e174bf62d33d26b9fee56ef45e8d8566d01a5af7' # 6.0.0.5241
+#_commit='715ecca90d57f240ea68561e95bfe3ce7e912202' # 5.0.0.4746
+#_commit='ae0e22cd19de833fe33450b500a051405e17661c' # 4.0.0.4514
+#_commit='42c03586746df2117eaeae5ce8151d9bd258b70c' # 1
+pkgdesc="GNU Tools for i686 - MinGW64 CRT and headers (mingw-w64)"
+arch=('any')
+url='https://mingw-w64.sourceforge.io/'
+license=('custom')
+groups=("${_build_package}-${_target}-toolchain")
+depends=()
+makedepends=("${_build_package}-gcc")
+options=('staticlibs' '!strip' '!emptydirs')
+source=("${_sourcedir}"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#commit=$_commit"
+        002-crt2-Backport-SVN-5819.patch)
+sha256sums=('SKIP'
+            'e9bd159c06f80f5a1c338d0348ba18bb21b8759abf159933a54a29c84299f752')
+# =========================================== #
+# Helper macros to help make tasks easier     #
+apply_patch_with_msg() {
+  for _patch in "$@"
+  do
+    if patch --dry-run -Rbp1 -i "${srcdir}/${_patch}" > /dev/null 2>&1 ; then
+      msg2 "Skipping ${_patch} because it likely was already applied"
+    else
+      msg2 "Applying ${_patch}"
+      patch -Nbp1 -i "${srcdir}/${_patch}"
+    fi
+  done
+}
+del_file_exists() {
+  for _fname in "$@"
+  do
+    if [ -f ${_fname} ]; then
+      rm -rf ${_fname}
+    fi
+  done
+}
+# =========================================== #
+# Declare global variables; begin with underscore to avoid name conflicts
+_git_base_commit=
+
+pkgver() {
+  cd "${srcdir}/${_sourcedir}"
+  local _major=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep 'define __MINGW64_VERSION_MAJOR' | sed -e 's/.*[\t ]//' | tr '\n' '.' | sed 's/.$/\n/')
+  local _minor=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep 'define __MINGW64_VERSION_MINOR' | sed -e 's/.*[\t ]//' | tr '\n' '.' | sed 's/.$/\n/')
+  local _rev=0
+  printf "%s.%s.%s.%s.%s" ${_major} ${_minor} ${_rev} "$(git rev-list --count ${_git_base_commit})" "$(git rev-parse --short=12 ${_git_base_commit})"
+}
+
+prepare() {
+  cd "${srcdir}/${_sourcedir}"
+
+  _git_base_commit=$(git rev-parse HEAD)
+
+  apply_patch_with_msg \
+    002-crt2-Backport-SVN-5819.patch
+}
+
+build() {
+  export CXXFLAGS="-pipe -std=gnu++98"
+  export CFLAGS="-pipe -std=gnu89"
+  export LDFLAGS="-pipe"
+  export PATH="/mingw32/bin:${PATH}"
+
+  msg "Configuring ${MSYSTEM} ${_target} headers"
+  [[ -d ${srcdir}/headers-${MSYSTEM} ]] && rm -rf ${srcdir}/headers-${MSYSTEM}
+  mkdir -p ${srcdir}/headers-${MSYSTEM} && cd ${srcdir}/headers-${MSYSTEM}
+
+  ${srcdir}/${_sourcedir}/mingw-w64-headers/configure \
+    --build=${_target} \
+    --host=${_target} \
+    --prefix=${_build_prefix} \
+    --enable-sdk=all \
+    --enable-secure-api \
+    --enable-idl --without-widl
+}
+
+package_headers-git() {
+  pkgdesc="MinGW-w64 headers for Windows"
+  provides=("${_build_package}-${_target}-headers"
+            "${_build_package}-${_target}-headers=${_base_pkgver}")
+  conflicts=("${_build_package}-${_target}-headers")
+
+  cd ${srcdir}/headers-${MSYSTEM}
+  make DESTDIR=${pkgdir} install
+
+  msg "Installing MinGW-w64 licenses"
+  install -Dm644 ${srcdir}/${_sourcedir}/mingw-w64-headers/ddk/readme.txt ${pkgdir}${_build_prefix}/share/licenses/${_target}-${_realname}/ddk-readme.txt
+  install -Dm644 ${srcdir}/${_sourcedir}/mingw-w64-headers/direct-x/COPYING.LIB ${pkgdir}${_build_prefix}/share/licenses/${_target}-${_realname}/direct-x-COPYING.LIB
+  install -Dm644 ${srcdir}/${_sourcedir}/mingw-w64-headers/direct-x/readme.txt ${pkgdir}${_build_prefix}/share/licenses/${_target}-${_realname}/direct-x-readme.txt
+}
+
+# template start; name=mingw-w64-splitpkg-wrappers; version=1.0;
+# vim: set ft=bash :
+
+# generate wrappers
+for _name in "${pkgname[@]}"; do
+  _short="package_${_name#${_build_package}-${_target}-}"
+  _func="$(declare -f "${_short}")"
+  eval "${_func/#${_short}/package_${_name}}"
+done
+# template end;
