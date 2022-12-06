@@ -181,7 +181,7 @@ build() {
     --disable-multilib \
     --disable-libada \
     --disable-symvers \
-    --disable-sjlj-exceptions \
+    --enable-sjlj-exceptions \
     --disable-win32-registry \
     --enable-shared --enable-static \
     --enable-interwork \
