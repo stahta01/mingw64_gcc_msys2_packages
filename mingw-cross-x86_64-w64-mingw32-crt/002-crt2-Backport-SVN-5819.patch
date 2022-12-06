@@ -1,0 +1,118 @@
+From c0f93c9f04809f3f8a9c1460ddf2f952baed4288 Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Sat, 18 Dec 2021 06:27:18 -0500
+Subject: Backport SVN 5819
+
+Add asprintf symbol for configure checks
+---
+ mingw-w64-crt/stdio/asprintf.c  | 26 ++++++++++++++++++++++++++
+ mingw-w64-crt/stdio/vasprintf.c | 20 ++++++++++++++++++++
+ mingw-w64-headers/crt/stdio.h   |  6 ++++++
+ 3 files changed, 52 insertions(+)
+
+diff --git a/mingw-w64-crt/stdio/asprintf.c b/mingw-w64-crt/stdio/asprintf.c
+index b11023f9e..0e79f1252 100644
+--- a/mingw-w64-crt/stdio/asprintf.c
++++ b/mingw-w64-crt/stdio/asprintf.c
+@@ -1,9 +1,35 @@
++#define _GNU_SOURCE
+ #define __CRT__NO_INLINE
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <stdarg.h>
+ 
++int asprintf(char ** __restrict__ ret,
++                     const char * __restrict__ format,
++                     ...) {
++  va_list ap;
++  int len;
++  va_start(ap,format);
++  /* Get Length */
++  len = _vsnprintf(NULL,0,format,ap);
++  if (len < 0) goto _end;
++  /* +1 for \0 terminator. */
++  *ret = malloc(len + 1);
++  /* Check malloc fail*/
++  if (!*ret) {
++    len = -1;
++    goto _end;
++  }
++  /* Write String */
++  _vsnprintf(*ret,len+1,format,ap);
++  /* Terminate explicitly */
++  (*ret)[len] = '\0';
++  _end:
++  va_end(ap);
++  return len;
++}
++
+ int __mingw_asprintf(char ** __restrict__ ret,
+ 		     const char * __restrict__ format,
+ 		     ...) {
+diff --git a/mingw-w64-crt/stdio/vasprintf.c b/mingw-w64-crt/stdio/vasprintf.c
+index fcff2f082..94aecd90d 100644
+--- a/mingw-w64-crt/stdio/vasprintf.c
++++ b/mingw-w64-crt/stdio/vasprintf.c
+@@ -1,9 +1,29 @@
++#define _GNU_SOURCE
+ #define __CRT__NO_INLINE
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <stdarg.h>
+ 
++int vasprintf(char ** __restrict__ ret,
++                      const char * __restrict__ format,
++                      va_list ap) {
++  int len;
++  /* Get Length */
++  len = _vsnprintf(NULL,0,format,ap);
++  if (len < 0) return -1;
++  /* +1 for \0 terminator. */
++  *ret = malloc(len + 1);
++  /* Check malloc fail*/
++  if (!*ret) return -1;
++  /* Write String */
++  _vsnprintf(*ret,len+1,format,ap);
++  /* Terminate explicitly */
++  (*ret)[len] = '\0';
++  return len;
++}
++
++
+ int __mingw_vasprintf(char ** __restrict__ ret,
+ 		      const char * __restrict__ format,
+ 		      va_list ap) {
+diff --git a/mingw-w64-headers/crt/stdio.h b/mingw-w64-headers/crt/stdio.h
+index a75de7dcc..677552b54 100644
+--- a/mingw-w64-headers/crt/stdio.h
++++ b/mingw-w64-headers/crt/stdio.h
+@@ -304,6 +304,7 @@ int vsprintf (char *__stream, const char *__format, __builtin_va_list __local_ar
+   return __mingw_vsprintf( __stream, __format, __local_argv );
+ }
+ 
++#ifdef _GNU_SOURCE
+ static __attribute__ ((__unused__))
+ __attribute__ ((__format__ (gnu_printf, 2, 3))) __attribute__((nonnull (1,2)))
+ int asprintf(char **__ret, const char *__format, ...)
+@@ -314,6 +315,7 @@ int asprintf(char **__ret, const char *__format, ...)
+   __builtin_va_end( __local_argv );
+   return __retval;
+ }
++#endif /* _GNU_SOURCE */
+ 
+ __forceinline
+ __attribute__ ((__format__ (gnu_printf, 2, 0))) __attribute__((nonnull (1,2)))
+@@ -356,6 +358,10 @@ int vsnprintf (char *__stream, size_t __n, const char *__format, __builtin_va_li
+   int __cdecl fscanf(FILE * __restrict__ _File,const char * __restrict__ _Format,...) __MINGW_ATTRIB_DEPRECATED_SEC_WARN;
+   int __cdecl scanf(const char * __restrict__ _Format,...) __MINGW_ATTRIB_DEPRECATED_SEC_WARN;
+   int __cdecl sscanf(const char * __restrict__ _Src,const char * __restrict__ _Format,...) __MINGW_ATTRIB_DEPRECATED_SEC_WARN;
++#ifdef _GNU_SOURCE
++  int __cdecl vasprintf(char ** __restrict__ ret,const char * __restrict__ format,va_list ap)  __attribute__ ((format (__MINGW_PRINTF_FORMAT, 2, 0)));;
++  int __cdecl asprintf(char ** __restrict__ ret,const char * __restrict__ format,...) __attribute__ ((format (__MINGW_PRINTF_FORMAT, 2, 3)));
++#endif /*_GNU_SOURCE*/
+ #ifndef __NO_ISOCEXT  /* externs in libmingwex.a */
+   int __cdecl vscanf(const char * __restrict__ Format, va_list argp);
+   int __cdecl vfscanf (FILE * __restrict__ fp, const char * __restrict__ Format,va_list argp);
+-- 
