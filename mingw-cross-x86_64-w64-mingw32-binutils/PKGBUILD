@@ -25,7 +25,7 @@ mingw_arch=('mingw32')
 url="https://www.gnu.org/software/binutils/"
 license=('GPL')
 groups=("${_build_package}-${_target}-toolchain")
-makedepends=("${_build_package}-gcc")
+makedepends=('bison' 'flex' 'texinfo' "${_build_package}-gcc")
 options=('staticlibs')
 source=("https://mirrors.kernel.org/sources.redhat.com/${_realname}/releases/${_realname}-${pkgver}.tar.bz2"
         010-2.23.52-install-libiberty.patch
