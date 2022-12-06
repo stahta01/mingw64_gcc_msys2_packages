@@ -6,6 +6,8 @@
 _target=x86_64-w64-mingw32
 _build=${MINGW_CHOST}    # i686-w64-mingw32
 _host=${_build}
+_include_sub_folder=/${_target}
+# =========================================== #
 #
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
   _build_package=opt-ucrt-${MSYSTEM_CARCH}
@@ -131,6 +133,14 @@ prepare() {
     apply_patch_with_msg \
       181-gcc-5.0-make-headers-cplusplus-compatible.patch
   fi
+
+  # change hard coded /mingw prefix to the absolute forward slash prefix
+  local MINGW_NATIVE_PREFIX=$(cygpath -am ${OPT_MINGW_PREFIX}/${_include_sub_folder})
+  sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/mingw32.h
+  # Replace "/mingw/" with the unix like path used
+  sed -i "s|/mingw/|${OPT_MINGW_PREFIX}${_include_sub_folder}/|g" gcc/config/i386/t-mingw-w32
+  sed -i "s|/mingw/|${OPT_MINGW_PREFIX}${_include_sub_folder}/|g" gcc/config/i386/t-mingw-w64
+  sed -i "s|/mingw/|${OPT_MINGW_PREFIX}${_include_sub_folder}/|g" gcc/config/i386/t-mingw32
 }
 
 build() {
@@ -187,7 +197,7 @@ build() {
     --enable-interwork \
     --with-dwarf2 \
     --with-libiconv-prefix=${_build_prefix} \
-    --with-native-system-header-dir=/include \
+    --with-native-system-header-dir=${OPT_MINGW_PREFIX}${_include_sub_folder}/include \
     --with-headers \
     --with-gnu-as \
     --with-gnu-ld \
