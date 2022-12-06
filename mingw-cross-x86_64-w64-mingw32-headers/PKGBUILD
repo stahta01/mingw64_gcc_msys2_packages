@@ -32,7 +32,7 @@ fi
 #_commit='715ecca90d57f240ea68561e95bfe3ce7e912202' # 5.0.0.4746
 #_commit='ae0e22cd19de833fe33450b500a051405e17661c' # 4.0.0.4514
 #_commit='42c03586746df2117eaeae5ce8151d9bd258b70c' # 1
-pkgdesc="GNU Tools for i686 - MinGW64 CRT and headers (mingw-w64)"
+pkgdesc="GNU Tools for x86_64 - MinGW64 CRT and headers (mingw-w64)"
 arch=('any')
 url='https://mingw-w64.sourceforge.io/'
 license=('custom')
