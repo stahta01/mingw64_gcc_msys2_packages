@@ -1,0 +1,234 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Carlos Antunes
+# Contributor: nanodude
+
+# regular cross compiler triplet
+_target=x86_64-w64-mingw32
+_build=${MINGW_CHOST}    # i686-w64-mingw32
+_host=${_build}
+#
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  _build_package=opt-ucrt-${MSYSTEM_CARCH}
+else
+  _build_package=opt-mingw-${MSYSTEM_CARCH}
+fi
+_build_prefix=/opt${MINGW_PREFIX}
+#
+
+_enable_startup_mode=yes
+if [[ "$_enable_startup_mode" == "yes" ]]; then
+  _enable_ada=no
+else
+  _enable_ada=yes
+fi
+
+_realname=gcc
+pkgbase=mingw-cross-${_target}-${_realname}
+pkgname=("${_build_package}-${_target}-${_realname}")
+pkgver=4.6.4
+pkgrel=1
+pkgdesc="GNU Tools for i686 Processors - GCC (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw64' 'ucrt64') # ucrt64 not tested
+url="https://gcc.gnu.org"
+license=('GPL' 'LGPL' 'FDL' 'custom')
+groups=("${_build_package}-${_target}-toolchain")
+depends=("${_build_package}-${_target}-headers"
+         "${_build_package}-${_target}-binutils"
+         "${_build_package}-libiconv")
+if [[ "$_enable_startup_mode" != "yes" ]]; then
+  depends+=("${_build_package}-${_target}-crt")
+fi
+makedepends=('bison' 'flex' 'texinfo'
+             "${_build_package}-gcc"
+             $([[ "$_enable_ada" == "yes" ]] && echo "${_build_package}-gcc-ada") )
+options=('staticlibs' '!debug' '!strip')
+MPFR_VERSION=2.4.2
+GMP_VERSION=4.3.2
+MPC_VERSION=0.8.1
+noextract=("mpfr-${MPFR_VERSION}.tar.bz2"
+           "gmp-${GMP_VERSION}.tar.bz2"
+           "mpc-${MPC_VERSION}.tar.gz")
+source=(https://ftp.gnu.org/gnu/gcc/gcc-${pkgver}/gcc-${pkgver}.tar.gz
+        ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${MPFR_VERSION}.tar.bz2
+        ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${GMP_VERSION}.tar.bz2
+        ftp://gcc.gnu.org/pub/gcc/infrastructure/mpc-${MPC_VERSION}.tar.gz
+        020-gcc-auto-host-screwup.patch
+        111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
+        131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
+        132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
+        161-gcc-4.0-cfns-fix-mismatch-in-gnu_inline-attributes.patch
+        181-gcc-5.0-make-headers-cplusplus-compatible.patch
+        704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch)
+sha256sums=('53de33db01815914b3905a7d2cefac1ecf24ad081b82d93e4f526d8e62ff736f'
+            'c7e75a08a8d49d2082e4caee1591a05d11b9d5627514e678f02d66a124bcf2ba'
+            '936162c0312886c21581002b79932829aa048cfaf9937c6265aeaa14f1cd1775'
+            'e664603757251fd8a352848276497a4c79b7f8b21fd8aedd5cc0598a38fee3e4'
+            'b5e826a0dc477f04233e68cc7d0dfc4f498c36e16c5cc3751cb52bcd9a7f0c24'
+            '11bed1b2e986d344d3f54705282066b4c630ba429182ef5c3f0fa53f1714a417'
+            '22435e7efc200c0c1bf18912d43eab30f59f6684fe103c4ab59ef0b37ad1e5d7'
+            '918152eb9c4654b7538dbe91e4ab939aab26e1b14f6a995492b9fccefff334fc'
+            '37194977a8c71137485fb4b7d9e0d1a6ee4dbee8658df2de47860a1a4319c944'
+            'b73b777545e033bf93f9f450d24b48219a7a230a33e56609754287085d2a8e49'
+            '35bbb8cbda294bea0c67d54e7a89ca5ece59db414cc7877e3b0244ea1ee6c2e3')
+# =========================================== #
+# Helper macros to help make tasks easier     #
+apply_patch_with_msg() {
+  for _patch in "$@"
+  do
+    if patch --dry-run -Rbp1 -i "${srcdir}/${_patch}" > /dev/null 2>&1 ; then
+      msg2 "Skipping ${_patch} because it likely was already applied"
+    else
+      msg2 "Applying ${_patch}"
+      patch -Nbp1 -i "${srcdir}/${_patch}"
+    fi
+  done
+}
+del_file_exists() {
+  for _fname in "$@"
+  do
+    if [[ -f ${_fname} ]]; then
+      rm -rf ${_fname}
+    fi
+  done
+}
+_extract_to_gcc_folder() {
+    local tarfile="$1"
+    local subfolder="$(echo "$tarfile" | sed 's/-.*$//')"
+    if [[ ! -d  "gcc-${pkgver}/$subfolder" ]]; then
+        echo "Extracting ${tarfile} to gcc-${pkgver}/$subfolder"
+        mkdir -p "gcc-${pkgver}/$subfolder"
+        tar -x --strip-components=1 -f "$tarfile" -C "gcc-${pkgver}/$subfolder"
+    else
+        echo "Folder gcc-${pkgver}/$subfolder already exists"
+    fi
+}
+# =========================================== #
+prepare() {
+  cd "${srcdir}"
+  _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
+  _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.bz2
+  _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
+
+  cd "${srcdir}/gcc-${pkgver}"
+
+  # GCC: deal with auto-host.h hack in crtstuff.c
+  #apply_patch_with_msg \
+    #020-gcc-auto-host-screwup.patch
+
+  apply_patch_with_msg \
+    111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch \
+    131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch \
+    132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
+
+  if [[ "${pkgver:0:3}" != "4.9" ]]; then
+    apply_patch_with_msg \
+      161-gcc-4.0-cfns-fix-mismatch-in-gnu_inline-attributes.patch \
+      704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch
+  fi
+
+  if [[ "${pkgver:0:3}" == "4.9" ]]; then
+    apply_patch_with_msg \
+      181-gcc-5.0-make-headers-cplusplus-compatible.patch
+  fi
+}
+
+build() {
+  # Build GCC
+  cd $srcdir
+  rm -rf build-${MSYSTEM}
+  mkdir -p build-${MSYSTEM} && cd build-${MSYSTEM}
+
+  unset CFLAGS
+  unset CXXFLAGS
+  unset LDFLAGS
+  unset CPPFLAGS
+  LDFLAGS="-pipe"
+  CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  CFLAGS="-pipe -g -O2 -fdata-sections -ffunction-sections"
+  CXXFLAGS="${CFLAGS} -std=gnu++98"
+  CFLAGS+=" -std=gnu89"
+
+  export PATH="${_build_prefix}/bin:${PATH}"
+
+  local _languages="c,c++"
+  if [[ "$_enable_ada" == "yes" ]]; then
+    _languages+=",ada"
+  fi
+
+  declare -a extra_config
+
+  ../${_realname}-${pkgver}/configure \
+    --build="${_build}" \
+    --host="${_host}" \
+    --target="${_target}" \
+    --prefix="${_build_prefix}" \
+    --enable-languages="${_languages}" \
+    --disable-werror \
+    --disable-lto \
+    --disable-nls \
+    --disable-libffi \
+    --disable-libgomp \
+    --disable-libmudflap \
+    --disable-libquadmath \
+    --disable-libssp \
+    --disable-libstdcxx-pch \
+    --disable-libstdcxx-debug \
+    --disable-libsanitizer \
+    --disable-threads \
+    --disable-tls \
+    --disable-graphite \
+    --disable-multilib \
+    --disable-libada \
+    --disable-symvers \
+    --disable-sjlj-exceptions \
+    --disable-win32-registry \
+    --enable-shared --enable-static \
+    --enable-interwork \
+    --with-dwarf2 \
+    --with-libiconv-prefix=${_build_prefix} \
+    --with-native-system-header-dir=/include \
+    --with-headers \
+    --with-gnu-as \
+    --with-gnu-ld \
+    --with-python-dir="share/${_target}-${_realname}" \
+    --with-host-libstdcxx="-static-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm" \
+    --with-sysroot="${_build_prefix}" \
+    "${extra_config[@]}"
+
+  make -j1 all-gcc
+  if [[ "$_enable_startup_mode" != "yes" ]]; then
+    make -j1 all-target-libgcc
+  fi
+  if [[ "$_enable_ada" == "yes" ]]; then
+    make -C gcc -j1 cross-gnattools
+    make -C gcc -j1 ada.all.cross
+  fi
+  if [[ "$_enable_startup_mode" != "yes" ]]; then
+    make -j1 all
+  fi
+}
+
+package() {
+  export PATH="${_build_prefix}/bin:${PATH}"
+
+  cd ${srcdir}/build-${MSYSTEM}
+  make -j1 DESTDIR=${pkgdir} install-gcc
+  if [[ "$_enable_startup_mode" != "yes" ]]; then
+    make -j1 DESTDIR=${pkgdir} install-target-libgcc
+  fi
+  if [[ "$_enable_ada" == "yes" ]]; then
+    make -j1 DESTDIR=${pkgdir} install-gnattools
+  fi
+  if [[ "$_enable_startup_mode" != "yes" ]]; then
+    make -j1 DESTDIR=${pkgdir} install
+  fi
+
+  if [[ "$_enable_ada" == "yes" ]]; then
+    # Add target prefix to exe
+    mv ${pkgdir}${_build_prefix}/bin/gnatdll.exe ${pkgdir}${_build_prefix}/bin/${_target}-gnatdll.exe
+  fi
+
+  # Remove files that conflict with host
+  rm -rf "${pkgdir}${_build_prefix}/share/info"
+}
