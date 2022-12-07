@@ -103,7 +103,11 @@ build() {
 }
 
 package_crt-git() {
+  provides=("${_build_package}-${_target}-crt")
+  conflicts=("${_build_package}-${_target}-crt")
   depends=("${_build_package}-${_target}-headers-git")
+
+  export PATH="${_build_prefix}/bin:${PATH}"
 
   msg "Installing ${MSYSTEM} ${_target} crt"
   cd ${srcdir}/crt-${MSYSTEM}
