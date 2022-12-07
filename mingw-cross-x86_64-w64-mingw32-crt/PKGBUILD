@@ -15,7 +15,7 @@ else
 fi
 _build_prefix=/opt${MINGW_PREFIX}
 
-_realname=headers
+_realname=crt
 _sourcedir=mingw-w64-git
 pkgbase=mingw-cross-${_target}-${_realname}
 pkgname=("${_build_package}-${_target}-crt-git")
