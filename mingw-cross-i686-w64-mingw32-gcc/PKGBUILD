@@ -51,7 +51,7 @@ source=(https://ftp.gnu.org/gnu/gcc/gcc-${pkgver}/gcc-${pkgver}.tar.gz
         ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${MPFR_VERSION}.tar.bz2
         ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${GMP_VERSION}.tar.bz2
         ftp://gcc.gnu.org/pub/gcc/infrastructure/mpc-${MPC_VERSION}.tar.gz
-        020-gcc-auto-host-screwup.patch
+        020-gcc-4.7-auto-host-screwup.patch
         111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
         131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
         132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
@@ -112,7 +112,7 @@ prepare() {
 
   # GCC: deal with auto-host.h hack in crtstuff.c
   apply_patch_with_msg \
-    020-gcc-auto-host-screwup.patch
+    020-gcc-4.7-auto-host-screwup.patch
 
   apply_patch_with_msg \
     111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch \
