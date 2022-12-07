@@ -1,0 +1,23 @@
+From 8d813354af629eb510f922903a5089f7178ccbf8 Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Wed, 7 Dec 2022 14:15:25 -0500
+Subject: gcc auto host screwup
+
+Patch written by another person. Tim S.
+---
+ gcc/crtstuff.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/gcc/crtstuff.c b/gcc/crtstuff.c
+index b65f490da66..88347600717 100644
+--- a/gcc/crtstuff.c
++++ b/gcc/crtstuff.c
+@@ -53,6 +53,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+    identified the set of defines that need to go into auto-target.h,
+    this will have to do.  */
+ #include "auto-host.h"
++#undef caddr_t
+ #undef pid_t
+ #undef rlim_t
+ #undef ssize_t
+-- 

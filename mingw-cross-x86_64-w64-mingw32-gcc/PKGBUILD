@@ -17,7 +17,7 @@ fi
 _build_prefix=/opt${MINGW_PREFIX}
 #
 
-_enable_startup_mode=yes
+_enable_startup_mode=no
 if [[ "$_enable_startup_mode" == "yes" ]]; then
   _enable_ada=no
 else
@@ -55,7 +55,7 @@ source=(https://ftp.gnu.org/gnu/gcc/gcc-${pkgver}/gcc-${pkgver}.tar.gz
         ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${MPFR_VERSION}.tar.bz2
         ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${GMP_VERSION}.tar.bz2
         ftp://gcc.gnu.org/pub/gcc/infrastructure/mpc-${MPC_VERSION}.tar.gz
-        020-gcc-auto-host-screwup.patch
+        020-gcc-4.5-auto-host-screwup.patch
         111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
         131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
         132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
@@ -66,7 +66,7 @@ sha256sums=('53de33db01815914b3905a7d2cefac1ecf24ad081b82d93e4f526d8e62ff736f'
             'c7e75a08a8d49d2082e4caee1591a05d11b9d5627514e678f02d66a124bcf2ba'
             '936162c0312886c21581002b79932829aa048cfaf9937c6265aeaa14f1cd1775'
             'e664603757251fd8a352848276497a4c79b7f8b21fd8aedd5cc0598a38fee3e4'
-            'b5e826a0dc477f04233e68cc7d0dfc4f498c36e16c5cc3751cb52bcd9a7f0c24'
+            '048c65f8cd853a0be0c8a97952c92f8fa9b57c6d2aaabf4c6f4950c96e738fb3'
             '11bed1b2e986d344d3f54705282066b4c630ba429182ef5c3f0fa53f1714a417'
             '22435e7efc200c0c1bf18912d43eab30f59f6684fe103c4ab59ef0b37ad1e5d7'
             '918152eb9c4654b7538dbe91e4ab939aab26e1b14f6a995492b9fccefff334fc'
@@ -115,8 +115,8 @@ prepare() {
   cd "${srcdir}/gcc-${pkgver}"
 
   # GCC: deal with auto-host.h hack in crtstuff.c
-  #apply_patch_with_msg \
-    #020-gcc-auto-host-screwup.patch
+  apply_patch_with_msg \
+    020-gcc-4.5-auto-host-screwup.patch
 
   apply_patch_with_msg \
     111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch \
@@ -211,7 +211,6 @@ build() {
     make -j1 all-target-libgcc
   fi
   if [[ "$_enable_ada" == "yes" ]]; then
-    make -C gcc -j1 cross-gnattools
     make -C gcc -j1 ada.all.cross
   fi
   if [[ "$_enable_startup_mode" != "yes" ]]; then
@@ -234,11 +233,12 @@ package() {
     make -j1 DESTDIR=${pkgdir} install
   fi
 
-  if [[ "$_enable_ada" == "yes" ]]; then
-    # Add target prefix to exe
-    mv ${pkgdir}${_build_prefix}/bin/gnatdll.exe ${pkgdir}${_build_prefix}/bin/${_target}-gnatdll.exe
-  fi
+  #if [[ "$_enable_ada" == "yes" ]]; then
+    ## Add target prefix to exe
+    #mv ${pkgdir}${_build_prefix}/bin/gnatdll.exe ${pkgdir}${_build_prefix}/bin/${_target}-gnatdll.exe
+  #fi
 
   # Remove files that conflict with host
+  rm -rf "${pkgdir}${_build_prefix}/share/gcc-${pkgver}/python"
   rm -rf "${pkgdir}${_build_prefix}/share/info"
 }
