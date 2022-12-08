@@ -18,9 +18,17 @@ fi
 _include_sub_folder=/${MINGW_CHOST}
 # =========================================== #
 
+_build_using_cross_mingw32=yes
+
+if [[ "$_build_using_cross_mingw32" == "yes" && \
+       "${MSYSTEM}" == "MINGW32" ]]; then
+  _build_using_cross_mingw32=no
+fi
+
+
 _enable_fortran=no       # Use yes for production
 _enable_cxx=yes           # Use yes for production
-_enable_ada=yes           # Use yes for production
+_enable_ada=no           # Use yes for production
 _enable_lto=no            # Use no for production
 
 _enable_threads=yes       # Use yes for production
@@ -57,7 +65,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.6.4+d20130412.r45.c5.g66cc0b3cf5bc
-pkgrel=3
+pkgrel=4
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -67,10 +75,14 @@ url="https://gcc.gnu.org"
 license=('GPL' 'LGPL' 'FDL' 'custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 makedepends=( 'bison' 'flex' 'texinfo'
-  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
-  $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
-  "${OPT_MINGW_PACKAGE_PREFIX}-crt"
-  "${OPT_MINGW_PACKAGE_PREFIX}-headers"
+  $([[ "$_build_using_cross_mingw32" == "yes" ]] && echo "opt-mingw-i686-x86_64-w64-mingw32-gcc")
+  $([[ "$_build_using_cross_mingw32" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gcc")
+  $([[ "$_enable_ada" == "yes" && \
+       "$_build_using_cross_mingw32" == "yes" ]] && echo "opt-mingw-i686-x86_64-w64-mingw32-${_realname}-ada")
+  $([[ "$_enable_ada" == "yes" && \
+       "$_build_using_cross_mingw32" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+  $([[ "$_build_using_cross_mingw32" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-crt")
+  $([[ "$_build_using_cross_mingw32" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-headers")
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
@@ -214,9 +226,20 @@ build() {
 
   cd ${srcdir}/${_sourcedir}
 
-  local _BUILD_GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
-  echo "_BUILD_GCC_VERSION := $_BUILD_GCC_VERSION"
-  export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_BUILD_GCC_VERSION}:$PATH
+  if [[ "$_build_using_cross_mingw32" == "yes" ]]; then
+    local _compiler_toolchain_prefix=/opt/mingw32
+    export PATH=${OPT_MINGW_PREFIX}/bin:${_compiler_toolchain_prefix}/bin:$PATH
+    export CC="${_compiler_toolchain_prefix}/bin/x86_64-w64-mingw32-gcc"
+    export CXX="${_compiler_toolchain_prefix}/bin/x86_64-w64-mingw32-g++"
+    export GNATMAKE="${_compiler_toolchain_prefix}/bin/x86_64-w64-mingw32-gnatmake"
+    export GNATBIND="${_compiler_toolchain_prefix}/bin/x86_64-w64-mingw32-gnatbind"
+    export ADA_INCLUDE_PATH="${_compiler_toolchain_prefix}/lib/gcc/x86_64-w64-mingw32/4.6.4/adainclude"
+  else
+    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  fi
+  #local _BUILD_GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+  #echo "_BUILD_GCC_VERSION := $_BUILD_GCC_VERSION"
+  #export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_BUILD_GCC_VERSION}:$PATH
   echo "PATH := $PATH"
   ${CC} --version
   pacman -Qg "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" | sed "s|(${OPT_MINGW_PACKAGE_PREFIX}-toolchain)||" || true
@@ -318,7 +341,9 @@ build() {
   fi
 
   extra_config+=("--build=${MINGW_CHOST}")
-  extra_config+=("--with-system-zlib")
+  if [[ "$_build_using_cross_mingw32" != "yes" ]]; then
+    extra_config+=("--with-system-zlib")
+  fi
 
   if [[ "$_build_static_only_gcc" != "yes" ]]; then
     extra_config+=("--enable-shared")
@@ -437,7 +462,11 @@ package_gcc-git() {
   if [[ "$_build_static_only_gcc" != "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}")
   fi
-  depends+=("${OPT_MINGW_PACKAGE_PREFIX}-binutils")
+  if [[ "$_build_using_cross_mingw32" == "yes" ]]; then
+    depends+=("opt-mingw-i686-x86_64-w64-mingw32-binutils")
+  else
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-binutils")
+  fi
   depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
             "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-base"
