@@ -1,9 +1,11 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
 # Contributor: Alexey Pavlov
 
-_build_headers_only=no
+_build_headers_only=yes
 
 _build_using_external_compiler=no
+
+_build_using_cross_mingw32=yes
 
 if [[ "$_build_using_external_compiler" == "yes" && \
        "${MSYSTEM}" == "MINGW64" ]]; then
@@ -25,7 +27,7 @@ pkgbase=opt-mingw-${_realname}${_pkgver}
 pkgname=($([[ "$_build_headers_only" != "yes" ]] && echo  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
          "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
 pkgver=2.0.8.2684.696f2831b313
-pkgrel=1
+pkgrel=2
 _commit='696f2831b313e1be34799aec7cf4fc189d6666d5' # 2.0.0.2684 (v2.0.8)
 pkgdesc='MinGW-w64 CRT for Windows'
 arch=('any')
@@ -34,8 +36,10 @@ license=('custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 makedepends=(
   "git"
-  $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
-  $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-binutils")
+  $([[ "$_build_using_external_compiler" != "yes" && "$_build_using_cross_mingw32" != "yes" ]] && \
+    echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_external_compiler" != "yes" && "$_build_using_cross_mingw32" != "yes" ]] && \
+    echo "${OPT_MINGW_PACKAGE_PREFIX}-binutils")
 )
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
@@ -79,14 +83,13 @@ build() {
     CFLAGS+=" -mtune=generic"
   fi
 
-  if [[ "$_build_using_external_compiler" == "yes" ]]; then
+  if [[ "$_build_using_cross_mingw32" == "yes" ]]; then
+    local _compiler_toolchain_prefix=/opt/mingw32
+    export PATH=${OPT_MINGW_PREFIX}/bin:${_compiler_toolchain_prefix}/bin:$PATH
+    export CC="${_compiler_toolchain_prefix}/bin/x86_64-w64-mingw32-gcc"
+    export CXX="${_compiler_toolchain_prefix}/bin/x86_64-w64-mingw32-g++"
+  elif [[ "$_build_using_external_compiler" == "yes" ]]; then
     # GCC 4.1.x from GNAT 2007 builds CRT2 status unknown
-    # GCC 4.3.4 from GNAT 2009 builds CRT2 status unknown
-    # GCC 4.3.6 from GNAT 2010 builds CRT2 status unknown
-    # GCC 4.5.3 from GNAT 2011 builds CRT2.0.0.2656 (v2.0.6) okay
-    # GCC 4.5.4 from GNAT 2012 builds CRT2 status unknown
-    # GCC 4.7.4 from GNAT 2013 builds CRT2 status unknown
-    # GCC 4.7.4 from GNAT 2014 builds CRT2 status unknown
     local _ext_compiler=/h/GNAT/2007
     export PATH=${OPT_MINGW_PREFIX}/bin:${_ext_compiler}/bin:$PATH
     export CC="${_ext_compiler}/bin/gcc"
