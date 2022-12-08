@@ -1,8 +1,8 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
-# Contributor: Alexey Pavlov <Alexpux@gmail.com>
-# Contributor: Martell Malone <martellmalone@gmail.com>
-# Contributor: Renato Silva <br.renatosilva@gmail.com>
-# Contributor: Ray Donnelly <mingw.android@gmail.com>
+# Contributor: Alexey Pavlov
+# Contributor: Martell Malone
+# Contributor: Renato Silva
+# Contributor: Ray Donnelly
 
 _build_using_std_mingw_packages=no
 
@@ -23,13 +23,14 @@ _realname=zlib
 pkgbase=opt-mingw-${_realname}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 pkgver=1.2.13
-pkgrel=1
+pkgrel=2
 pkgdesc="Compression library implementing the deflate compression method found in gzip and PKZIP (mingw-w64)"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
 license=(ZLIB)
 url="https://www.zlib.net/"
-depends=($([[ "$_external_minizip" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-bzip2"))
+depends=($([[ "$_external_minizip" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-bzip2")
+         "${OPT_MINGW_PACKAGE_PREFIX}-gcc-libs")
 makedepends=(
   $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
   $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
