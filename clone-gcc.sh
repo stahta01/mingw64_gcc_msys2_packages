@@ -15,6 +15,6 @@ git fetch origin releases/gcc-4.6 && git checkout releases/gcc-4.6 && \
 git fetch origin releases/gcc-4.7 && git checkout releases/gcc-4.7 && \
 git fetch origin releases/gcc-4.8 && git checkout releases/gcc-4.8 && \
 git fetch origin releases/gcc-4.9 && git checkout releases/gcc-4.9 && \
-git fetch origin releases/gcc-6 && git checkout releases/gcc-7 && \
+git fetch origin releases/gcc-6 && git checkout releases/gcc-6 && \
 git fetch origin releases/gcc-8 && git checkout releases/gcc-8 && \
 git fetch origin releases/gcc-10 && git checkout releases/gcc-10
