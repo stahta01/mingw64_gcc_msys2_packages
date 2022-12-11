@@ -1,6 +1,7 @@
 git clone --no-tags --single-branch \
   --branch releases/gcc-3.3 --progress \
   -- https://github.com/gcc-mirror/gcc.git gcc-git && \
+cd gcc-git && \
 git remote remove origin && \
 git remote add origin https://github.com/gcc-mirror/gcc.git && \
 git fetch origin releases/gcc-3.4 && git checkout releases/gcc-3.4 && \
