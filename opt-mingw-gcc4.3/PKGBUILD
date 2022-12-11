@@ -27,6 +27,8 @@
 # --with-libiconv-prefix
 # --enable-bootstrap
 
+_use_system_gmp_mpfr=yes
+
 _build_using_external_compiler=no   # Use no for production
 
 _enable_ada=yes                     # Use yes for production
@@ -71,7 +73,7 @@ _base_ver=4.3
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
 pkgver=4.3.6+d20110627.r39.c8.g6503c21eb909
-pkgrel=1
+pkgrel=2
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -88,6 +90,8 @@ makedepends=( 'bison' 'flex' 'texinfo'
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
+  $([[ "$_use_system_gmp_mpfr" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_system_gmp_mpfr" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
 )
 #checkdepends=('dejagnu')
 optdepends=()
@@ -170,8 +174,13 @@ pkgver() {
 prepare() {
   cd ${srcdir}
 
-  _extract_to_gcc_folder            mpfr-${MPFR_VERSION}.tar.bz2
-  _extract_to_gcc_folder            gmp-${GMP_VERSION}.tar.bz2
+  if [[ $_use_system_gmp_mpfr != "yes" ]]; then
+    _extract_to_gcc_folder            gmp-${GMP_VERSION}.tar.bz2
+    _extract_to_gcc_folder            mpfr-${MPFR_VERSION}.tar.bz2
+  else
+    rm -fr ${srcdir}/${_sourcedir}/gmp
+    rm -fr ${srcdir}/${_sourcedir}/mpfr
+  fi
 
   cd ${srcdir}/${_sourcedir}
 
@@ -284,6 +293,11 @@ build() {
 
   if [[ "$_enable_ada" != "yes" ]]; then
     extra_config+=('--disable-libada')
+  fi
+
+  if [ "$_use_system_gmp_mpfr" == "yes" ]; then
+    extra_config+=("--with-gmp=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
   fi
 
   #extra_config+=('--disable-libstdcxx')
