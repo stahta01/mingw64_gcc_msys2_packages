@@ -14,7 +14,7 @@ if [[ "$_build_using_cross_mingw64" == "yes" && \
   _build_using_cross_mingw64=no
 fi
 
-_use_system_gmp_mpfr_mpc=no
+_use_system_gmp_mpfr_mpc=yes
 
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
@@ -92,14 +92,14 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.7.4+d20140612.r45.c9.g4d1f511d7f2f
-pkgrel=4
+pkgrel=5
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
 url="https://gcc.gnu.org"
 license=('GPL' 'LGPL' 'FDL' 'custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
-makedepends=(
+makedepends=( 'bison' 'flex' 'texinfo'
   $([[ "$_build_using_cross_mingw64" == "yes" ]] && echo "opt-mingw-x86_64-i686-w64-mingw32-gcc")
   $([[ "$_enable_ada" == "yes" && \
        "$_build_using_cross_mingw64" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
@@ -107,9 +107,9 @@ makedepends=(
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-gmp")
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-mpc")
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-mpfr")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
   $([[ "$_enable_threads" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
 )
@@ -219,9 +219,15 @@ prepare() {
 
   cd ${srcdir}
 
-  _extract_to_gcc_folder            mpfr-${MPFR_VERSION}.tar.bz2
-  _extract_to_gcc_folder            gmp-${GMP_VERSION}.tar.bz2
-  _extract_to_gcc_folder            mpc-${MPC_VERSION}.tar.gz
+  if [[ $_use_system_gmp_mpfr_mpc != "yes" ]]; then
+    _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
+    _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.bz2
+    _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
+  else
+    rm -fr ${srcdir}/${_sourcedir}/mpfr
+    rm -fr ${srcdir}/${_sourcedir}/gmp
+    rm -fr ${srcdir}/${_sourcedir}/mpc
+  fi
 
   rm -fr ${srcdir}/${_sourcedir}/isl
   if [[ $_gcc_major_version -gt 4 ]]; then
@@ -424,9 +430,9 @@ build() {
   fi
 
   if [ "$_use_system_gmp_mpfr_mpc" == "yes" ]; then
-    extra_config+=("--with-mpc=${MINGW_PREFIX}")
-    extra_config+=("--with-mpfr=${MINGW_PREFIX}")
-    extra_config+=("--with-gmp=${MINGW_PREFIX}")
+    extra_config+=("--with-mpc=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-gmp=${OPT_MINGW_PREFIX}")
   fi
 
   extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
@@ -519,7 +525,7 @@ package_gcc-libs-git() {
   pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
   depends=()
   if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
-    depends+=("${MINGW_PACKAGE_PREFIX}-gmp")
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread")
@@ -581,7 +587,7 @@ package_gcc-git() {
   fi
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
   if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
-    depends+=("${MINGW_PACKAGE_PREFIX}-gmp")
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
