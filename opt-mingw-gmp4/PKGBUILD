@@ -1,0 +1,75 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov
+
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+
+_realname=gmp
+pkgbase=opt-mingw-${_realname}4
+pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=4.3.2
+pkgrel=1
+pkgdesc="A free library for arbitrary precision arithmetic (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
+url="https://gmplib.org/"
+license=('LGPL3' 'GPL')
+makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-autotools" "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+source=(ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${pkgver}.tar.bz2)
+options=('staticlibs')
+sha256sums=('936162c0312886c21581002b79932829aa048cfaf9937c6265aeaa14f1cd1775')
+
+prepare() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+}
+
+build() {
+  # Replace the MSys2 default FLAG values
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
+
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
+  echo "PATH := $PATH"
+  echo "installation root := $(cygpath -am /)"
+  ${CC} --version
+  pacman -Qs "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" | grep "${OPT_MINGW_PACKAGE_PREFIX}" || true
+
+  local -a extra_config
+  case "$CARCH" in
+    i?86|x86_64)
+      extra_config+=(--enable-fat)
+      ;;
+    *)
+      extra_config+=(--disable-assembly)
+      ;;
+  esac
+  # Build static version
+  mkdir -p "${srcdir}/static-${MINGW_CHOST}" && cd "${srcdir}/static-${MINGW_CHOST}"
+  ../${_realname}-${pkgver}/configure \
+    --build=${MINGW_CHOST} \
+    --prefix=${OPT_MINGW_PREFIX} \
+    --disable-cxx \
+    "${extra_config[@]}" \
+    --enable-static \
+    --disable-shared
+  make
+}
+
+#check() {
+  #cd "${srcdir}/static-${MINGW_CHOST}"
+  #make check || true
+#}
+
+package() {
+  cd "${srcdir}/static-${MINGW_CHOST}"
+  make DESTDIR="${pkgdir}" install
+
+  rm -f ${pkgdir}${OPT_MINGW_PREFIX}/share/info/dir
+}
