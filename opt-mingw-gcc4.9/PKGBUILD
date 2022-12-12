@@ -14,7 +14,7 @@ if [[ "$_build_using_cross_mingw64" == "yes" && \
   _build_using_cross_mingw64=no
 fi
 
-_use_system_gmp_mpfr_mpc=no
+_use_system_gmp_mpfr_mpc=yes
 
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
@@ -100,7 +100,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.9.4+d20160726.r51.c10.g4f18db57daff
-pkgrel=2
+pkgrel=3
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -115,9 +115,9 @@ makedepends=( 'bison' 'flex' 'texinfo'
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-gmp")
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-mpc")
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-mpfr")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
+  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
   $([[ "$_enable_threads" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
 )
@@ -449,9 +449,9 @@ build() {
   fi
 
   if [ "$_use_system_gmp_mpfr_mpc" == "yes" ]; then
-    extra_config+=("--with-mpc=${MINGW_PREFIX}")
-    extra_config+=("--with-mpfr=${MINGW_PREFIX}")
-    extra_config+=("--with-gmp=${MINGW_PREFIX}")
+    extra_config+=("--with-mpc=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-gmp=${OPT_MINGW_PREFIX}")
   fi
 
   extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
@@ -535,7 +535,7 @@ package_gcc-libs-git() {
   pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
   depends=()
   if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
-    depends+=("${MINGW_PACKAGE_PREFIX}-gmp")
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread")
@@ -596,7 +596,7 @@ package_gcc-git() {
   fi
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
   if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
-    depends+=("${MINGW_PACKAGE_PREFIX}-gmp")
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
