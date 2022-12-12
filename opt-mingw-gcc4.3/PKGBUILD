@@ -29,7 +29,7 @@
 
 _build_static_only_gcc=yes          # No only results in Ada DLLs
 
-_use_system_gmp_mpfr=yes
+_use_intree_gmp_mpfr=no
 
 _build_using_external_compiler=no   # Use no for production
 
@@ -75,7 +75,7 @@ _base_ver=4.3
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
 pkgver=4.3.6+d20110627.r39.c8.g6503c21eb909
-pkgrel=2
+pkgrel=3
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -92,8 +92,8 @@ makedepends=( 'bison' 'flex' 'texinfo'
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
-  $([[ "$_use_system_gmp_mpfr" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
-  $([[ "$_use_system_gmp_mpfr" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
+  $([[ "$_use_intree_gmp_mpfr" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_intree_gmp_mpfr" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
 )
 #checkdepends=('dejagnu')
 optdepends=()
@@ -176,7 +176,7 @@ pkgver() {
 prepare() {
   cd ${srcdir}
 
-  if [[ $_use_system_gmp_mpfr != "yes" ]]; then
+  if [[ $_use_intree_gmp_mpfr == "yes" ]]; then
     _extract_to_gcc_folder            gmp-${GMP_VERSION}.tar.bz2
     _extract_to_gcc_folder            mpfr-${MPFR_VERSION}.tar.bz2
   else
@@ -221,9 +221,9 @@ prepare() {
 build() {
   # Set good default FLAGS
   export LDFLAGS="-pipe"
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CPPFLAGS=""
   export CFLAGS="-pipe"
-  #export CXXFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
   if [[ "$_build_using_external_compiler" == "yes" ]]; then
     export CFLAGS+=" -std=gnu99" # GNAT GCC 4.1.3 defaults to a too low of std
   fi
@@ -297,7 +297,7 @@ build() {
     extra_config+=('--disable-libada')
   fi
 
-  if [ "$_use_system_gmp_mpfr" == "yes" ]; then
+  if [ "$_use_intree_gmp_mpfr" != "yes" ]; then
     extra_config+=("--with-gmp=${OPT_MINGW_PREFIX}")
     extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
   fi
