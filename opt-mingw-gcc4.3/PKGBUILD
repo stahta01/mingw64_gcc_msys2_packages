@@ -27,6 +27,8 @@
 # --with-libiconv-prefix
 # --enable-bootstrap
 
+_build_static_only_gcc=yes          # No only results in Ada DLLs
+
 _use_system_gmp_mpfr=yes
 
 _build_using_external_compiler=no   # Use no for production
@@ -300,6 +302,12 @@ build() {
     extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
   fi
 
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    extra_config+=("--enable-shared")
+  else
+    extra_config+=("--disable-shared")
+  fi
+
   #extra_config+=('--disable-libstdcxx')
   extra_config+=('--disable-threads')
   #extra_config+=("--disable-libgomp")
@@ -336,7 +344,7 @@ build() {
     --libexecdir=${OPT_MINGW_PREFIX}/lib \
     --enable-checking=release \
     --enable-languages=${_languages} \
-    --disable-shared --enable-static \
+    --enable-static \
     --enable-fully-dynamic-string \
     --disable-libstdcxx-pch \
     --disable-multilib \
