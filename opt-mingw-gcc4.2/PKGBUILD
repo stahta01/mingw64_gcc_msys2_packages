@@ -16,6 +16,7 @@ _include_sub_folder=/${MINGW_CHOST}
 #
 # =========================================== #
 
+_build_static_only_gcc=yes
 _build_using_external_compiler=no   # Use no for production
 _enable_ada=no                     # Use yes for production
 _enable_bootstrap=no                # Yes; gives out of memory error in stage 2
@@ -194,6 +195,12 @@ build() {
     extra_config+=('--disable-libada')
   fi
 
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    extra_config+=("--enable-shared")
+  else
+    extra_config+=("--disable-shared")
+  fi
+
   extra_config+=("--disable-libstdcxx-debug")
   extra_config+=('--disable-libstdcxx')
   extra_config+=('--disable-threads')
@@ -233,7 +240,7 @@ build() {
     --libexecdir=${OPT_MINGW_PREFIX}/lib \
     --enable-checking=release \
     --enable-languages=${_languages} \
-    --disable-shared --enable-static \
+    --enable-static \
     --disable-fully-dynamic-string \
     --disable-libstdcxx-pch \
     --disable-multilib \
