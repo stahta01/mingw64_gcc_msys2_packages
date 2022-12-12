@@ -14,7 +14,7 @@ if [[ "$_build_using_cross_mingw64" == "yes" && \
   _build_using_cross_mingw64=no
 fi
 
-_use_system_gmp_mpfr_mpc=yes
+_use_intree_gmp_mpfr_mpc=no
 
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
@@ -92,7 +92,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.7.4+d20140612.r45.c9.g4d1f511d7f2f
-pkgrel=5
+pkgrel=6
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -107,9 +107,9 @@ makedepends=( 'bison' 'flex' 'texinfo'
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
   $([[ "$_enable_threads" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
 )
@@ -198,13 +198,11 @@ _extract_to_gcc_folder() {
 }
 # =========================================== #
 _git_base_commit=
-_gcc_version=
-_gcc_date=
 
 pkgver() {
   cd ${srcdir}/${_sourcedir}
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
   printf "%s+d%s.r%s.c%s.g%s" "$_gcc_version" "$_gcc_date" \
     $(git rev-list --count $(git log -1 --format=%H -- gcc/DATESTAMP)..${_git_base_commit}) \
     $(git rev-list --count ${_git_base_commit}..HEAD) \
@@ -212,14 +210,9 @@ pkgver() {
 }
 
 prepare() {
-  cd ${srcdir}/${_sourcedir}
-
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  _gcc_major_version=${_gcc_version%%.*}
-
   cd ${srcdir}
 
-  if [[ $_use_system_gmp_mpfr_mpc != "yes" ]]; then
+  if [[ $_use_intree_gmp_mpfr_mpc == "yes" ]]; then
     _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
     _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.bz2
     _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
@@ -230,22 +223,22 @@ prepare() {
   fi
 
   rm -fr ${srcdir}/${_sourcedir}/isl
-  if [[ $_gcc_major_version -gt 4 ]]; then
-    _extract_to_gcc_folder          isl-${ISL_VERSION}.tar.bz2
-    if [[ "${_gcc_version:0:3}" == "4.9" ]]; then
-      _extract_to_gcc_folder        cloog-${CLOOG_VERSION}.tar.gz
-    fi
+  #if [[ $_gcc_major_version -gt 4 ]]; then
+    #_extract_to_gcc_folder          isl-${ISL_VERSION}.tar.bz2
+    #if [[ "${_gcc_version:0:3}" == "4.9" ]]; then
+      #_extract_to_gcc_folder        cloog-${CLOOG_VERSION}.tar.gz
+    #fi
 
-    cd ${srcdir}/${_sourcedir}/isl
-    apply_patch_with_msg \
-      isl-0.12.1-msys2.patch \
-      isl-0.14.1-no-undefined.patch
+    #cd ${srcdir}/${_sourcedir}/isl
+    #apply_patch_with_msg \
+      #isl-0.12.1-msys2.patch \
+      #isl-0.14.1-no-undefined.patch
 
-    autoreconf -fi
-  else
+    #autoreconf -fi
+  #else
     rm -fr ${srcdir}/${_sourcedir}/cloog
     rm -fr ${srcdir}/${_sourcedir}/isl
-  fi
+  #fi
 
   cd ${srcdir}/${_sourcedir}
 
@@ -259,17 +252,13 @@ prepare() {
 
   ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
   ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
-  if [[ "${_gcc_version:0:3}" == "4.9" || "${_gcc_version:0:3}" == "4.8" || "${_gcc_version:0:3}" == "4.7" ]]; then
-    ${GIT_AM} ${srcdir}/125-gcc-4.7-stdthreads.patch
-    ${GIT_AM} ${srcdir}/133-gcc-4.7.0-mingw-dont-ignore-native-system-header-dir.patch
-    ${GIT_AM} ${srcdir}/137-gcc-4.9-Enable-shared-gnat-implib.patch
-  fi
+  ${GIT_AM} ${srcdir}/125-gcc-4.7-stdthreads.patch
+  ${GIT_AM} ${srcdir}/133-gcc-4.7.0-mingw-dont-ignore-native-system-header-dir.patch
+  ${GIT_AM} ${srcdir}/137-gcc-4.9-Enable-shared-gnat-implib.patch
   ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
   ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
   ${GIT_AM} ${srcdir}/141-gcc-4.4-ktietz-libgomp.patch
-  if [[ "${_gcc_version:0:3}" != "4.9" ]]; then
-    ${GIT_AM} ${srcdir}/704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch
-  fi
+  ${GIT_AM} ${srcdir}/704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch
 
   # apply_patch_with_msg 0150-gcc-10.2.0-libgcc-ldflags.patch
 
@@ -289,25 +278,21 @@ prepare() {
   #sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/t-mingw-w64
   #sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/t-mingw32
 
-  if [[ $_gcc_major_version -eq 4 ]]; then
-    # work around bug in 4.6.x and 4.5.x
-    mkdir -p ${OPT_MINGW_PREFIX}/mingw/include
-  fi
+  #if [[ $_gcc_major_version -eq 4 ]]; then
+    ## work around bug in 4.6.x and 4.5.x
+    #mkdir -p ${OPT_MINGW_PREFIX}/mingw/include
+  #fi
 }
 
 build() {
-  cd ${srcdir}/${_sourcedir}
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  echo "_gcc_version := $_gcc_version"
-  _gcc_major_version=${_gcc_version%%.*}
-  echo "_gcc_major_version := $_gcc_major_version"
+  # Set good default FLAGS
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
 
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
-
-  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
-  export CFLAGS="-pipe"                         # Clear the MSys2 default value
 
   if [[ "$_build_using_cross_mingw64" == "yes" ]]; then
     local _compiler_toolchain_prefix=/opt/mingw64
@@ -414,9 +399,6 @@ build() {
     fi
   fi
 
-  if [[ $_gcc_major_version -eq 4 ]]; then
-    _enable_libatomic=no
-  fi
   if [[ "$_enable_libatomic" != "yes" ]]; then
     extra_config+=('--disable-libatomic')
   else
@@ -429,7 +411,7 @@ build() {
     extra_config+=("--disable-libgomp")
   fi
 
-  if [ "$_use_system_gmp_mpfr_mpc" == "yes" ]; then
+  if [ "$_use_intree_gmp_mpfr_mpc" != "yes" ]; then
     extra_config+=("--with-mpc=${OPT_MINGW_PREFIX}")
     extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
     extra_config+=("--with-gmp=${OPT_MINGW_PREFIX}")
@@ -437,11 +419,11 @@ build() {
 
   extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
 
-  if [[ $_gcc_major_version -gt 4 ]]; then
-    extra_config+=('--enable-graphite') # requires ISL
-  else
+  #if [[ $_gcc_major_version -gt 4 ]]; then
+    #extra_config+=('--enable-graphite') # requires ISL
+  #else
     extra_config+=('--disable-graphite')
-  fi
+  #fi
 
   # so libgomp DLL gets built despide static libdl
   export lt_cv_deplibs_check_method='pass_all'
@@ -524,9 +506,7 @@ build() {
 package_gcc-libs-git() {
   pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
   depends=()
-  if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
-    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
-  fi
+    #depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread")
   fi
@@ -586,9 +566,7 @@ package_gcc-git() {
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-binutils")
   fi
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
-  if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
-    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
-  fi
+    #depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
   fi
@@ -608,9 +586,6 @@ package_gcc-git() {
   cp bin/gcc-nm.exe                                     ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   cp bin/gcc-ranlib.exe                                 ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   cp bin/gcov.exe                                       ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  if [[ $_gcc_major_version -gt 4 ]]; then
-    cp bin/gcov-tool.exe                                ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  fi
   cp bin/c++.exe                                        ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   cp bin/g++.exe                                        ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   cp bin/${MINGW_CHOST}-c++.exe                         ${pkgdir}${OPT_MINGW_PREFIX}/bin/
