@@ -1,0 +1,310 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+
+_build_static_only_gcc=no
+
+_use_intree_gmp_mpfr=no
+
+_enable_ada=yes                     # Use yes for production
+
+_enable_bootstrap=no               # Use yes for production
+
+#
+# =========================================== #
+# The code in this section should not normally be changed
+#
+
+if [[ "$_enable_bootstrap" != "yes" && "$MSYSTEM" == "UCRT64" ]]; then
+  # UCRT64 requires bootstrap to build
+  _enable_bootstrap=yes
+fi
+
+# Common toolchain settings
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+_include_sub_folder=/${MINGW_CHOST}
+#
+# End of code not normally be changed
+# =========================================== #
+#
+_realname=gcc
+_sourcedir=${_realname}-git
+_base_ver=4.4
+pkgbase=opt-mingw-${_realname}${_base_ver}
+pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
+pkgver=4.4.7+d20120313.r40.c6.g086e1860db96
+pkgrel=1
+pkgdesc="GCC for the MinGW-w64"
+arch=('any')
+mingw_arch=('mingw32' 'mingw64' 'ucrt64')
+options=('staticlibs' '!emptydirs' '!strip' '!debug')
+url="https://gcc.gnu.org"
+license=('GPL' 'LGPL' 'FDL' 'custom')
+groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
+makedepends=( 'bison' 'flex' 'texinfo'
+  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
+  $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+  "${OPT_MINGW_PACKAGE_PREFIX}-crt"
+  "${OPT_MINGW_PACKAGE_PREFIX}-headers"
+  "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
+  "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
+  "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
+  $([[ "$_use_intree_gmp_mpfr" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_intree_gmp_mpfr" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
+)
+#checkdepends=('dejagnu')
+optdepends=()
+
+MPFR_VERSION=2.4.2
+GMP_VERSION=4.3.2
+noextract=("mpfr-${MPFR_VERSION}.tar.bz2"
+           "gmp-${GMP_VERSION}.tar.bz2")
+source=(ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${MPFR_VERSION}.tar.bz2
+        ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${GMP_VERSION}.tar.bz2
+        'conftest.adb'
+        '111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch'
+        '122-gcc-4.9-Relocate-libintl.patch'
+        '131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch'
+        '132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch'
+        '704-gcc-4.4-Fix-texi-docs-syntax-errors.patch'
+        '705-gcc-4.3-texi2pod.pl-Escape-braces-in-regexp-involving-strong.patch'
+        ${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=releases/gcc-${_base_ver}")
+sha256sums=('c7e75a08a8d49d2082e4caee1591a05d11b9d5627514e678f02d66a124bcf2ba'
+            '936162c0312886c21581002b79932829aa048cfaf9937c6265aeaa14f1cd1775'
+            '7270a08586d76b73d251d530f740a29a8bcc1ae11bf28a0fa35e811c9f39f2c1'
+            'cba7c512a4e0e6a738e0f4ad1026930260a73c7b39bedf36df0b16bae312206b'
+            'd143713dfcb86afa0c32e53b12c1d3a9586729b6580c8e535d72e03003511914'
+            '7cd7f884b7d2f64846adfb06007e881834fd00e98f78c737b965a823ce6198b0'
+            'd122ee00238f2cef746639cc5d8807dffd7d4f06a33e1bb146fa1b28a7dae14a'
+            '35baa69eae6211ac35b549863ff07909962f368c1aa62fd34ac64094ec9e1984'
+            '1afb2022fb8a6390b26c24603007c8cf29435bc2c68a576898a2f45c3207cfee'
+            'SKIP')
+# =========================================== #
+# Helper macros to help make tasks easier     #
+apply_patch_with_msg() {
+  for _patch in "$@"
+  do
+    if patch --dry-run -Rbp1 -i "${srcdir}/${_patch}" > /dev/null 2>&1 ; then
+      msg2 "Skipping ${_patch} because it likely was already applied"
+    else
+      msg2 "Applying ${_patch}"
+      patch -Nbp1 -i "${srcdir}/${_patch}"
+    fi
+  done
+}
+del_file_exists() {
+  for _fname in "$@"
+  do
+    if [ -f ${_fname} ]; then
+      rm -rf ${_fname}
+    fi
+  done
+}
+_extract_to_gcc_folder() {
+    local tarfile="$1"
+    local subfolder="$(echo "$tarfile" | sed 's/-.*$//')"
+    if [ ! -d  "$_sourcedir/$subfolder" ]; then
+        echo "Extracting ${tarfile} to $_sourcedir/$subfolder"
+        mkdir -p "$_sourcedir/$subfolder"
+        tar -x --strip-components=1 -f "$tarfile" -C "$_sourcedir/$subfolder"
+    else
+        echo "Folder $_sourcedir/$subfolder already exists"
+    fi
+}
+# =========================================== #
+_git_base_commit=
+
+pkgver() {
+  cd ${srcdir}/${_sourcedir}
+  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
+  _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
+  printf "%s+d%s.r%s.c%s.g%s" "$_gcc_version" "$_gcc_date" \
+    $(git rev-list --count $(git log -1 --format=%H -- gcc/DATESTAMP)..${_git_base_commit}) \
+    $(git rev-list --count ${_git_base_commit}..HEAD) \
+    $(git rev-parse --short=12 ${_git_base_commit})
+}
+
+prepare() {
+  cd ${srcdir}
+
+  if [[ $_use_intree_gmp_mpfr == "yes" ]]; then
+    _extract_to_gcc_folder            gmp-${GMP_VERSION}.tar.bz2
+    _extract_to_gcc_folder            mpfr-${MPFR_VERSION}.tar.bz2
+  else
+    rm -fr ${srcdir}/${_sourcedir}/gmp
+    rm -fr ${srcdir}/${_sourcedir}/mpfr
+  fi
+
+  cd ${srcdir}/${_sourcedir}
+
+  del_file_exists intl/canonicalize.c intl/canonicalize.h \
+    intl/relocatex.c intl/relocatex.h
+
+  _git_base_commit=$(git rev-parse HEAD)
+  GIT_AM="git am --committer-date-is-author-date"
+
+  git am --abort || true
+
+  ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
+  ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
+  ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
+  ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
+  ${GIT_AM} ${srcdir}/704-gcc-4.4-Fix-texi-docs-syntax-errors.patch
+  ${GIT_AM} ${srcdir}/705-gcc-4.3-texi2pod.pl-Escape-braces-in-regexp-involving-strong.patch
+
+  sed -i 's|${prefix}/mingw/|${prefix}/|g' configure
+
+  # change hard coded /mingw prefix to the absolute forward slash prefix
+  local MINGW_NATIVE_PREFIX=$(cygpath -am ${OPT_MINGW_PREFIX}${_include_sub_folder})
+  sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/mingw32.h
+
+  # Replace "/mingw/" with the unix like path used
+  sed -i "s|/mingw/|${OPT_MINGW_PREFIX}${_include_sub_folder}/|g" gcc/config/i386/t-mingw32
+}
+
+build() {
+  # Set good default FLAGS
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
+
+  cd ${srcdir}/${_sourcedir}
+
+  [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
+  mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
+
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
+  echo "PATH := $PATH"
+  echo "installation root := $(cygpath -am /)"
+  ${CC} --version
+  pacman -Qs "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" | grep "${OPT_MINGW_PACKAGE_PREFIX}" || true
+
+  declare -a extra_config
+  extra_config+=("--disable-libstdcxx-debug")
+
+  case "${CARCH}" in
+    i686)
+      extra_config+=("--with-dwarf2")
+      extra_config+=("--disable-sjlj-exceptions")
+      extra_config+=("--with-arch=i686")
+    ;;
+
+    x86_64)
+      extra_config+=("--with-arch=x86-64")
+    ;;
+  esac
+
+  if [[ "$_enable_bootstrap" == "yes" ]]; then
+    extra_config+=("--enable-bootstrap")
+  elif [[ "$_enable_bootstrap" == "no" ]]; then
+    extra_config+=("--disable-bootstrap")
+  fi
+
+  local _languages="c"
+  if [ "$_enable_ada" == "yes" ]; then
+    _languages+=",ada"
+  fi
+
+  if [[ "$_enable_ada" != "yes" ]]; then
+    extra_config+=('--disable-libada')
+  fi
+
+  if [ "$_use_intree_gmp_mpfr" != "yes" ]; then
+    extra_config+=("--with-gmp=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
+  fi
+
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    extra_config+=("--enable-shared")
+  else
+    extra_config+=("--disable-shared")
+  fi
+
+  extra_config+=('--disable-threads')
+
+  echo ""
+  echo "OPT_MINGW_PREFIX := ${OPT_MINGW_PREFIX}"
+  echo ""
+  echo "OPT_MINGW_PACKAGE_PREFIX := ${OPT_MINGW_PACKAGE_PREFIX}"
+  echo ""
+  echo "LDFLAGS := ${LDFLAGS}"
+  echo ""
+  echo "CC := ${CC}"
+  echo ""
+  echo "CPPFLAGS := ${CPPFLAGS}"
+  echo ""
+  echo "ADA_INCLUDE_PATH := ${ADA_INCLUDE_PATH}"
+  echo ""
+  echo "ADA_OBJECT_PATH := ${ADA_OBJECT_PATH}"
+  echo ""
+  echo "extra_config contains ${extra_config[@]}"
+  echo ""
+
+  if [[ "$_enable_ada" == "yes" ]]; then
+    # configure fails to give clear reason for failure
+    ${CC} -c ${srcdir}/conftest.adb
+  fi
+
+  ../${_sourcedir}/configure \
+    --prefix=${OPT_MINGW_PREFIX} \
+    --with-local-prefix=${OPT_MINGW_PREFIX}/local \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --target=${MINGW_CHOST} \
+    --libexecdir=${OPT_MINGW_PREFIX}/lib \
+    --enable-checking=release \
+    --enable-languages=${_languages} \
+    --enable-static \
+    --enable-fully-dynamic-string \
+    --disable-libstdcxx-pch \
+    --disable-multilib \
+    --disable-win32-registry \
+    --disable-nls \
+    --disable-werror \
+    --disable-symvers \
+    --with-system-zlib \
+    --with-libiconv-prefix=${OPT_MINGW_PREFIX} \
+    --with-pkgversion="Rev ${pkgver##*.g}-${pkgrel}, Built by stahta01" \
+    --with-bugurl="https://github.com/stahta01/mingw64_gcc_msys2_packages/issues" \
+    --with-gnu-as --with-gnu-ld \
+    "${extra_config[@]}"
+
+  make all V=1 --jobs=1
+}
+
+package() {
+  pkgdesc="GNU Compiler Collection ${_base_ver} (mingw-w64)"
+  depends=("${OPT_MINGW_PACKAGE_PREFIX}-crt"
+           "${OPT_MINGW_PACKAGE_PREFIX}-headers"
+           "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
+           "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest")
+  depends+=("${OPT_MINGW_PACKAGE_PREFIX}-binutils")
+  depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
+  provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
+            "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+  if [ "$_enable_ada" == "yes" ]; then
+    provides+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+    conflicts+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+  fi
+  if [ "$_build_static_only_gcc" != "yes" ]; then
+    provides+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
+    conflicts+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
+  fi
+
+  cd "${srcdir}/build-${MSYSTEM}"
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
+  make -j1 DESTDIR="${pkgdir}" install
+
+  rm -f ${pkgdir}${OPT_MINGW_PREFIX}/info/dir
+
+  # License files
+  install -Dm644 "${srcdir}/${_sourcedir}/COPYING3"        "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING3"
+  install -Dm644 "${srcdir}/${_sourcedir}/COPYING.LIB"     "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING.LIB"
+}
