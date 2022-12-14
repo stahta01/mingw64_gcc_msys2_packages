@@ -1,7 +1,7 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
-# Contributor: Alexey Pavlov <alexpux@gmail.com>
-# Contributor: Martell Malone <martellmalone@gmail.com>
-# Contributor: Renato Silva <br.renatosilva@gmail.com>
+# Contributor: Alexey Pavlov
+# Contributor: Martell Malone
+# Contributor: Renato Silva
 
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
@@ -15,7 +15,7 @@ _sourcedir=mingw-w64-git
 pkgbase=opt-mingw-${_realname}3
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git" "${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread-git")
 pkgver=3.4.0.3935.8c7e00886f69
-pkgrel=1
+pkgrel=2
 _commit='8c7e00886f69c448270376601fe1c016392e26f9' # 3.4.0.3935.8c7e00886
 pkgdesc="MinGW-w64 winpthreads library"
 url="https://mingw-w64.sourceforge.io/"
@@ -31,8 +31,10 @@ makedepends=("git"
              "${OPT_MINGW_PACKAGE_PREFIX}-crt-git"
              "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
 options=('strip' '!buildflags' 'staticlibs' '!emptydirs' '!debug')
-source=("${_sourcedir}"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#commit=$_commit")
-sha256sums=('SKIP')
+source=("${_sourcedir}"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#commit=$_commit"
+        "0002-Define-__-de-register_frame_info-in-fake-libgcc_s.patch")
+sha256sums=('SKIP'
+            'd9e8af81682d9bf70e3d87506f51156cec61260b810a234bce861cb2eb3a5919')
 
 # Declare global variables; begin with underscore to avoid name conflicts
 _git_base_commit=
@@ -48,6 +50,9 @@ pkgver() {
 prepare() {
   cd "${srcdir}/${_sourcedir}"
   _git_base_commit=$(git rev-parse HEAD)
+
+  [[ -f mingw-w64-libraries/winpthreads/src/libgcc/dll_frame_info.c ]] && rm -rf mingw-w64-libraries/winpthreads/src/libgcc/dll_frame_info.c
+  git am --committer-date-is-author-date "${srcdir}"/0002-Define-__-de-register_frame_info-in-fake-libgcc_s.patch
 
   cd "${srcdir}"/${_sourcedir}/mingw-w64-libraries/winpthreads
   autoreconf -vfi
