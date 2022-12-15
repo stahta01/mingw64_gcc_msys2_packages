@@ -17,7 +17,7 @@ fi
 _build_prefix=/opt${MINGW_PREFIX}
 #
 
-_enable_startup_mode=no
+_enable_startup_mode=yes
 if [[ "$_enable_startup_mode" == "yes" ]]; then
   _enable_ada=no
 else
@@ -27,7 +27,7 @@ fi
 _realname=gcc
 pkgbase=mingw-cross-${_target}-${_realname}
 pkgname=("${_build_package}-${_target}-${_realname}")
-pkgver=4.6.4
+pkgver=4.7.4
 pkgrel=1
 pkgdesc="GNU Tools for i686 Processors - GCC (mingw-w64)"
 arch=('any')
@@ -45,31 +45,33 @@ makedepends=('bison' 'flex' 'texinfo'
              "${_build_package}-gcc"
              $([[ "$_enable_ada" == "yes" ]] && echo "${_build_package}-gcc-ada") )
 options=('staticlibs' '!debug' '!strip')
-MPFR_VERSION=2.4.2
-GMP_VERSION=4.3.2
-MPC_VERSION=0.8.1
+MPFR_VERSION=3.1.6
+GMP_VERSION=5.1.3
+MPC_VERSION=1.1.0
 noextract=("mpfr-${MPFR_VERSION}.tar.bz2"
-           "gmp-${GMP_VERSION}.tar.bz2"
+           "gmp-${GMP_VERSION}.tar.xz"
            "mpc-${MPC_VERSION}.tar.gz")
 source=(https://ftp.gnu.org/gnu/gcc/gcc-${pkgver}/gcc-${pkgver}.tar.gz
         ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${MPFR_VERSION}.tar.bz2
-        ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${GMP_VERSION}.tar.bz2
-        ftp://gcc.gnu.org/pub/gcc/infrastructure/mpc-${MPC_VERSION}.tar.gz
+        https://gmplib.org/download/gmp-${GMP_VERSION}/gmp-${GMP_VERSION}.tar.xz
+        https://ftp.gnu.org/gnu/mpc/mpc-${MPC_VERSION}.tar.gz
         020-gcc-4.5-auto-host-screwup.patch
         111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
         131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
         132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
+        133-gcc-4.7.0-mingw-dont-ignore-native-system-header-dir.patch
         161-gcc-4.0-cfns-fix-mismatch-in-gnu_inline-attributes.patch
         181-gcc-5.0-make-headers-cplusplus-compatible.patch
         704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch)
-sha256sums=('53de33db01815914b3905a7d2cefac1ecf24ad081b82d93e4f526d8e62ff736f'
-            'c7e75a08a8d49d2082e4caee1591a05d11b9d5627514e678f02d66a124bcf2ba'
-            '936162c0312886c21581002b79932829aa048cfaf9937c6265aeaa14f1cd1775'
-            'e664603757251fd8a352848276497a4c79b7f8b21fd8aedd5cc0598a38fee3e4'
+sha256sums=('ddbaa583c5d4e4f0928bf15d9f6b6c283349e16eedc47bde71e1b813f6f37819'
+            'cf4f4b2d80abb79e820e78c8077b6725bbbb4e8f41896783c899087be0e94068'
+            'dee2eda37f4ff541f30019932db0c37f6f77a30ba3609234933b1818f9b07071'
+            '6985c538143c1208dcb1ac42cedad6ff52e267b47e5f970183a3e75125b43c2e'
             '048c65f8cd853a0be0c8a97952c92f8fa9b57c6d2aaabf4c6f4950c96e738fb3'
             '11bed1b2e986d344d3f54705282066b4c630ba429182ef5c3f0fa53f1714a417'
             '22435e7efc200c0c1bf18912d43eab30f59f6684fe103c4ab59ef0b37ad1e5d7'
             '918152eb9c4654b7538dbe91e4ab939aab26e1b14f6a995492b9fccefff334fc'
+            'd674531a39361782448048bda31a100dac9be87d681809f8b48b6e8de97a8418'
             '37194977a8c71137485fb4b7d9e0d1a6ee4dbee8658df2de47860a1a4319c944'
             'b73b777545e033bf93f9f450d24b48219a7a230a33e56609754287085d2a8e49'
             '35bbb8cbda294bea0c67d54e7a89ca5ece59db414cc7877e3b0244ea1ee6c2e3')
@@ -109,19 +111,20 @@ _extract_to_gcc_folder() {
 prepare() {
   cd "${srcdir}"
   _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
-  _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.bz2
+  _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.xz
   _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
 
   cd "${srcdir}/gcc-${pkgver}"
 
-  # GCC: deal with auto-host.h hack in crtstuff.c
-  apply_patch_with_msg \
-    020-gcc-4.5-auto-host-screwup.patch
+  ## GCC: deal with auto-host.h hack in crtstuff.c
+  #apply_patch_with_msg \
+    #020-gcc-4.5-auto-host-screwup.patch
 
   apply_patch_with_msg \
     111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch \
     131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch \
-    132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
+    132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch \
+    133-gcc-4.7.0-mingw-dont-ignore-native-system-header-dir.patch
 
   if [[ "${pkgver:0:3}" != "4.9" ]]; then
     apply_patch_with_msg \
@@ -140,7 +143,6 @@ prepare() {
   # Replace "/mingw/" with the unix like path used
   sed -i "s|/mingw/|${OPT_MINGW_PREFIX}${_include_sub_folder}/|g" gcc/config/i386/t-mingw-w32
   sed -i "s|/mingw/|${OPT_MINGW_PREFIX}${_include_sub_folder}/|g" gcc/config/i386/t-mingw-w64
-  sed -i "s|/mingw/|${OPT_MINGW_PREFIX}${_include_sub_folder}/|g" gcc/config/i386/t-mingw32
 }
 
 build() {
