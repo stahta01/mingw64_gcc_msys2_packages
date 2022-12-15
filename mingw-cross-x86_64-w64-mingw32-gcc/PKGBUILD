@@ -41,7 +41,7 @@ depends=("${_build_package}-${_target}-headers"
 if [[ "$_enable_startup_mode" != "yes" ]]; then
   depends+=("${_build_package}-${_target}-crt")
 fi
-makedepends=('bison' 'flex' 'texinfo'
+makedepends=('texinfo'
              "${_build_package}-gcc"
              $([[ "$_enable_ada" == "yes" ]] && echo "${_build_package}-gcc-ada") )
 options=('staticlibs' '!debug' '!strip')
