@@ -104,7 +104,7 @@ mingw_arch=('mingw32' 'mingw64' 'ucrt64')
 url="https://gcc.gnu.org"
 license=('GPL' 'LGPL' 'FDL' 'custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
-makedepends=(
+makedepends=( 'bison' 'flex' 'texinfo'
   $([[ "$_build_using_cross_mingw64" == "yes" ]] && echo "opt-mingw-x86_64-i686-w64-mingw32-gcc")
   $([[ "$_enable_build_ada" == "yes" && \
        "$_build_using_cross_mingw64" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
