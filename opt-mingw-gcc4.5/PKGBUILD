@@ -18,7 +18,6 @@ fi
 _include_sub_folder=/${MINGW_CHOST}
 # =========================================== #
 
-_build_using_external_compiler=no   # Use no for production
 _build_using_external_adadriver=no  # Use no for production
 _enable_bootstrap=no               # Use yes for production; yes errors out at start of stage 2
 _build_static_only_gcc=no           # Use no for production
@@ -55,7 +54,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.5.4+d20120702.r42.c7.g41eccc86828f
-pkgrel=2
+pkgrel=3
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32')
@@ -66,8 +65,7 @@ license=('GPL' 'LGPL' 'FDL' 'custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 makedepends=( 'bison' 'flex' 'texinfo'
   "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
-  $([[ "$_enable_ada" == "yes" && \
-       "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+  $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
   "${OPT_MINGW_PACKAGE_PREFIX}-crt"
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
@@ -172,9 +170,7 @@ prepare() {
 
   git am --abort || true
 
-  if [[ "$_build_using_external_compiler" != "yes" ]]; then
-    ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
-  fi
+  ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
   ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
   ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
   ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
@@ -192,53 +188,28 @@ prepare() {
   sed -i "s|/mingw/|${OPT_MINGW_PREFIX}${_include_sub_folder}/|g" gcc/config/i386/t-mingw32
 
   mkdir -p ${OPT_MINGW_PREFIX}${_include_sub_folder}/include
-  #/opt/mingw32/opt/mingw32/i686-w64-mingw32/include
 }
 
 build() {
   # Set good default FLAGS
   export LDFLAGS="-pipe"
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CPPFLAGS=""
   export CFLAGS="-pipe"
   export CXXFLAGS="-pipe"
-  if [[ "$_build_using_external_compiler" == "yes" ]]; then
-    export CFLAGS+=" -std=gnu99" # GNAT GCC 4.1.3 defaults to a too low of std
-  fi
+  #if [[ "$_build_using_external_compiler" == "yes" ]]; then
+    #export CFLAGS+=" -std=gnu99" # GNAT GCC 4.1.3 defaults to a too low of std
+  #fi
 
   declare -a extra_config
 
-  if [[ "$_build_using_external_compiler" == "yes" ]]; then
-    # GCC 4.1.3 from GNAT 2007 builds GCC4.5.x with Ada w/o libada status failed
-    local _GNAT_year=2007
-    if [ "$_GNAT_year" == "2007" ]; then
-      local _compiler_toolchain_host=pentium-mingw32msv
-    else
-      local _compiler_toolchain_host=i686-pc-mingw32
-    fi
-    local _compiler_toolchain_prefix=/h/GNAT/${_GNAT_year}
-    export PATH=${OPT_MINGW_PREFIX}/bin:${_compiler_toolchain_prefix}/bin:${MINGW_PREFIX}/bin:/usr/local/bin:/usr/bin:/bin:/c/Windows/SysWOW64
-    export AR="${OPT_MINGW_PREFIX}/bin/ar"
-    export AS="${OPT_MINGW_PREFIX}/bin/as"
-    export LD="${OPT_MINGW_PREFIX}/bin/ld"
-    if [ "$_enable_ada" == "yes" ]; then
-      export GNATMAKE="${_compiler_toolchain_prefix}/bin/gnatmake"
-      export GNATBIND="${_compiler_toolchain_prefix}/bin/gnatbind"
-      #export ADA_INCLUDE_PATH="${_compiler_toolchain_prefix}/lib/gcc/${_compiler_toolchain_host}/4.1.3/adainclude"
-    fi
-    if [[ "$_enable_ada" == "yes" && "$_build_using_external_adadriver" == "yes" ]]; then
-      extra_config+=("--build=${_compiler_toolchain_host}")
-      export CC="${_compiler_toolchain_prefix}/bin/${_compiler_toolchain_host}-gcc"
-    else
-      extra_config+=("--build=${MINGW_CHOST}")
-      export CC="${OPT_MINGW_PREFIX}/bin/gcc"
-      if [ "$_enable_cxx" == "yes" ]; then
-        export CXX="${OPT_MINGW_PREFIX}/bin/g++"
-      fi    
-    fi
-  else
-    extra_config+=("--build=${MINGW_CHOST}")
-    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
-  fi
+  extra_config+=("--build=${MINGW_CHOST}")
+
+  #local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+  #echo "_GCC_VERSION := ${_GCC_VERSION}"
+  #export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
+  #export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+
   echo "PATH := $PATH"
   echo "CC := ${CC}"
   echo "CXX := ${CXX}"
@@ -339,14 +310,7 @@ build() {
     extra_config+=('--disable-graphite')
   #fi
 
-  if [[ "$_build_using_external_compiler" != "yes" ]]; then
-    extra_config+=("--with-system-zlib")
-  else
-    extra_config+=('--disable-libada')
-    _enable_libada=no
-    extra_config+=("--disable-libssp")
-    _enable_libssp=no
-  fi
+  extra_config+=("--with-system-zlib")
 
   if [[ "$_build_static_only_gcc" != "yes" ]]; then
     extra_config+=("--enable-shared")
