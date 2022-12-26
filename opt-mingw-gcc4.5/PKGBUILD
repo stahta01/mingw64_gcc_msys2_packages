@@ -23,7 +23,7 @@ _enable_bootstrap=no               # Use yes for production; yes errors out at s
 _build_static_only_gcc=no           # Use no for production
 
 _enable_fortran=no                 # Use ?yes? for production
-_enable_cxx=no                     # Use yes for production
+_enable_cxx=yes                     # Use yes for production
 _enable_ada=yes                     # Use yes for production
 _enable_lto=no                      # Use no for production
 
