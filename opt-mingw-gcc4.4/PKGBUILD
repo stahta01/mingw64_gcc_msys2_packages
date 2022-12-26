@@ -5,6 +5,7 @@ _build_static_only_gcc=no
 _use_intree_gmp_mpfr=no
 
 _enable_ada=yes                     # Use yes for production
+_enable_cxx=yes                     # Use yes for production
 
 _enable_bootstrap=no               # Use yes for production
 
@@ -36,7 +37,7 @@ _base_ver=4.4
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
 pkgver=4.4.7+d20120313.r40.c6.g086e1860db96
-pkgrel=1
+pkgrel=2
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -208,6 +209,9 @@ build() {
   local _languages="c"
   if [ "$_enable_ada" == "yes" ]; then
     _languages+=",ada"
+  fi
+  if [ "$_enable_cxx" == "yes" ]; then
+    _languages+=",c++"
   fi
 
   if [[ "$_enable_ada" != "yes" ]]; then
