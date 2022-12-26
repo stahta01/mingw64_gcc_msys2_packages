@@ -25,6 +25,7 @@ if [[ "$_build_using_cross_mingw32" == "yes" && \
   _build_using_cross_mingw32=no
 fi
 
+_use_intree_gmp_mpfr_mpc=no
 
 _enable_fortran=no       # Use yes for production
 _enable_cxx=yes           # Use yes for production
@@ -74,7 +75,7 @@ options=('staticlibs' '!emptydirs' '!strip' '!debug') # development options
 url="https://gcc.gnu.org"
 license=('GPL' 'LGPL' 'FDL' 'custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
-makedepends=( 'bison' 'flex' 'texinfo'
+makedepends=( 'bison' 'flex' 'texinfo' # Had 'flex' related build error in GMP configure
   $([[ "$_build_using_cross_mingw32" == "yes" ]] && echo "opt-mingw-i686-x86_64-w64-mingw32-gcc")
   $([[ "$_build_using_cross_mingw32" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gcc")
   $([[ "$_enable_ada" == "yes" && \
@@ -83,6 +84,9 @@ makedepends=( 'bison' 'flex' 'texinfo'
        "$_build_using_cross_mingw32" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
   $([[ "$_build_using_cross_mingw32" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-crt")
   $([[ "$_build_using_cross_mingw32" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-headers")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
@@ -170,9 +174,15 @@ pkgver() {
 prepare() {
   cd ${srcdir}
 
-  _extract_to_gcc_folder            mpfr-${MPFR_VERSION}.tar.bz2
-  _extract_to_gcc_folder            gmp-${GMP_VERSION}.tar.bz2
-  _extract_to_gcc_folder            mpc-${MPC_VERSION}.tar.gz
+  if [[ $_use_intree_gmp_mpfr_mpc == "yes" ]]; then
+    _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
+    _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.bz2
+    _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
+  else
+    rm -fr ${srcdir}/${_sourcedir}/mpfr
+    rm -fr ${srcdir}/${_sourcedir}/gmp
+    rm -fr ${srcdir}/${_sourcedir}/mpc
+  fi
 
   if [[ "$_enable_graphite" == "yes"  ]]; then
     _extract_to_gcc_folder          cloog-ppl-${CLOOG_VERSION}.tar.gz
@@ -328,6 +338,12 @@ build() {
   extra_config+=("--disable-libgomp")
 
   extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
+
+  if [ "$_use_intree_gmp_mpfr_mpc" != "yes" ]; then
+    extra_config+=("--with-mpc=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-gmp=${OPT_MINGW_PREFIX}")
+  fi
 
   if [[ "$_enable_graphite" == "yes"  ]]; then
     extra_config+=('--enable-graphite') # requires CLOOG
