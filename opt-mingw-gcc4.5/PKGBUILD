@@ -196,6 +196,7 @@ build() {
   export CPPFLAGS=""
   export CFLAGS="-pipe"
   export CXXFLAGS="-pipe"
+  export CXXCPP="${CXX} -E"
   #if [[ "$_build_using_external_compiler" == "yes" ]]; then
     #export CFLAGS+=" -std=gnu99" # GNAT GCC 4.1.3 defaults to a too low of std
   #fi
