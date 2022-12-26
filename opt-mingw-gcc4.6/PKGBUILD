@@ -29,7 +29,7 @@ _use_intree_gmp_mpfr_mpc=no
 
 _enable_fortran=no       # Use yes for production
 _enable_cxx=yes           # Use yes for production
-_enable_ada=no           # Use yes for production
+_enable_ada=yes           # Use yes for production
 _enable_lto=no            # Use no for production
 
 _enable_threads=yes       # Use yes for production
