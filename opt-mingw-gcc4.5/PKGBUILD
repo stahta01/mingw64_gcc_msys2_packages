@@ -21,6 +21,7 @@ _include_sub_folder=/${MINGW_CHOST}
 _build_using_external_adadriver=no  # Use no for production
 _enable_bootstrap=no               # Use yes for production; yes errors out at start of stage 2
 _build_static_only_gcc=no           # Use no for production
+_use_intree_gmp_mpfr_mpc=no
 
 _enable_fortran=no                 # Use ?yes? for production
 _enable_cxx=yes                     # Use yes for production
@@ -66,6 +67,9 @@ groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 makedepends=( 'bison' 'flex' 'texinfo'
   "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
   $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
   "${OPT_MINGW_PACKAGE_PREFIX}-crt"
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
@@ -156,9 +160,15 @@ pkgver() {
 prepare() {
   cd ${srcdir}
 
-  _extract_to_gcc_folder            mpfr-${MPFR_VERSION}.tar.bz2
-  _extract_to_gcc_folder            gmp-${GMP_VERSION}.tar.bz2
-  _extract_to_gcc_folder            mpc-${MPC_VERSION}.tar.gz
+  if [[ $_use_intree_gmp_mpfr_mpc == "yes" ]]; then
+    _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
+    _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.bz2
+    _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
+  else
+    rm -fr ${srcdir}/${_sourcedir}/mpfr
+    rm -fr ${srcdir}/${_sourcedir}/gmp
+    rm -fr ${srcdir}/${_sourcedir}/mpc
+  fi
 
   cd ${srcdir}/${_sourcedir}
 
@@ -301,6 +311,12 @@ build() {
     extra_config+=("--enable-libgomp")
   elif [ "$_enable_libgomp" == "no" ]; then
     extra_config+=("--disable-libgomp")
+  fi
+
+  if [ "$_use_intree_gmp_mpfr_mpc" != "yes" ]; then
+    extra_config+=("--with-mpc=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-gmp=${OPT_MINGW_PREFIX}")
   fi
 
   extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
