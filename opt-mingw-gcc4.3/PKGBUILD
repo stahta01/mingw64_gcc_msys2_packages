@@ -34,6 +34,7 @@ _use_intree_gmp_mpfr=no
 _build_using_external_compiler=no   # Use no for production
 
 _enable_ada=yes                     # Use yes for production
+_enable_cxx=yes                     # Use yes for production
 
 _enable_bootstrap=no               # Use yes for production; GMP fails to build
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
@@ -291,6 +292,9 @@ build() {
   local _languages="c"
   if [ "$_enable_ada" == "yes" ]; then
     _languages+=",ada"
+  fi
+  if [ "$_enable_cxx" == "yes" ]; then
+    _languages+=",c++"
   fi
 
   if [[ "$_enable_ada" != "yes" ]]; then
