@@ -222,7 +222,7 @@ prepare() {
 build() {
   # Set good default FLAGS
   export LDFLAGS="-pipe"
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CPPFLAGS=""
   export CFLAGS="-pipe"
   export CXXFLAGS="-pipe"
 
