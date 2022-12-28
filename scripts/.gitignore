@@ -8,6 +8,9 @@
 /extra_toolchain_mingw_32_packages/*.zst
 /extra_toolchain_mingw_64_packages/*.zst
 /gcc4.2.5_toolchain_mingw_32_packages/*.zst
+/gcc4.3.6_toolchain_mingw_32_packages/*.zst
+/gcc4.4.7_toolchain_mingw_32_packages/*.zst
+/gcc4.5.4_toolchain_mingw_32_packages/*.zst
 /gcc4.6.4_toolchain_mingw_32_packages/*.zst
 /gcc4.7.4_toolchain_mingw_32_packages/*.zst
 /support_mingw_32_packages/*.zst
