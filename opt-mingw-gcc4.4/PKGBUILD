@@ -35,9 +35,12 @@ _realname=gcc
 _sourcedir=${_realname}-git
 _base_ver=4.4
 pkgbase=opt-mingw-${_realname}${_base_ver}
-pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
+pkgname=(
+  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git" # This package must be first in this list
+  $([[ "$_build_static_only_gcc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git")
+)
 pkgver=4.4.7+d20120313.r40.c6.g086e1860db96
-pkgrel=2
+pkgrel=3
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -281,7 +284,7 @@ build() {
   make all V=1 --jobs=1
 }
 
-package() {
+package_gcc-git() {
   pkgdesc="GNU Compiler Collection ${_base_ver} (mingw-w64)"
   depends=("${OPT_MINGW_PACKAGE_PREFIX}-crt"
            "${OPT_MINGW_PACKAGE_PREFIX}-headers"
@@ -289,6 +292,9 @@ package() {
            "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest")
   depends+=("${OPT_MINGW_PACKAGE_PREFIX}-binutils")
   depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}")
+  fi
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
             "${OPT_MINGW_PACKAGE_PREFIX}-cc")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
@@ -296,19 +302,53 @@ package() {
     provides+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
     conflicts+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
   fi
-  if [ "$_build_static_only_gcc" != "yes" ]; then
-    provides+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
-    conflicts+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
-  fi
 
   cd "${srcdir}/build-${MSYSTEM}"
   export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
 
   make -j1 DESTDIR="${pkgdir}" install
 
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    [[ -d ${srcdir}/dlls ]] && rm -rf ${srcdir}/dlls
+    mkdir -p ${srcdir}/dlls
+    mv ${pkgdir}${OPT_MINGW_PREFIX}/bin/{libgcc*,libssp*}.dll ${srcdir}/dlls/
+  fi
+
   rm -f ${pkgdir}${OPT_MINGW_PREFIX}/info/dir
 
-  # License files
-  install -Dm644 "${srcdir}/${_sourcedir}/COPYING3"        "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING3"
-  install -Dm644 "${srcdir}/${_sourcedir}/COPYING.LIB"     "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING.LIB"
+  if [[ "$_build_static_only_gcc" == "yes" ]]; then
+    # License files
+    install -Dm644 "${srcdir}/${_sourcedir}/COPYING3"        "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING3"
+    install -Dm644 "${srcdir}/${_sourcedir}/COPYING.LIB"     "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING.LIB"
+  fi
 }
+
+package_gcc-libs-git() {
+  pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
+  depends=()
+  conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
+  provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs")
+  provides+=("${OPT_MINGW_PACKAGE_PREFIX}-libssp")
+
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/bin
+  cp ${srcdir}/dlls/*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+
+  # Licensing information
+  license=(GPL3+ partial:'GCCRLE' partial:'LGPL2+')
+
+  # License files
+  install -Dm644 "${srcdir}/${_sourcedir}/COPYING3"        "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}-libs/COPYING3"
+  install -Dm644 "${srcdir}/${_sourcedir}/COPYING.LIB"     "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}-libs/COPYING.LIB"
+  install -Dm644 "${srcdir}/${_sourcedir}/COPYING.RUNTIME" "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}-libs/COPYING.RUNTIME"
+}
+
+# template start; name=mingw-w64-splitpkg-wrappers; version=1.0;
+# vim: set ft=bash :
+
+# generate wrappers
+for _name in "${pkgname[@]}"; do
+  _short="package_${_name#${OPT_MINGW_PACKAGE_PREFIX}-}"
+  _func="$(declare -f "${_short}")"
+  eval "${_func/#${_short}/package_${_name}}"
+done
+# template end;
