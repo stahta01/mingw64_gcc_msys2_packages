@@ -31,7 +31,7 @@ _enable_lto=no                      # Use no for production
 _enable_threads=no                 # Use yes for production
 _enable_libquadmath=no
 _enable_libssp=no                  # Use yes for production
-_enable_libada=yes                  # Use yes for production
+_enable_libada=no                  # Use yes for production
 _enable_libatomic=no                # yes will likely not work
 _enable_libgomp=no                  # yes will likely not work
 
@@ -278,7 +278,7 @@ build() {
     _languages+=",ada"
   fi
 
-  if [[ "$_enable_ada" != "yes" ]]; then
+  if [[ "$_enable_libada" != "yes" ]]; then
     extra_config+=('--disable-libada')
   fi
 
