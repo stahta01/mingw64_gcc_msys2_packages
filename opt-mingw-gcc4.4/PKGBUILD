@@ -13,12 +13,6 @@ _enable_bootstrap=no               # Use yes for production
 # =========================================== #
 # The code in this section should not normally be changed
 #
-
-if [[ "$_enable_bootstrap" != "yes" && "$MSYSTEM" == "UCRT64" ]]; then
-  # UCRT64 requires bootstrap to build
-  _enable_bootstrap=yes
-fi
-
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
