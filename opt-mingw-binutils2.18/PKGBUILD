@@ -1,6 +1,6 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
-# Contributor: Alexey Pavlov <alexpux@gmail.com>
-# Contributor: Ray Donnelly <mingw.android@gmail.com>
+# Contributor: Alexey Pavlov
+# Contributor: Ray Donnelly
 
 _build_using_std_mingw_packages=no
 _build_using_external_compiler=no
