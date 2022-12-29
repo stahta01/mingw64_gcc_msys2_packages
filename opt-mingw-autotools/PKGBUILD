@@ -1,5 +1,5 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
-# Contributor: Christoph Reiter <reiter.christoph@gmail.com>
+# Contributor: Christoph Reiter
 
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
   OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
