@@ -1,7 +1,7 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
-# Contributor: Alexey Pavlov <alexpux@gmail.com>
-# Contributor: Martell Malone <martellmalone@gmail.com>
-# Contributor: Renato Silva <br.renatosilva@gmail.com>
+# Contributor: Alexey Pavlov
+# Contributor: Martell Malone
+# Contributor: Renato Silva
 
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
