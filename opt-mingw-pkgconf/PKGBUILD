@@ -1,5 +1,5 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
-# Contributor: Ilya Rakhlin <i.rakhlin@gmail.com>
+# Contributor: Ilya Rakhlin
 
 _build_using_std_mingw_packages=yes
 
