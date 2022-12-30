@@ -30,7 +30,7 @@ makedepends=("git"
              "${OPT_MINGW_PACKAGE_PREFIX}-binutils"
              "${OPT_MINGW_PACKAGE_PREFIX}-crt-git"
              "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
-options=('strip' '!buildflags' 'staticlibs' '!emptydirs' '!debug')
+options=('!strip' '!buildflags' 'staticlibs' '!emptydirs' '!debug')
 source=("${_sourcedir}"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#commit=$_commit"
         "0001-Define-__-de-register_frame_info-in-fake-libgcc_s.patch")
 sha256sums=('SKIP'
