@@ -41,7 +41,7 @@ makedepends=(
   $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
   $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
 )
-options=('staticlibs')
+options=('!strip' 'staticlibs')
 source=("https://zlib.net/${_realname}-${pkgver}.tar.gz"
         01-zlib-1.2.11-1-buildsys.mingw.patch
         03-dont-put-sodir-into-L.mingw.patch
