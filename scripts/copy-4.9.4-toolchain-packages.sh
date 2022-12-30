@@ -10,7 +10,7 @@ cp -f ../opt-mingw-binutils2.25/opt-mingw-x86_64-binutils-git-2.25+r82134.c5.g8f
 cp -f ../opt-mingw-gcc4.9/opt-mingw-x86_64-gcc-libs-git-4.9.4+d20160726.r51.c10.g4f18db57daff-4-any.pkg.tar.zst ./gcc4.9.4_toolchain_mingw_64_packages/
 cp -f ../opt-mingw-gcc4.9/opt-mingw-x86_64-gcc-git-4.9.4+d20160726.r51.c10.g4f18db57daff-4-any.pkg.tar.zst ./gcc4.9.4_toolchain_mingw_64_packages/
 cp -f ../opt-mingw-gcc4.9/opt-mingw-x86_64-gcc-ada-git-4.9.4+d20160726.r51.c10.g4f18db57daff-4-any.pkg.tar.zst ./gcc4.9.4_toolchain_mingw_64_packages/
-cp -f ../opt-mingw-zlib/opt-mingw-x86_64-zlib-1.2.13-2-any.pkg.tar.zst ./gcc4.9.4_toolchain_mingw_64_packages/
+cp -f ../opt-mingw-zlib/opt-mingw-x86_64-zlib-1.2.13-3-any.pkg.tar.zst ./gcc4.9.4_toolchain_mingw_64_packages/
 
 mkdir -p gcc4.9.4_toolchain_mingw_32_packages
 
@@ -24,4 +24,4 @@ cp -f ../opt-mingw-binutils2.25/opt-mingw-i686-binutils-git-2.25+r82134.c5.g8f2d
 cp -f ../opt-mingw-gcc4.9/opt-mingw-i686-gcc-libs-git-4.9.4+d20160726.r51.c10.g4f18db57daff-4-any.pkg.tar.zst ./gcc4.9.4_toolchain_mingw_32_packages/
 cp -f ../opt-mingw-gcc4.9/opt-mingw-i686-gcc-git-4.9.4+d20160726.r51.c10.g4f18db57daff-4-any.pkg.tar.zst ./gcc4.9.4_toolchain_mingw_32_packages/
 cp -f ../opt-mingw-gcc4.9/opt-mingw-i686-gcc-ada-git-4.9.4+d20160726.r51.c10.g4f18db57daff-4-any.pkg.tar.zst ./gcc4.9.4_toolchain_mingw_32_packages/
-cp -f ../opt-mingw-zlib/opt-mingw-i686-zlib-1.2.13-2-any.pkg.tar.zst ./gcc4.9.4_toolchain_mingw_32_packages/
+cp -f ../opt-mingw-zlib/opt-mingw-i686-zlib-1.2.13-3-any.pkg.tar.zst ./gcc4.9.4_toolchain_mingw_32_packages/
