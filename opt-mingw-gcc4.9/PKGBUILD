@@ -14,7 +14,7 @@ if [[ "$_build_using_cross_mingw64" == "yes" && \
   _build_using_cross_mingw64=no
 fi
 
-_use_system_gmp_mpfr_mpc=no
+_use_intree_gmp_mpfr_mpc=yes
 
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
@@ -100,7 +100,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.9.4+d20160726.r51.c10.g4f18db57daff
-pkgrel=4
+pkgrel=5
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -115,9 +115,9 @@ makedepends=( 'bison' 'flex' 'texinfo'
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
-  $([[ "$_use_system_gmp_mpfr_mpc" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
   $([[ "$_enable_threads" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
 )
@@ -151,7 +151,6 @@ source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
         '137-gcc-4.9-Enable-shared-gnat-implib.patch'
         '141-gcc-4.4-ktietz-libgomp.patch'
         '0150-gcc-10.2.0-libgcc-ldflags.patch'
-        '0820-libiberty-mingw-host-shared.patch'
         '955-4.9.2-apply-hack-so-gcc_s-isnt-stripped.patch'
         '9003-Ada-build-fix-for-GCC-5-building-GCC-4.9.patch'
         ${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=releases/gcc-${_base_ver}")
@@ -174,7 +173,6 @@ sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
             '265fff19fe1da6383c7fa1ead3239de8f622b46b556b4f9268eeb073d2549aee'
             '388220ee08a71e065ecd631855dba082e0b833cafec2b3b281a268d5d4d0f265'
             '7f0b4e45d933e18c9d8bd2afcd83e4f52e97e2e25dd41bfa0cba755c70e591c7'
-            'a1f24895af9229e891d199b773d90efa3946e242f2d10defeef37c2a59c32651'
             '9893cd986191de2e761e2ed98ad6ec8fadeab86311dc6ba20a1032f13e478686'
             '3ceb659e23136616b48e9cde5a0d96063e050fa2579c5e6cec8709c6added327'
             'SKIP')
@@ -212,13 +210,11 @@ _extract_to_gcc_folder() {
 }
 # =========================================== #
 _git_base_commit=
-_gcc_version=
-_gcc_date=
 
 pkgver() {
   cd ${srcdir}/${_sourcedir}
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
   printf "%s+d%s.r%s.c%s.g%s" "$_gcc_version" "$_gcc_date" \
     $(git rev-list --count $(git log -1 --format=%H -- gcc/DATESTAMP)..${_git_base_commit}) \
     $(git rev-list --count ${_git_base_commit}..HEAD) \
@@ -226,14 +222,9 @@ pkgver() {
 }
 
 prepare() {
-  cd ${srcdir}/${_sourcedir}
-
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  _gcc_major_version=${_gcc_version%%.*}
-
   cd ${srcdir}
 
-  if [[ $_use_system_gmp_mpfr_mpc != "yes" ]]; then
+  if [[ $_use_intree_gmp_mpfr_mpc == "yes" ]]; then
     _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
     _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.xz
     _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
@@ -244,22 +235,22 @@ prepare() {
   fi
 
   rm -fr ${srcdir}/${_sourcedir}/isl
-  if [[ $_gcc_major_version -gt 4 ]]; then
-    _extract_to_gcc_folder          isl-${ISL_VERSION}.tar.bz2
-    if [[ "${_gcc_version:0:3}" == "4.9" ]]; then
-      _extract_to_gcc_folder        cloog-${CLOOG_VERSION}.tar.gz
-    fi
+  #if [[ $_gcc_major_version -gt 4 ]]; then
+    #_extract_to_gcc_folder          isl-${ISL_VERSION}.tar.bz2
+    #if [[ "${_gcc_version:0:3}" == "4.9" ]]; then
+      #_extract_to_gcc_folder        cloog-${CLOOG_VERSION}.tar.gz
+    #fi
 
-    cd ${srcdir}/${_sourcedir}/isl
-    apply_patch_with_msg \
-      isl-0.12.1-msys2.patch \
-      isl-0.14.1-no-undefined.patch
+    #cd ${srcdir}/${_sourcedir}/isl
+    #apply_patch_with_msg \
+      #isl-0.12.1-msys2.patch \
+      #isl-0.14.1-no-undefined.patch
 
-    autoreconf -fi
-  else
+    #autoreconf -fi
+  #else
     rm -fr ${srcdir}/${_sourcedir}/cloog
     rm -fr ${srcdir}/${_sourcedir}/isl
-  fi
+  #fi
 
   cd ${srcdir}/${_sourcedir}
 
@@ -291,8 +282,6 @@ prepare() {
 
   apply_patch_with_msg 0150-gcc-10.2.0-libgcc-ldflags.patch
 
-  #apply_patch_with_msg 0820-libiberty-mingw-host-shared.patch
-
   # weird build error work around; should not be needed after first build
   sed -i 's|if __cplusplus >= 201103L|if defined(_GCC_MAX_ALIGN_T) \&\& __cplusplus >= 201103L|g' libstdc++-v3/include/c_global/cstddef
   sed -i 's|if __cplusplus >= 201103L|if defined(_GCC_MAX_ALIGN_T) \&\& __cplusplus >= 201103L|g' libstdc++-v3/include/c_std/cstddef
@@ -310,12 +299,6 @@ prepare() {
 }
 
 build() {
-  cd ${srcdir}/${_sourcedir}
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  echo "_gcc_version := $_gcc_version"
-  _gcc_major_version=${_gcc_version%%.*}
-  echo "_gcc_major_version := $_gcc_major_version"
-
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
 
@@ -433,9 +416,9 @@ build() {
     fi
   fi
 
-  if [[ $_gcc_major_version -eq 4 ]]; then
-    _enable_libatomic=no
-  fi
+  #if [[ $_gcc_major_version -eq 4 ]]; then
+    #_enable_libatomic=no
+  #fi
   if [[ "$_enable_libatomic" != "yes" ]]; then
     extra_config+=('--disable-libatomic')
   else
@@ -448,7 +431,7 @@ build() {
     extra_config+=("--disable-libgomp")
   fi
 
-  if [ "$_use_system_gmp_mpfr_mpc" == "yes" ]; then
+  if [ "$_use_intree_gmp_mpfr_mpc" != "yes" ]; then
     extra_config+=("--with-mpc=${OPT_MINGW_PREFIX}")
     extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
     extra_config+=("--with-gmp=${OPT_MINGW_PREFIX}")
@@ -456,11 +439,11 @@ build() {
 
   extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
 
-  if [[ $_gcc_major_version -gt 4 ]]; then
-    extra_config+=('--enable-graphite') # requires ISL
-  else
+  #if [[ $_gcc_major_version -gt 4 ]]; then
+    #extra_config+=('--enable-graphite') # requires ISL
+  #else
     extra_config+=('--disable-graphite')
-  fi
+  #fi
 
   # so libgomp DLL gets built despide static libdl
   export lt_cv_deplibs_check_method='pass_all'
@@ -534,7 +517,7 @@ build() {
 package_gcc-libs-git() {
   pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
   depends=()
-  if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
+  if [[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
@@ -595,7 +578,7 @@ package_gcc-git() {
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-binutils")
   fi
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
-  if [[ "$_use_system_gmp_mpfr_mpc" == "yes" ]]; then
+  if [[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
