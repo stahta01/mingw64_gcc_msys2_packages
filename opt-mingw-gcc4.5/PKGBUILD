@@ -18,10 +18,9 @@ fi
 _include_sub_folder=/${MINGW_CHOST}
 # =========================================== #
 
-_build_using_external_adadriver=no  # Use no for production
-_enable_bootstrap=no               # Use yes for production; yes errors out at start of stage 2
-_build_static_only_gcc=no           # Use no for production
-_use_intree_gmp_mpfr_mpc=no
+_enable_bootstrap=yes               # Use yes for production; yes errors out at start of stage 2
+_build_static_only_gcc=yes           # Use no for production
+_use_intree_gmp_mpfr_mpc=no         # Yes fails to build gmp configure error
 
 _enable_fortran=no                 # Use ?yes? for production
 _enable_cxx=yes                     # Use yes for production
@@ -31,7 +30,7 @@ _enable_lto=no                      # Use no for production
 _enable_threads=no                 # Use yes for production
 _enable_libquadmath=no
 _enable_libssp=no                  # Use yes for production
-_enable_libada=no                  # Use yes for production
+_enable_libada=yes                  # Use yes for production
 _enable_libatomic=no                # yes will likely not work
 _enable_libgomp=no                  # yes will likely not work
 
@@ -49,13 +48,13 @@ _sourcedir=${_realname}-git
 _base_ver=4.5
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
-         "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git"
+         $([[ "$_build_static_only_gcc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git")
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libgfortran-git")
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran-git")
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.5.4+d20120702.r42.c7.g41eccc86828f
-pkgrel=3
+pkgrel=4
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32')
@@ -149,8 +148,8 @@ _git_base_commit=
 
 pkgver() {
   cd ${srcdir}/${_sourcedir}
-  _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
-  _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
+  local _gcc_date=$(head -n 34 gcc/DATESTAMP | sed -e 's/.* //' | tr -d '"\n')
   printf "%s+d%s.r%s.c%s.g%s" "$_gcc_version" "$_gcc_date" \
     $(git rev-list --count $(git log -1 --format=%H -- gcc/DATESTAMP)..${_git_base_commit}) \
     $(git rev-list --count ${_git_base_commit}..HEAD) \
@@ -213,8 +212,6 @@ build() {
 
   declare -a extra_config
 
-  extra_config+=("--build=${MINGW_CHOST}")
-
   #local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
   #echo "_GCC_VERSION := ${_GCC_VERSION}"
   #export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
@@ -243,13 +240,13 @@ build() {
     i686)
       extra_config+=("--with-dwarf2")
       extra_config+=("--disable-sjlj-exceptions")
+      extra_config+=("--with-arch=i686")
 
       #LDFLAGS+=" -Wl,--large-address-aware"
-      local _arch=i686
     ;;
 
     x86_64)
-      local _arch=x86-64
+      extra_config+=("--with-arch=x86-64")
     ;;
   esac
 
@@ -370,13 +367,13 @@ build() {
   ../${_sourcedir}/configure \
     --prefix=${OPT_MINGW_PREFIX} \
     --with-local-prefix=${OPT_MINGW_PREFIX}/local \
+    --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
     --with-build-time-tools=${OPT_MINGW_PREFIX}/bin \
     --with-native-system-header-dir=${OPT_MINGW_PREFIX}${_include_sub_folder}/include \
     --libexecdir=${OPT_MINGW_PREFIX}/lib \
     --enable-checking=release \
-    --with-arch=${_arch} \
     --with-tune=generic \
     --enable-languages=${_languages} \
     --enable-static \
@@ -560,6 +557,13 @@ package_gcc-git() {
   cp share/man/man7/gpl.7*                               ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
   if [[ "$_enable_cxx" == "yes" ]]; then
     cp share/man/man1/g++.1*                             ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
+  fi
+
+  if [[ "$_build_static_only_gcc" == "yes" ]]; then
+    # License files
+    install -Dm644 "${srcdir}/${_sourcedir}/COPYING3"        "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING3"
+    install -Dm644 "${srcdir}/${_sourcedir}/COPYING.LIB"     "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING.LIB"
+    install -Dm644 "${srcdir}/${_sourcedir}/COPYING.RUNTIME" "${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING.RUNTIME"
   fi
 }
 
