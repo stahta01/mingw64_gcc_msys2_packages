@@ -18,7 +18,7 @@ _realname=gettext-runtime
 pkgbase=opt-mingw-${_parentname}0.19
 pkgname="${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
 pkgver=0.19.8.1
-pkgrel=3
+pkgrel=4
 _sourcedir=gettext-${pkgver}
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
@@ -44,7 +44,7 @@ makedepends=(
 )
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_parentname}")
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_parentname}")
-options=('strip' 'staticlibs')
+options=('strip' 'staticlibs' '!strip')
 source=("https://ftp.gnu.org/pub/gnu/${_parentname}/${_parentname}-${pkgver}.tar.gz"
         00-relocatex-libintl-0.18.3.1.patch
         120-Fix-Woe32-link-errors-when-compiling-with-O0.patch
