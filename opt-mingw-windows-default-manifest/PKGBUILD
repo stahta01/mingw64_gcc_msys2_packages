@@ -19,11 +19,12 @@ _realname=windows-default-manifest
 pkgbase=opt-mingw-${_realname}
 pkgname="${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
 pkgver=6.4
-pkgrel=2
+pkgrel=3
 pkgdesc='Default Windows application manifest (mingw-w64)'
 url='https://cygwin.com/'
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32')
+options=('!strip')
 license=('BSD')
 makedepends=(
   'git'
