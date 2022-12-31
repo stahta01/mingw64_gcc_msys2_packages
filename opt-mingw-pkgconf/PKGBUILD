@@ -19,7 +19,7 @@ _realname=pkgconf
 pkgbase=opt-mingw-${_realname}
 pkgname="${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
 pkgver=1.9.3
-pkgrel=3
+pkgrel=4
 pkgdesc='pkg-config compatible utility which does not depend on glib'
 url='https://github.com/pkgconf/pkgconf'
 arch=('any')
@@ -57,6 +57,7 @@ apply_patch_with_msg() {
 }
 # =========================================== #
 prepare() {
+  [[ -d "${_realname}-${pkgver}" ]] && rm -rf "${_realname}-${pkgver}"
   mv "${_realname}-${_realname}-${pkgver}" "${_realname}-${pkgver}"
   cd ${srcdir}/$_realname-$pkgver
 
@@ -71,7 +72,7 @@ prepare() {
 build() {
   if [[ "$_build_using_std_mingw_packages" != "yes" ]]; then
     export LDFLAGS="-pipe"
-    export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+    export CPPFLAGS=""
     export CFLAGS="-pipe"
 
     export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
