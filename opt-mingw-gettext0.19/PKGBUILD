@@ -18,7 +18,7 @@ _realname=gettext-runtime
 pkgbase=opt-mingw-${_parentname}0.19
 pkgname="${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
 pkgver=0.19.8.1
-pkgrel=2
+pkgrel=3
 _sourcedir=gettext-${pkgver}
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
@@ -111,7 +111,7 @@ prepare() {
 
 build() {
   export LDFLAGS="-pipe"
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CPPFLAGS=""
   export CFLAGS="-pipe"
 
   local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
