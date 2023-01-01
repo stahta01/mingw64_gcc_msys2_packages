@@ -22,7 +22,7 @@ _base_ver=2.25
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
 pkgver=2.25+r82134.c5.g8f2db47d13b6
-pkgrel=1
+pkgrel=2
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}=${pkgver}")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 pkgdesc="A set of programs to assemble and manipulate binary and object files"
@@ -105,7 +105,7 @@ prepare() {
 build() {
   # Set good default FLAGS
   export LDFLAGS="-pipe"
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CPPFLAGS=""
   export CFLAGS="-pipe"
   export CXXFLAGS="-pipe"
 
