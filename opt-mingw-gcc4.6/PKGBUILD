@@ -33,7 +33,7 @@ _enable_ada=yes           # Use yes for production
 _enable_lto=no            # Use no for production
 
 _enable_threads=yes       # Use yes for production
-_enable_libstdcxx=no     # Use yes for production
+_enable_libstdcxx=yes     # Use yes for production
 _enable_libquadmath=no
 
 _enable_graphite=no      # Yes is currently broken
@@ -66,7 +66,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.6.4+d20130412.r45.c5.g66cc0b3cf5bc
-pkgrel=5
+pkgrel=6
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -385,10 +385,10 @@ build() {
   echo "extra_config contains ${extra_config[@]}"
   echo ""
 
-  #if [[ "$_enable_ada" == "yes" ]]; then
-    ## configure fails to give clear reason for failure
-    #${CC} -c ${srcdir}/conftest.adb
-  #fi
+  if [[ "$_enable_ada" == "yes" ]]; then
+    # configure fails to give clear reason for failure
+    ${CC} -c ${srcdir}/conftest.adb
+  fi
 
   ../${_sourcedir}/configure \
     --prefix=${OPT_MINGW_PREFIX} \
