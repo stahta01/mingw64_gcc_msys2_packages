@@ -37,7 +37,7 @@ _enable_libada=yes        # Use yes for production
 _enable_libatomic=no
 
 _enable_gcc_plugin=no
-_enable_bootstrap=no     # Use yes for production
+_enable_bootstrap=yes     # Use yes for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
 _enable_backstrap_ada=no  # Use no for production
@@ -92,7 +92,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.7.4+d20140612.r45.c9.g4d1f511d7f2f
-pkgrel=6
+pkgrel=7
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -140,7 +140,6 @@ source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
         '133-gcc-4.7.0-mingw-dont-ignore-native-system-header-dir.patch'
         '137-gcc-4.9-Enable-shared-gnat-implib.patch'
         '141-gcc-4.4-ktietz-libgomp.patch'
-        '0150-gcc-10.2.0-libgcc-ldflags.patch'
         '704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch'
         '904-Ada-build-fix-for-GCC-4.8-building-GCC-4.7.patch'
         ${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=releases/gcc-${_base_ver}")
@@ -160,7 +159,6 @@ sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
             'd674531a39361782448048bda31a100dac9be87d681809f8b48b6e8de97a8418'
             '265fff19fe1da6383c7fa1ead3239de8f622b46b556b4f9268eeb073d2549aee'
             '388220ee08a71e065ecd631855dba082e0b833cafec2b3b281a268d5d4d0f265'
-            '7f0b4e45d933e18c9d8bd2afcd83e4f52e97e2e25dd41bfa0cba755c70e591c7'
             'c5782bca021e1b96ada60001e98052648bc07207d0a6e5066bc0b69f1efb692e'
             '82751764922a4757e5be4f1b243caebe82ba2dbbd58c3c21731175c74f64d733'
             'SKIP')
@@ -248,8 +246,6 @@ prepare() {
   _git_base_commit=$(git rev-parse HEAD)
   GIT_AM="git am --committer-date-is-author-date"
 
-  git am --abort || true
-
   ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
   ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
   ${GIT_AM} ${srcdir}/125-gcc-4.7-stdthreads.patch
@@ -259,8 +255,6 @@ prepare() {
   ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
   ${GIT_AM} ${srcdir}/141-gcc-4.4-ktietz-libgomp.patch
   ${GIT_AM} ${srcdir}/704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch
-
-  # apply_patch_with_msg 0150-gcc-10.2.0-libgcc-ldflags.patch
 
   if [[ "$_enable_ada" == "yes" && "$_enable_backstrap_ada" == "yes" ]]; then
     ${GIT_AM} ${srcdir}/904-Ada-build-fix-for-GCC-4.8-building-GCC-4.7.patch
