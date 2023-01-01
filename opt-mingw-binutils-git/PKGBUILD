@@ -18,7 +18,7 @@ fi
 
 _realname=binutils
 _sourcedir=${_realname}-git
-_base_ver=2.24
+_base_ver=2.17
 pkgbase=opt-mingw-${_realname}-git
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
 pkgver=2.24+r78636.c2.gcd3813a8c9e5
@@ -68,8 +68,8 @@ prepare() {
 
   _git_base_commit=$(git rev-parse HEAD)
   GIT_AM="git am --committer-date-is-author-date"
-  ${GIT_AM} "${srcdir}"/0001-MinGW-w64-Two-fixes-for-unusual-files.patch
-  ${GIT_AM} "${srcdir}"/0003-MinGW-w64-Fix-libibery-configure.patch
+  #${GIT_AM} "${srcdir}"/0001-MinGW-w64-Two-fixes-for-unusual-files.patch
+  #${GIT_AM} "${srcdir}"/0003-MinGW-w64-Fix-libibery-configure.patch
 
   rm -rf gdb readline libdecnumber sim
 
@@ -80,11 +80,13 @@ prepare() {
 }
 
 build() {
-  declare -a extra_config
+  # Set good default FLAGS
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
 
-  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
-  export CFLAGS="-pipe"                         # Clear the MSys2 default value
+  declare -a extra_config
 
   if [ "${CARCH}" = "x86_64" ]; then
     extra_config+=('--enable-64-bit-bfd')
