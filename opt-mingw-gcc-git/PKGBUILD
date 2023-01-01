@@ -597,6 +597,12 @@ prepare() {
 }
 
 build() {
+  # Set good default FLAGS
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
+
   cd ${srcdir}/${_sourcedir}
   _gcc_version=$(head -n 34 gcc/BASE-VER | sed -e 's/.* //' | tr -d '"\n')
   echo "_gcc_version := $_gcc_version"
@@ -605,10 +611,6 @@ build() {
 
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
-
-  export LDFLAGS="-pipe"                        # Clear the MSys2 default value
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"  # Clear the MSys2 default value
-  export CFLAGS="-pipe"                         # Clear the MSys2 default value
 
   if [[ "$_build_using_cross_mingw64" == "yes" ]]; then
     local _compiler_toolchain_prefix=/opt/mingw64
