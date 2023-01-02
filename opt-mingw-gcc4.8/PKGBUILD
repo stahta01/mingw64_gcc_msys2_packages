@@ -14,7 +14,7 @@ if [[ "$_build_using_cross_mingw64" == "yes" && \
   _build_using_cross_mingw64=no
 fi
 
-_use_intree_gmp_mpfr_mpc=yes
+_use_intree_gmp_mpfr_mpc=no
 
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
@@ -114,9 +114,9 @@ makedepends=( 'bison' 'flex' 'texinfo'
   "${OPT_MINGW_PACKAGE_PREFIX}-headers"
   "${OPT_MINGW_PACKAGE_PREFIX}-libiconv"
   "${OPT_MINGW_PACKAGE_PREFIX}-zlib"
-  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-gmp")
-  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-mpc")
-  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-mpfr")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpc")
+  $([[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-mpfr")
   "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest"
   $([[ "$_enable_threads" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
 )
@@ -510,7 +510,7 @@ package_gcc-libs-git() {
   pkgdesc="GNU Compiler Collection (libraries) for MinGW-w64"
   depends=()
   if [[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]]; then
-    depends+=("${MINGW_PACKAGE_PREFIX}-gmp")
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libwinpthread")
@@ -571,7 +571,7 @@ package_gcc-git() {
   fi
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
   if [[ "$_use_intree_gmp_mpfr_mpc" != "yes" ]]; then
-    depends+=("${MINGW_PACKAGE_PREFIX}-gmp")
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
   fi
   if [[ "$_enable_threads" == "yes" ]]; then
     depends+=("${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
