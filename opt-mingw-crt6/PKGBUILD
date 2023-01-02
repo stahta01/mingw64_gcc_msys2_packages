@@ -20,10 +20,10 @@ _realname=crt
 _sourcedir=mingw-w64-git
 pkgbase=opt-mingw-${_realname}6
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
-         "${OPT_MINGW_PACKAGE_PREFIX}-headers-git"
-         "${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers-git")
+         #"${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers-git"
+         "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
 pkgver=6.0.0.5241.e174bf62d33d
-pkgrel=1
+pkgrel=2
 _commit='e174bf62d33d26b9fee56ef45e8d8566d01a5af7'
 pkgdesc='MinGW-w64 CRT for Windows'
 arch=('any')
@@ -33,7 +33,6 @@ groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 makedepends=(
   "git"
   $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
-  #"${OPT_MINGW_PACKAGE_PREFIX}-binutils"
 )
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
