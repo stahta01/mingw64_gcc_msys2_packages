@@ -1,5 +1,5 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
-# Contributor: Alexey Pavlov <alexpux@gmail.com>
+# Contributor: Alexey Pavlov
 
 _build_using_cross_mingw64=no
 if [[ "$_build_using_cross_mingw64" == "yes" && \
