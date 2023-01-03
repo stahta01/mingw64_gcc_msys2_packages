@@ -34,7 +34,7 @@ pkgname=(
   $([[ "$_build_static_only_gcc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git")
 )
 pkgver=4.4.7+d20120313.r40.c6.g086e1860db96
-pkgrel=3
+pkgrel=4
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -305,7 +305,8 @@ package_gcc-git() {
   if [[ "$_build_static_only_gcc" != "yes" ]]; then
     [[ -d ${srcdir}/dlls ]] && rm -rf ${srcdir}/dlls
     mkdir -p ${srcdir}/dlls
-    mv ${pkgdir}${OPT_MINGW_PREFIX}/bin/{libgcc*,libssp*}.dll ${srcdir}/dlls/
+    mv ${pkgdir}${OPT_MINGW_PREFIX}/bin/*.dll ${srcdir}/dlls/
+    mv ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib/*.dll ${srcdir}/dlls/
   fi
 
   rm -f ${pkgdir}${OPT_MINGW_PREFIX}/info/dir
