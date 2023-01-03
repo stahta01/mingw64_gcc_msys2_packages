@@ -25,7 +25,7 @@ pkgbase=opt-mingw-${_realname}${_pkgver}
 pkgname=($([[ "$_build_headers_only" != "yes" ]] && echo  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
          "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
 pkgver=2.0.7.2668.56b79e1c0757
-pkgrel=1
+pkgrel=2
  _commit='56b79e1c0757237ea73c0632da4c41bf8c97a630' # 2.0.0.2668 (v2.0.7)
 pkgdesc='MinGW-w64 CRT for Windows'
 arch=('any')
@@ -67,7 +67,7 @@ prepare() {
 build() {
   # Set good default FLAGS
   export LDFLAGS="-pipe"
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CPPFLAGS=""
   export CFLAGS="-pipe"
   export CXXFLAGS="-pipe"
 
