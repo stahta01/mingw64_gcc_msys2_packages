@@ -10,5 +10,4 @@
 | libgnarl-4.5.dll | libgnat-4.5.dll | opt-mingw-gcc4.5 |
 | libgcc_s_dw2-1.dll | none | opt-mingw-gcc??? |
 |  |  |  |
-| -------------------------------------------- |
-| System DLLs are not listed in depends for any DLL |
+| | | System DLLs are not listed in depends for any DLL |
