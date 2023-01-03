@@ -23,17 +23,18 @@ _realname=zlib
 pkgbase=opt-mingw-${_realname}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 pkgver=1.2.13
-pkgrel=4
+pkgrel=5
 pkgdesc="Compression library implementing the deflate compression method found in gzip and PKZIP (mingw-w64)"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
-license=(ZLIB)
+license=('ZLIB' 'LGPL') # Using "-static-libgcc" likely results in 'LGPL'
+# GCC 4.9 under MINGW 32 bit results in needing libgcc unless static-libgcc is used.
 url="https://www.zlib.net/"
 local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
 #echo "_GCC_VERSION := ${_GCC_VERSION}"
 depends=(
   $([[ "$_external_minizip" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-bzip2")
-  $([[ "${_GCC_VERSION:0:3}" != "4.2" && "${_GCC_VERSION:0:3}" != "4.3" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gcc-libs")
+  #$([[ "${_GCC_VERSION:0:3}" != "4.2" && "${_GCC_VERSION:0:3}" != "4.3" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-gcc-libs")
 )
 makedepends=(
   $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
@@ -82,7 +83,7 @@ prepare() {
 build() {
   export LDFLAGS="-pipe"
   export CPPFLAGS=""
-  export CFLAGS="-pipe"
+  export CFLAGS="-pipe -static-libgcc"
 
   local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
   echo "_GCC_VERSION := ${_GCC_VERSION}"
