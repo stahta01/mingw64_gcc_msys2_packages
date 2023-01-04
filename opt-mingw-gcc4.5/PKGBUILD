@@ -28,6 +28,7 @@ _enable_ada=yes                     # Use yes for production
 _enable_lto=no                      # Use no for production
 
 _enable_threads=no                 # Use yes for production
+_enable_libstdcxx=no
 _enable_libquadmath=no
 _enable_libssp=no                  # Use yes for production
 _enable_libada=yes                  # Use yes for production
@@ -52,7 +53,7 @@ pkgname=(
   $([[ "$_build_static_only_gcc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git")
 )
 pkgver=4.5.4+d20120702.r42.c7.g41eccc86828f
-pkgrel=6
+pkgrel=7
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32')
@@ -167,6 +168,12 @@ prepare() {
     rm -fr ${srcdir}/${_sourcedir}/mpc
   fi
 
+  if [[ "$_enable_libstdcxx" != "yes" ]]; then
+    # GCC 4.8 and above has disable-libstdcxx option
+    # below that deleting the folder should work.
+    rm -fr ${srcdir}/${_sourcedir}/libstdc++-v3
+  fi
+
   cd ${srcdir}/${_sourcedir}
 
   del_file_exists intl/canonicalize.c intl/canonicalize.h \
@@ -228,12 +235,6 @@ build() {
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
 
-  if check_option "debug" "n"; then
-    extra_config+=("--disable-libstdcxx-debug")
-  else
-    extra_config+=("--enable-libstdcxx-debug")
-  fi
-
   case "${CARCH}" in
     i686)
       extra_config+=("--with-dwarf2")
@@ -282,9 +283,19 @@ build() {
   fi
 
   # GCC 4.8 and above has disable-libstdcxx option
-  #if [[ "$_enable_libstdcxx" != "yes" ]]; then
-    #extra_config+=('--disable-libstdcxx')
-  #fi
+  if [[ "$_enable_libstdcxx" != "yes" ]]; then
+    extra_config+=('--disable-libstdcxx')
+    extra_config+=('--disable-libstdc__-v3')
+  else
+    extra_config+=('--enable-libstdcxx-time')
+    extra_config+=('--enable-fully-dynamic-string')
+    extra_config+=('--disable-libstdcxx-pch')
+    if check_option "debug" "n"; then
+      extra_config+=("--disable-libstdcxx-debug")
+    else
+      extra_config+=("--enable-libstdcxx-debug")
+    fi
+  fi
 
   if [[ "$_enable_threads" != "yes" ]]; then
     extra_config+=('--disable-threads')
@@ -375,9 +386,6 @@ build() {
     --with-tune=generic \
     --enable-languages=${_languages} \
     --enable-static \
-    --enable-fully-dynamic-string \
-    --enable-libstdcxx-time \
-    --disable-libstdcxx-pch \
     --disable-multilib \
     --disable-rpath \
     --disable-win32-registry \
@@ -424,7 +432,7 @@ package_gcc-git() {
     mv ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib/*.dll ${srcdir}/dlls/
   fi
 
-  rm -f ${pkgdir}${OPT_MINGW_PREFIX}/info/dir
+  rm -f ${pkgdir}${OPT_MINGW_PREFIX}/share/info/dir
 
   if [[ "$_build_static_only_gcc" == "yes" ]]; then
     # License files
