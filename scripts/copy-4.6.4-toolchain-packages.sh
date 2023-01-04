@@ -7,4 +7,3 @@ cp -f ../opt-mingw-binutils2.24/opt-mingw-i686-binutils-git-2.24+r78634.c2.gcd38
 cp -f ../opt-mingw-gcc4.6/opt-mingw-i686-gcc-libs-git-4.6.4+d20130412.r45.c5.g66cc0b3cf5bc-6-any.pkg.tar.zst ./gcc4.6.4_toolchain_mingw_32_packages/
 cp -f ../opt-mingw-gcc4.6/opt-mingw-i686-gcc-git-4.6.4+d20130412.r45.c5.g66cc0b3cf5bc-6-any.pkg.tar.zst ./gcc4.6.4_toolchain_mingw_32_packages/
 cp -f ../opt-mingw-gcc4.6/opt-mingw-i686-gcc-ada-git-4.6.4+d20130412.r45.c5.g66cc0b3cf5bc-6-any.pkg.tar.zst ./gcc4.6.4_toolchain_mingw_32_packages/
-cp -f ../opt-mingw-zlib/opt-mingw-i686-zlib-1.2.13-4-any.pkg.tar.zst ./gcc4.6.4_toolchain_mingw_32_packages/
