@@ -36,7 +36,7 @@ _build_using_external_compiler=no   # Use no for production
 _enable_ada=yes                     # Use yes for production
 _enable_cxx=yes                     # Use yes for production
 
-_enable_bootstrap=no               # Use yes for production; GMP fails to build
+_enable_bootstrap=no               # Use yes for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
 _enable_backstrap_ada=no            # Use no for production
