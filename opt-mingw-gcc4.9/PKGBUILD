@@ -260,8 +260,6 @@ prepare() {
   _git_base_commit=$(git rev-parse HEAD)
   GIT_AM="git am --committer-date-is-author-date"
 
-  git am --abort || true
-
   ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
   ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
   ${GIT_AM} ${srcdir}/125-gcc-4.7-stdthreads.patch
