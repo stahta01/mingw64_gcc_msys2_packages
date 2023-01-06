@@ -1,0 +1,13 @@
+Do GCC 4.5 Alpha release                HOLD
+Do GCC 6 Alpha release                  HOLD
+Do GCC 4.2 Beta release
+Do GCC 4.4, 4.6, and 4.9 RC1 releases
+Create CRT 7 package
+Do GCC 8 Alpha release
+Create GCC 9 package
+Create CRT 9 package
+Create GCC 10 package; include UCRT64
+Create CRT 2.0.4 package
+Create CRT 2.0.5 package
+Create Binutils 2.17 package
+Create Binutils 2.16 package
