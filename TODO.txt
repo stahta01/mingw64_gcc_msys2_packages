@@ -1,4 +1,3 @@
-Do GCC 4.5 Alpha release                HOLD
 Do GCC 6 Alpha release                  HOLD
 Do GCC 4.2 Beta release
 Do GCC 4.4, 4.6, and 4.9 RC1 releases
