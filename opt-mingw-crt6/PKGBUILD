@@ -1,11 +1,11 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
 # Contributor: Alexey Pavlov
 
-_build_using_external_compiler=no
+_build_using_std_mingw_packages=no
 
-if [[ "$_build_using_external_compiler" == "yes" && \
-       "${MSYSTEM_CARCH}" == "x86_64" ]]; then
-  _build_using_external_compiler=no
+if [[ "$_build_using_std_mingw_packages" == "no" && \
+       "$MSYSTEM" == "UCRT64" ]]; then
+  _build_using_std_mingw_packages=yes
 fi
 
 _include_sub_folder=/${MINGW_CHOST}
@@ -20,10 +20,10 @@ _realname=crt
 _sourcedir=mingw-w64-git
 pkgbase=opt-mingw-${_realname}6
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
-         #"${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers-git"
+         "${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers-git"
          "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
 pkgver=6.0.0.5241.e174bf62d33d
-pkgrel=2
+pkgrel=3
 _commit='e174bf62d33d26b9fee56ef45e8d8566d01a5af7'
 pkgdesc='MinGW-w64 CRT for Windows'
 arch=('any')
@@ -32,7 +32,8 @@ license=('custom')
 groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
 makedepends=(
   "git"
-  $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
 )
 provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
@@ -58,20 +59,13 @@ prepare() {
 }
 
 build() {
-  if [[ "$_build_using_external_compiler" != "yes" ]]; then
+  if [[ "$_build_using_std_mingw_packages" == "yes" ]]; then
     export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
   else
-    if [[ "${MSYSTEM_CARCH}" == "x86_64" ]]; then
-      local _ext_compiler=/h/GNAT/2018 # GCC 7.3.1
-    else
-      local _ext_compiler=/h/GNAT/2015 # GCC 4.9.x
-    fi
-    export PATH=${_ext_compiler}/bin:${OPT_MINGW_PREFIX}/bin:/mingw64/bin:$PATH
-    export CC="${_ext_compiler}/bin/gcc"
-    export CXX="${_ext_compiler}/bin/g++"
-    export LD="${_ext_compiler}/bin/ld"
-    export GNATMAKE="${_ext_compiler}/bin/gnatmake"
-    export GNATBIND="${_ext_compiler}/bin/gnatbind"
+    local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+    echo "_GCC_VERSION := ${_GCC_VERSION}"
+    export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
+    export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
   fi
   echo "PATH := $PATH"
 
