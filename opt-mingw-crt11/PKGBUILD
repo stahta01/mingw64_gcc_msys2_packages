@@ -1,0 +1,198 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov
+
+_build_headers_only=no
+
+_build_using_std_mingw_packages=no
+
+if [[ "$_build_using_std_mingw_packages" == "no" && \
+       "$MSYSTEM" == "UCRT64" ]]; then
+  _build_using_std_mingw_packages=yes
+fi
+
+_include_sub_folder=/${MINGW_CHOST}
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+
+_realname=crt
+_sourcedir=mingw-w64-git
+pkgbase=opt-mingw-${_realname}11
+pkgname=($([[ "$_build_headers_only" != "yes" ]] && echo  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
+         "${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers-git"
+         "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
+pkgver=11.0.0.6654.fc55e181b2d8
+pkgrel=1
+_commit='fc55e181b2d84c8817e3fd9d86c6944ac709acc9'
+pkgdesc='MinGW-w64 CRT for Windows'
+arch=('any')
+url='https://mingw-w64.sourceforge.io/'
+license=('custom')
+groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
+makedepends=(
+  "git"
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
+)
+provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+options=('!strip' 'staticlibs' '!buildflags' '!emptydirs')
+source=("${_sourcedir}"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#commit=$_commit"
+   '0001-Allow-to-use-bessel-and-complex-functions-without-un.patch'
+   '0002-DirectX-9-fixes-for-VLC.patch')
+sha256sums=('SKIP'
+            'd641257f7e1469aff89adc33e57702b75fe9667ca035978f890eae1020b6814c'
+            '09b1c7b62f666a07609af57e10c2b0ad815b78356f4b0f1fb6d827a1109a0ec7')
+
+# Declare global variables; begin with underscore to avoid name conflicts
+_git_base_commit=
+
+pkgver() {
+  cd "${srcdir}/${_sourcedir}"
+  local _major=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep '__MINGW64_VERSION_MAJOR' | sed -e 's/.* //' | tr '\n' '.' | sed 's/.$/\n/')
+  local _minor=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep '__MINGW64_VERSION_MINOR' | sed -e 's/.* //' | tr '\n' '.' | sed 's/.$/\n/')
+  local _rev=0
+  printf "%s.%s.%s.%s.%s" ${_major} ${_minor} ${_rev} "$(git rev-list --count ${_git_base_commit})" "$(git rev-parse --short=12 ${_git_base_commit})"
+  #git describe --long ${_commit} | sed 's/\([^-]*-g\)/r\1/;s/-/./g;s/^v//g'
+}
+
+prepare() {
+  cd "${srcdir}/${_sourcedir}"
+
+  _git_base_commit=$(git rev-parse HEAD)
+
+  git apply "${srcdir}/0001-Allow-to-use-bessel-and-complex-functions-without-un.patch"
+  git apply "${srcdir}/0002-DirectX-9-fixes-for-VLC.patch"
+}
+
+build() {
+  local _default_win32_winnt
+  if [[ ${MSYSTEM} == MINGW* ]]; then # MINGW32 & MINGW64
+      _default_win32_winnt=0x601 # Windows 7
+  elif [[ ${MSYSTEM} != CLANGARM64 ]]; then # UCR64 & CLANG64 & CLANG32
+      _default_win32_winnt=0x603 # Windows 8.1
+  else # CLANGARM64
+      _default_win32_winnt=0xA00 # Windows 10
+  fi
+
+  local _default_msvcrt=msvcrt
+  if [[ $MINGW_PACKAGE_PREFIX == *-clang-* ]] || [[ $MINGW_PACKAGE_PREFIX == *-ucrt-* ]]; then
+    _default_msvcrt=ucrt
+  fi
+
+  if [[ "$_build_using_std_mingw_packages" != "yes" ]]; then
+    local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+    echo "_GCC_VERSION := ${_GCC_VERSION}"
+    export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
+    export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+  else
+    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
+  fi
+  echo "PATH := $PATH"
+
+  msg "Configuring ${MSYSTEM} headers"
+  [[ -d ${srcdir}/headers-${MSYSTEM} ]] && rm -rf ${srcdir}/headers-${MSYSTEM}
+  mkdir -p ${srcdir}/headers-${MSYSTEM} && cd ${srcdir}/headers-${MSYSTEM}
+
+  ${srcdir}/${_sourcedir}/mingw-w64-headers/configure \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --target=${MINGW_CHOST} \
+    --prefix=${OPT_MINGW_PREFIX}${_include_sub_folder} \
+    --enable-sdk=all \
+    --with-default-win32-winnt=${_default_win32_winnt} \
+    --with-default-msvcrt=${_default_msvcrt} \
+    --enable-idl --without-widl
+
+  msg "Installing local copy of ${MSYSTEM} headers"
+  cd ${srcdir}/headers-${MSYSTEM}
+  rm -fr ${srcdir}/${OPT_MINGW_PREFIX}${_include_sub_folder}/include
+  make DESTDIR=${srcdir} install
+
+if [[ "$_build_headers_only" != "yes" ]]; then
+  msg "Building ${MSYSTEM} CRT"
+  case "$CARCH" in
+    i686)
+      _crt_configure_args="--disable-lib64 --enable-lib32"
+    ;;
+    x86_64)
+      _crt_configure_args="--disable-lib32 --enable-lib64"
+    ;;
+  esac
+
+  [[ -d ${srcdir}/crt-${MSYSTEM} ]] && rm -rf ${srcdir}/crt-${MSYSTEM}
+  mkdir -p ${srcdir}/crt-${MSYSTEM} && cd ${srcdir}/crt-${MSYSTEM}
+  CFLAGS+=" -I${srcdir}/${OPT_MINGW_PREFIX}${_include_sub_folder}/include" \
+  ${srcdir}/${_sourcedir}/mingw-w64-crt/configure \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --target=${MINGW_CHOST} \
+    --prefix=${OPT_MINGW_PREFIX}${_include_sub_folder} \
+    --with-sysroot=${OPT_MINGW_PREFIX}${_include_sub_folder} \
+    --with-default-msvcrt=${_default_msvcrt} \
+    --enable-wildcard \
+    --disable-dependency-tracking \
+    ${_crt_configure_args}
+  make
+fi
+}
+
+package_crt-git() {
+  depends=("${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
+
+  msg "Installing ${MSYSTEM} crt"
+  cd ${srcdir}/crt-${MSYSTEM}
+  make DESTDIR=${pkgdir} install-strip
+
+  msg "Installing MinGW-w64 licenses"
+  install -Dm644 ${srcdir}/${_sourcedir}/COPYING ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING
+  install -Dm644 ${srcdir}/${_sourcedir}/COPYING.MinGW-w64/COPYING.MinGW-w64.txt ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING.MinGW-w64.txt
+  install -Dm644 ${srcdir}/${_sourcedir}/COPYING.MinGW-w64-runtime/COPYING.MinGW-w64-runtime.txt ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/COPYING.MinGW-w64-runtime.txt
+}
+
+package_headers-git() {
+  pkgdesc="MinGW-w64 headers for Windows"
+  provides=("${OPT_MINGW_PACKAGE_PREFIX}-headers")
+  conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-headers")
+
+  msg "Copying ${MSYSTEM} headers"
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}
+  cp --recursive ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/
+
+  rm ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_signal.h
+  rm ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_time.h
+  rm ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_unistd.h
+
+  msg "Installing MinGW-w64 headers licenses"
+  install -Dm644 ${srcdir}/${_sourcedir}/mingw-w64-headers/ddk/readme.txt ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/headers/ddk-readme.txt
+  install -Dm644 ${srcdir}/${_sourcedir}/COPYING ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/headers/COPYING
+  install -Dm644 ${srcdir}/${_sourcedir}/COPYING.MinGW-w64/COPYING.MinGW-w64.txt ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/headers/COPYING.MinGW-w64.txt
+  install -Dm644 ${srcdir}/${_sourcedir}/COPYING.MinGW-w64-runtime/COPYING.MinGW-w64-runtime.txt ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/headers/COPYING.MinGW-w64-runtime.txt
+}
+
+package_pthread-stub-headers-git() {
+    pkgdesc="MinGW-w64 pthread stub headers for Windows"
+    provides=("${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers")
+    conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers" "${OPT_MINGW_PACKAGE_PREFIX}-winpthreads")
+    msg "Copying ${MSYSTEM} pthread stub headers"
+
+    mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include
+
+    cp ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_signal.h ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/
+    cp ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_time.h   ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/
+    cp ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/pthread_unistd.h ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/
+}
+
+# template start; name=mingw-w64-splitpkg-wrappers; version=1.0;
+# vim: set ft=bash :
+
+# generate wrappers
+for _name in "${pkgname[@]}"; do
+  _short="package_${_name#${OPT_MINGW_PACKAGE_PREFIX}-}"
+  _func="$(declare -f "${_short}")"
+  eval "${_func/#${_short}/package_${_name}}"
+done
+# template end;
