@@ -6,9 +6,9 @@
 
 _build_using_std_mingw_packages=no
 
-if [[ "$_build_using_std_mingw_packages" == "yes" && \
-       "${MSYSTEM}" == "MINGW64" ]]; then
-  _build_using_std_mingw_packages=no
+if [[ "$_build_using_std_mingw_packages" == "no" && \
+       "$MSYSTEM" == "UCRT64" ]]; then
+  _build_using_std_mingw_packages=yes
 fi
 
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
@@ -85,10 +85,12 @@ build() {
   export CPPFLAGS=""
   export CFLAGS="-pipe -static-libgcc"
 
-  local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
-  echo "_GCC_VERSION := ${_GCC_VERSION}"
-  export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
-  export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+  if [[ "$_build_using_std_mingw_packages" != "yes" ]]; then
+    local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+    echo "_GCC_VERSION := ${_GCC_VERSION}"
+    export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
+    export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+  fi
 
   [[ -d "${srcdir}/build-${MSYSTEM}" ]] && rm -rf "${srcdir}/build-${MSYSTEM}"
   mkdir -p "${srcdir}/build-${MSYSTEM}" && cd "${srcdir}/build-${MSYSTEM}"
