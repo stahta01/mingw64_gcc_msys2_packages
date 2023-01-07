@@ -6,6 +6,11 @@
 
 _build_using_std_mingw_packages=no
 
+if [[ "$_build_using_std_mingw_packages" == "no" && \
+       "$MSYSTEM" == "UCRT64" ]]; then
+  _build_using_std_mingw_packages=yes
+fi
+
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
   OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
@@ -27,11 +32,11 @@ pkgdesc="GNU internationalization library (mingw-w64)"
 # GPL3 for the package as a whole and LGPL for some parts, see the license files
 license=(GPL3 partial:'LGPL2.1')
 depends=()
-if [[ "$_build_using_std_mingw_packages" != "yes" ]]; then
+#if [[ "$_build_using_std_mingw_packages" != "yes" ]]; then
   depends+=("${OPT_MINGW_PACKAGE_PREFIX}-libiconv")
-else
-  depends+=("${MINGW_PACKAGE_PREFIX}-libiconv")
-fi
+#else
+  #depends+=("${MINGW_PACKAGE_PREFIX}-libiconv")
+#fi
 makedepends=(
   #$([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
   $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-pkgconf")
@@ -114,10 +119,12 @@ build() {
   export CPPFLAGS=""
   export CFLAGS="-pipe"
 
-  local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
-  #echo "_GCC_VERSION := ${_GCC_VERSION}"
-  export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
-  export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+  if [[ "$_build_using_std_mingw_packages" != "yes" ]]; then
+    local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+    #echo "_GCC_VERSION := ${_GCC_VERSION}"
+    export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
+    export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+  fi
 
   [[ -d ${srcdir}/build-${MSYSTEM} ]] && rm -rf ${srcdir}/build-${MSYSTEM}
   mkdir -p ${srcdir}/build-${MSYSTEM} && cd ${srcdir}/build-${MSYSTEM}
