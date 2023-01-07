@@ -4,9 +4,9 @@
 
 _build_using_std_mingw_packages=no
 
-if [[ "$_build_using_std_mingw_packages" == "yes" && \
-       "${MSYSTEM}" != "MINGW32" ]]; then
-  _build_using_std_mingw_packages=no
+if [[ "$_build_using_std_mingw_packages" == "no" && \
+       "$MSYSTEM" == "UCRT64" ]]; then
+  _build_using_std_mingw_packages=yes
 fi
 
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
