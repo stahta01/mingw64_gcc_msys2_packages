@@ -3,9 +3,9 @@
 
 _build_using_std_mingw_packages=no
 
-if [[ "$_build_using_std_mingw_packages" == "yes" && \
-       "${MSYSTEM}" == "MINGW64" ]]; then
-  _build_using_std_mingw_packages=no
+if [[ "$_build_using_std_mingw_packages" == "no" && \
+       "$MSYSTEM" == "UCRT64" ]]; then
+  _build_using_std_mingw_packages=yes
 fi
 
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
@@ -38,10 +38,13 @@ source=("git+https://sourceware.org/git/cygwin-apps/${_realname}.git#tag=${_GIT_
 sha256sums=('SKIP')
 
 build() {
-  local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
-  #echo "_GCC_VERSION := ${_GCC_VERSION}"
-  export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
-  export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+
+  if [[ "$_build_using_std_mingw_packages" != "yes" ]]; then
+    local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+    #echo "_GCC_VERSION := ${_GCC_VERSION}"
+    export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
+    export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+  fi
 
   [[ -d ${srcdir}/build-${MINGW_CHOST} ]] && rm -rf ${srcdir}/build-${MINGW_CHOST}
   cp -rf ${srcdir}/${_realname} ${srcdir}/build-${MINGW_CHOST}
