@@ -99,7 +99,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.8.5+d20150623.r51.c11.g2a62b047eca5
-pkgrel=1
+pkgrel=2
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -258,8 +258,6 @@ prepare() {
 
   _git_base_commit=$(git rev-parse HEAD)
   GIT_AM="git am --committer-date-is-author-date"
-
-  git am --abort || true
 
   ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
   ${GIT_AM} ${srcdir}/122-gcc-4.9-Relocate-libintl.patch
@@ -424,9 +422,9 @@ build() {
   fi
 
   if [ "$_use_intree_gmp_mpfr_mpc" != "yes" ]; then
-    extra_config+=("--with-mpc=${MINGW_PREFIX}")
-    extra_config+=("--with-mpfr=${MINGW_PREFIX}")
-    extra_config+=("--with-gmp=${MINGW_PREFIX}")
+    extra_config+=("--with-mpc=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-mpfr=${OPT_MINGW_PREFIX}")
+    extra_config+=("--with-gmp=${OPT_MINGW_PREFIX}")
   fi
 
   extra_config+=("--with-libiconv-prefix=${OPT_MINGW_PREFIX}")
