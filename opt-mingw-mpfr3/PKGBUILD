@@ -14,7 +14,7 @@ pkgbase=opt-mingw-${_realname}3
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 _pkgver=3.1.6
 pkgver=${_pkgver} # .p1
-pkgrel=2
+pkgrel=3
 pkgdesc="Multiple-precision floating-point library (mingw-w64)"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
@@ -36,13 +36,16 @@ prepare() {
 build() {
   # Replace the MSys2 default FLAG values
   export LDFLAGS="-pipe"
-  export CPPFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+  export CPPFLAGS=""
   export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
 
-  local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
-  #echo "_GCC_VERSION := ${_GCC_VERSION}"
-  export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
-  export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+  #local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+  ##echo "_GCC_VERSION := ${_GCC_VERSION}"
+  #export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
+  #export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+
+  export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
 
   [[ -d build-${MINGW_CHOST} ]] && rm -rf build-${MINGW_CHOST}
   mkdir -p build-${MINGW_CHOST} && cd build-${MINGW_CHOST}
