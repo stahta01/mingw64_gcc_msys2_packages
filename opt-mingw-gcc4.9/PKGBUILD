@@ -38,6 +38,7 @@ _enable_libatomic=no
 
 _enable_gcc_plugin=no
 _enable_bootstrap=no     # Use yes for production
+_build_static_only_gcc=yes # Use no for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
 _enable_backstrap_ada=no  # Use no for production
@@ -100,7 +101,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.9.4+d20160726.r51.c10.g4f18db57daff
-pkgrel=5
+pkgrel=6
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -443,6 +444,12 @@ build() {
     extra_config+=('--disable-graphite')
   #fi
 
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    extra_config+=("--enable-shared")
+  else
+    extra_config+=("--disable-shared")
+  fi
+
   # so libgomp DLL gets built despide static libdl
   export lt_cv_deplibs_check_method='pass_all'
 
@@ -483,7 +490,7 @@ build() {
     --with-arch=${_arch} \
     --with-tune=generic \
     --enable-languages=${_languages} \
-    --enable-shared --enable-static \
+    --enable-static \
     --disable-multilib \
     --disable-rpath \
     --disable-win32-registry \
@@ -507,7 +514,7 @@ build() {
   rm -rf ${srcdir}${OPT_MINGW_PREFIX}
 
   make -j1 DESTDIR=${srcdir} install
-  if [ "$_enable_libada" == "yes" ]; then
+  if [[ "$_enable_libada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     mv ${srcdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib/*.dll ${srcdir}${OPT_MINGW_PREFIX}/bin/
   fi
 }
@@ -549,17 +556,19 @@ ENDFILE
 
   cd ${srcdir}${OPT_MINGW_PREFIX}
   # libitm* and libvtv* are disbled until fixed
-  cp bin/{libgcc*,libssp*}.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  if [[ "$_enable_libquadmath" == "yes" ]]; then
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    cp bin/{libgcc*,libssp*}.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  fi
+  if [[ "$_enable_libquadmath" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/libquadmath*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
-  if [[ "$_enable_libstdcxx" == "yes" ]]; then
+  if [[ "$_enable_libstdcxx" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/libstdc*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
-  if [[ "$_enable_threads" == "yes" ]]; then
+  if [[ "$_enable_threads" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/libgomp*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
-  if [[ "$_enable_libatomic" == "yes" ]]; then
+  if [[ "$_enable_libatomic" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/libatomic*.dll ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
 }
@@ -633,7 +642,9 @@ package_gcc-git() {
   if [[ "$_enable_libatomic" == "yes" ]]; then
     cp lib/libatomic*                                         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
-  cp lib/libgcc*                                              ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    cp lib/libgcc*                                            ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  fi
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libgcc*             ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
 
   if [[ "$_enable_threads" == "yes" ]]; then
@@ -726,7 +737,7 @@ package_gcc-ada-git() {
   cd ${srcdir}${OPT_MINGW_PREFIX}
 
   cp bin/gnat*.exe                                          ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  if [ "$_enable_libada" == "yes" ]; then
+  if [[ "$_enable_libada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/{libgnarl*,libgnat*}.dll                           ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
 
