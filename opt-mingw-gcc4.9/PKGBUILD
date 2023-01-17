@@ -577,8 +577,10 @@ package_gcc-git() {
   pkgdesc="GNU Compiler Collection (C,C++,OpenMP) for MinGW-w64"
   depends=("${OPT_MINGW_PACKAGE_PREFIX}-crt"
            "${OPT_MINGW_PACKAGE_PREFIX}-headers"
-           "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}"
            "${OPT_MINGW_PACKAGE_PREFIX}-windows-default-manifest")
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}")
+  fi
   if [[ "$_build_using_cross_mingw64" == "yes" ]]; then
     depends+=("opt-mingw-x86_64-i686-w64-mingw32-binutils")
   else
@@ -693,7 +695,10 @@ package_gcc-git() {
 
 package_gcc-libgfortran-git() {
   pkgdesc="GNU Compiler Collection (libgfortran) for MinGW-w64"
-  depends=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}")
+  depends=()
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git=${pkgver}-${pkgrel}")
+  fi
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libgfortran")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libgfortran")
 
@@ -704,8 +709,10 @@ package_gcc-libgfortran-git() {
 
 package_gcc-fortran-git() {
   pkgdesc="GNU Compiler Collection (Fortran) for MinGW-w64"
-  depends=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git=${pkgver}-${pkgrel}"
-           "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libgfortran-git=${pkgver}-${pkgrel}")
+  depends=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libgfortran-git=${pkgver}-${pkgrel}")
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git=${pkgver}-${pkgrel}")
+  fi
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran")
 
@@ -728,7 +735,10 @@ package_gcc-fortran-git() {
 
 package_gcc-ada-git() {
   pkgdesc="GNU Compiler Collection (Ada) for MinGW-w64"
-  depends=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git=${pkgver}-${pkgrel}")
+  depends=()
+  if [[ "$_build_static_only_gcc" != "yes" ]]; then
+    depends+=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git=${pkgver}-${pkgrel}")
+  fi
   provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
   conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada")
 
