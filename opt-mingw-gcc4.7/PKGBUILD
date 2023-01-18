@@ -338,21 +338,21 @@ build() {
     extra_config+=("--disable-bootstrap")
   fi
 
-  local _LDFLAGS_FOR_TARGET="$LDFLAGS"
-  if [[ "$_enable_gcc_plugin" == "yes" ]]; then
-    extra_config+=("--enable-plugin")
-    extra_config+=("LDFLAGS_FOR_TARGET=${_LDFLAGS_FOR_TARGET}")
-    extra_config+=('--with-boot-ldflags="-static-libstdc++"')
-  else
-    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105507#c3
-    # At least with mingw32 + dwarf-2 exceptions there can only be one libgcc in
-    # process, or exceptions will no longer work. Since some of the gcc deps are
-    # linked dynamically like gmp/zlib/zstd and those pull in libgcc we can't
-    # allow libgcc to be linked statically. The default is "-static-libstdc++
-    # -static-libgcc" for both, so we drop "-static-libgcc" here:
-    extra_config+=('--with-boot-ldflags="-static-libstdc++"')
-  fi
-  extra_config+=('--with-stage1-ldflags="-static-libstdc++"')
+  #local _LDFLAGS_FOR_TARGET="$LDFLAGS"
+  #if [[ "$_enable_gcc_plugin" == "yes" ]]; then
+    #extra_config+=("--enable-plugin")
+    #extra_config+=("LDFLAGS_FOR_TARGET=${_LDFLAGS_FOR_TARGET}")
+    #extra_config+=('--with-boot-ldflags="-static-libstdc++"')
+  #else
+    ## https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105507#c3
+    ## At least with mingw32 + dwarf-2 exceptions there can only be one libgcc in
+    ## process, or exceptions will no longer work. Since some of the gcc deps are
+    ## linked dynamically like gmp/zlib/zstd and those pull in libgcc we can't
+    ## allow libgcc to be linked statically. The default is "-static-libstdc++
+    ## -static-libgcc" for both, so we drop "-static-libgcc" here:
+    #extra_config+=('--with-boot-ldflags="-static-libstdc++"')
+  #fi
+  #extra_config+=('--with-stage1-ldflags="-static-libstdc++"')
 
   # Binutils 2.25 errors out on disable-dynamicbase
   #LDFLAGS+=" -Wl,--disable-dynamicbase"
@@ -385,6 +385,11 @@ build() {
   if [[ "$_enable_libstdcxx" != "yes" ]]; then
     extra_config+=('--disable-libstdcxx')
     extra_config+=('--disable-libstdc__-v3')
+  else
+    extra_config+=('--with-boot-ldflags="-static-libstdc++"')
+    extra_config+=('--with-stage1-ldflags="-static-libstdc++"')
+    extra_config+=('--enable-libstdcxx-time')
+    extra_config+=('--disable-libstdcxx-pch') 
   fi
 
   if [[ "$_enable_threads" != "yes" ]]; then
@@ -479,8 +484,6 @@ build() {
     --enable-languages=${_languages} \
     --enable-static \
     --enable-fully-dynamic-string \
-    --enable-libstdcxx-time \
-    --disable-libstdcxx-pch \
     --disable-multilib \
     --disable-rpath \
     --disable-win32-registry \
