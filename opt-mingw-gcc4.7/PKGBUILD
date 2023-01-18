@@ -41,7 +41,7 @@ _enable_bootstrap=no     # Use yes for production
 _build_static_only_gcc=yes # Use no for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
-_enable_backstrap_ada=no  # Use no for production
+_enable_backstrap_ada=yes  # Use no for production
 
 # =========================================== #
 
@@ -92,8 +92,8 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran-git")
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
-pkgver=4.7.4+d20140612.r45.c9.g4d1f511d7f2f
-pkgrel=9
+pkgver=4.7.4+d20140612.r45.c10.g4d1f511d7f2f
+pkgrel=1
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -121,7 +121,7 @@ CLOOG_VERSION=0.18.1
 ISL_VERSION=0.16.1
 MPFR_VERSION=3.1.6
 GMP_VERSION=5.1.3
-MPC_VERSION=1.1.0
+MPC_VERSION=1.0.3
 noextract=("isl-${ISL_VERSION}.tar.bz2" "mpfr-${MPFR_VERSION}.tar.bz2"
            "cloog-${CLOOG_VERSION}.tar.gz"
            "gmp-${GMP_VERSION}.tar.xz" "mpc-${MPC_VERSION}.tar.gz")
@@ -141,6 +141,7 @@ source=(https://libisl.sourceforge.io/isl-${ISL_VERSION}.tar.bz2
         '133-gcc-4.7.0-mingw-dont-ignore-native-system-header-dir.patch'
         '137-gcc-4.9-Enable-shared-gnat-implib.patch'
         '141-gcc-4.4-ktietz-libgomp.patch'
+        '191-gcc-4.7-PR-bootstrap-50461-mpfr.h-found-in-mpfr-3.1.0-src.patch'
         '704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch'
         '904-Ada-build-fix-for-GCC-4.8-building-GCC-4.7.patch'
         ${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=releases/gcc-${_base_ver}")
@@ -148,7 +149,7 @@ sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
             '02500a4edd14875f94fe84cbeda4290425cb0c1c2474c6f75d75a303d64b4196'
             'cf4f4b2d80abb79e820e78c8077b6725bbbb4e8f41896783c899087be0e94068'
             'dee2eda37f4ff541f30019932db0c37f6f77a30ba3609234933b1818f9b07071'
-            '6985c538143c1208dcb1ac42cedad6ff52e267b47e5f970183a3e75125b43c2e'
+            '617decc6ea09889fb08ede330917a00b16809b8db88c29c31bfbb49cbf88ecc3'
             '659430857ccd7429671ccdf6c8239be8eb8c53f9a4c279d4023fd6a4e2a9694f'
             '83655a7202f0a0dcce1782d4b365252bf1ad12a522b7ad82ab578ee5ec46433b'
             '7270a08586d76b73d251d530f740a29a8bcc1ae11bf28a0fa35e811c9f39f2c1'
@@ -160,6 +161,7 @@ sha256sums=('412538bb65c799ac98e17e8cfcdacbb257a57362acfaaff254b0fcae970126d2'
             'd674531a39361782448048bda31a100dac9be87d681809f8b48b6e8de97a8418'
             '265fff19fe1da6383c7fa1ead3239de8f622b46b556b4f9268eeb073d2549aee'
             '388220ee08a71e065ecd631855dba082e0b833cafec2b3b281a268d5d4d0f265'
+            '518b4b7870c57b53c31118170c45386141ba28d744834080a078bb5006232e6f'
             'c5782bca021e1b96ada60001e98052648bc07207d0a6e5066bc0b69f1efb692e'
             '82751764922a4757e5be4f1b243caebe82ba2dbbd58c3c21731175c74f64d733'
             'SKIP')
@@ -212,6 +214,8 @@ prepare() {
   cd ${srcdir}
 
   if [[ $_use_intree_gmp_mpfr_mpc == "yes" ]]; then
+    #rm -fr ${srcdir}/${_sourcedir}/mpc
+    #rm -fr ${srcdir}/${_sourcedir}/mpfr
     _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
     _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.xz
     _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
@@ -255,6 +259,7 @@ prepare() {
   ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
   ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
   ${GIT_AM} ${srcdir}/141-gcc-4.4-ktietz-libgomp.patch
+  ${GIT_AM} ${srcdir}/191-gcc-4.7-PR-bootstrap-50461-mpfr.h-found-in-mpfr-3.1.0-src.patch
   ${GIT_AM} ${srcdir}/704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch
 
   if [[ "$_enable_ada" == "yes" && "$_enable_backstrap_ada" == "yes" ]]; then
@@ -379,6 +384,7 @@ build() {
 
   if [[ "$_enable_libstdcxx" != "yes" ]]; then
     extra_config+=('--disable-libstdcxx')
+    extra_config+=('--disable-libstdc__-v3')
   fi
 
   if [[ "$_enable_threads" != "yes" ]]; then
