@@ -37,7 +37,7 @@ _enable_libada=yes        # Use yes for production
 _enable_libatomic=no
 
 _enable_gcc_plugin=no
-_enable_bootstrap=no     # Use yes for production
+_enable_bootstrap=yes     # Use yes for production
 _build_static_only_gcc=yes # Use no for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
@@ -341,10 +341,10 @@ build() {
     extra_config+=("--disable-bootstrap")
   fi
 
-  local _LDFLAGS_FOR_TARGET="$LDFLAGS"
-  if [[ "$_enable_gcc_plugin" == "yes" ]]; then
-    extra_config+=("--enable-plugin")
-    extra_config+=("LDFLAGS_FOR_TARGET=${_LDFLAGS_FOR_TARGET}")
+  #local _LDFLAGS_FOR_TARGET="$LDFLAGS"
+  #if [[ "$_enable_gcc_plugin" == "yes" ]]; then
+    #extra_config+=("--enable-plugin")
+    #extra_config+=("LDFLAGS_FOR_TARGET=${_LDFLAGS_FOR_TARGET}")
     #extra_config+=('--with-boot-ldflags="-static-libstdc++"')
   #else
     # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105507#c3
@@ -354,7 +354,7 @@ build() {
     # allow libgcc to be linked statically. The default is "-static-libstdc++
     # -static-libgcc" for both, so we drop "-static-libgcc" here:
     #extra_config+=('--with-boot-ldflags="-static-libstdc++"')
-  fi
+  #fi
   #extra_config+=('--with-stage1-ldflags="-static-libstdc++"')
 
   # Binutils 2.25 errors out on disable-dynamicbase
