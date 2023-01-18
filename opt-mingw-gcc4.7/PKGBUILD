@@ -31,13 +31,13 @@ _enable_lto=no            # Use yes for production
 
 _enable_threads=no       # Use yes for production
 _threads="posix"
-_enable_libstdcxx=yes     # Use yes for production
+_enable_libstdcxx=no     # Use yes for production
 _enable_libquadmath=no
 _enable_libada=yes        # Use yes for production
 _enable_libatomic=no
 
 _enable_gcc_plugin=no
-_enable_bootstrap=no     # Use yes for production
+_enable_bootstrap=yes     # Use yes for production
 _build_static_only_gcc=yes # Use no for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
