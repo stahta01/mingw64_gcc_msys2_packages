@@ -14,7 +14,7 @@ if [[ "$_build_using_cross_mingw64" == "yes" && \
   _build_using_cross_mingw64=no
 fi
 
-_use_intree_gmp_mpfr_mpc=yes
+_use_intree_gmp_mpfr_mpc=no # Yes fails when _enable_bootstrap=yes
 
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
@@ -92,7 +92,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran-git")
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
-pkgver=4.7.4+d20140612.r45.c10.g4d1f511d7f2f
+pkgver=4.7.4+d20140612.r45.c11.g4d1f511d7f2f
 pkgrel=1
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
