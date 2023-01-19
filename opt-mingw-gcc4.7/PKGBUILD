@@ -25,6 +25,7 @@ else
 fi
 _include_sub_folder=/${MINGW_CHOST}
 
+_enable_cxx=no
 _enable_fortran=no
 _enable_ada=yes           # Use yes for production
 _enable_lto=no            # Use yes for production
@@ -41,7 +42,7 @@ _enable_bootstrap=yes     # Use yes for production
 _build_static_only_gcc=yes # Use no for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
-_enable_backstrap_ada=yes  # Use no for production
+_enable_backstrap_ada=no  # Use no for production
 
 # =========================================== #
 
@@ -92,7 +93,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran-git")
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
-pkgver=4.7.4+d20140612.r45.c11.g4d1f511d7f2f
+pkgver=4.7.4+d20140612.r45.c10.g4d1f511d7f2f
 pkgrel=1
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
@@ -360,12 +361,15 @@ build() {
   #  LDFLAGS+=",--default-image-base-low"
   #fi
 
-  local _languages="c,c++"
+  local _languages="c"
   if [ "$_enable_lto" == "yes" ]; then
     _languages+=",lto"
     extra_config+=("--enable-lto")
   else
     extra_config+=("--disable-lto") 
+  fi
+  if [ "$_enable_cxx" == "yes" ]; then
+    _languages+=",c++"
   fi
   if [ "$_enable_fortran" == "yes" ]; then
     _languages+=",fortran"
