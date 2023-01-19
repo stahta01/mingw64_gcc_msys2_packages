@@ -609,10 +609,12 @@ package_gcc-git() {
   cp bin/gcc-nm.exe                                     ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   cp bin/gcc-ranlib.exe                                 ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   cp bin/gcov.exe                                       ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  cp bin/c++.exe                                        ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  cp bin/g++.exe                                        ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  cp bin/${MINGW_CHOST}-c++.exe                         ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  cp bin/${MINGW_CHOST}-g++.exe                         ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  if [[ "$_enable_cxx" == "yes" ]]; then
+    cp bin/c++.exe                                      ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+    cp bin/g++.exe                                      ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+    cp bin/${MINGW_CHOST}-c++.exe                       ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+    cp bin/${MINGW_CHOST}-g++.exe                       ${pkgdir}${OPT_MINGW_PREFIX}/bin/
+  fi
   cp bin/${MINGW_CHOST}-gcc-${pkgver%%+*}.exe           ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   cp bin/${MINGW_CHOST}-gcc.exe                         ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   cp bin/${MINGW_CHOST}-gcc-ar.exe                      ${pkgdir}${OPT_MINGW_PREFIX}/bin/
@@ -638,7 +640,9 @@ package_gcc-git() {
   fi
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/libgcov*            ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/lto*.exe            ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
-  cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/cc1plus.exe         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  if [[ "$_enable_cxx" == "yes" ]]; then
+    cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/cc1plus.exe       ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
+  fi
 
   if [[ "$_enable_libatomic" == "yes" ]]; then
     cp lib/libatomic*                                         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
@@ -689,7 +693,9 @@ package_gcc-git() {
   cp share/man/man7/fsf-funding.7*                       ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
   cp share/man/man7/gfdl.7*                              ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
   cp share/man/man7/gpl.7*                               ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
-  cp share/man/man1/g++.1*                               ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
+  if [[ "$_enable_cxx" == "yes" ]]; then
+    cp share/man/man1/g++.1*                             ${pkgdir}${OPT_MINGW_PREFIX}/share/man/man1/
+  fi
 }
 
 package_gcc-libgfortran-git() {
