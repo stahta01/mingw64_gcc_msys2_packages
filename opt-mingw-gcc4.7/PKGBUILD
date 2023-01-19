@@ -25,14 +25,14 @@ else
 fi
 _include_sub_folder=/${MINGW_CHOST}
 
-_enable_cxx=no
+_enable_cxx=no           # Use yes for production
 _enable_fortran=no
 _enable_ada=yes           # Use yes for production
 _enable_lto=no            # Use yes for production
 
 _enable_threads=no       # Use yes for production
 _threads="posix"
-_enable_libstdcxx=no     # Use yes for production
+_enable_libstdcxx=yes     # Use yes for production
 _enable_libquadmath=no
 _enable_libada=yes        # Use yes for production
 _enable_libatomic=no
@@ -45,6 +45,11 @@ _build_static_only_gcc=yes # Use no for production
 _enable_backstrap_ada=no  # Use no for production
 
 # =========================================== #
+
+if [[ "$_enable_libstdcxx" == "yes" && \
+       "${_enable_cxx}" != "yes" ]]; then
+  _enable_libstdcxx=no
+fi
 
 if [[ "$_enable_threads" == "yes" && "$_threads" == "posix" ]]; then
   _enable_libgomp=yes
