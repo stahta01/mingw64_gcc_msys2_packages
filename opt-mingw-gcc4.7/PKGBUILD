@@ -14,7 +14,7 @@ if [[ "$_build_using_cross_mingw64" == "yes" && \
   _build_using_cross_mingw64=no
 fi
 
-_use_intree_gmp_mpfr_mpc=no # Yes fails when _enable_bootstrap=yes
+_use_intree_gmp_mpfr_mpc=yes # Yes fails when _enable_bootstrap=yes
 
 # Common toolchain settings
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
