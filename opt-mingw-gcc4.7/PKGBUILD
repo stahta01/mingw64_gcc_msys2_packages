@@ -25,7 +25,7 @@ else
 fi
 _include_sub_folder=/${MINGW_CHOST}
 
-_enable_cxx=no           # Use yes for production; no fails if _enable_bootstrap=yes
+_enable_cxx=yes           # Use yes for production; no fails if _enable_bootstrap=yes
 _enable_fortran=no
 _enable_ada=yes           # Use yes for production
 _enable_lto=no            # Use yes for production
@@ -99,7 +99,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.7.4+d20140612.r45.c10.g4d1f511d7f2f
-pkgrel=1
+pkgrel=2
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -283,11 +283,6 @@ prepare() {
   #sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/t-mingw-w32
   #sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/t-mingw-w64
   #sed -i "s|/mingw/|${MINGW_NATIVE_PREFIX}/|g" gcc/config/i386/t-mingw32
-
-  #if [[ $_gcc_major_version -eq 4 ]]; then
-    ## work around bug in 4.6.x and 4.5.x
-    #mkdir -p ${OPT_MINGW_PREFIX}/mingw/include
-  #fi
 }
 
 build() {
