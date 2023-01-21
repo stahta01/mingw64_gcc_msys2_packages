@@ -29,11 +29,12 @@ _use_intree_gmp_mpfr_mpc=no
 
 _enable_fortran=no       # Use yes for production
 _enable_cxx=yes           # Use yes for production
-_enable_ada=yes           # Use yes for production
+_enable_ada=no           # Use yes for production
 _enable_lto=no            # Use no for production
 
 _enable_threads=yes       # Use yes for production
 _enable_libstdcxx=yes     # Use yes for production
+_enable_libada=yes        # Use yes for production
 _enable_libquadmath=no
 
 _enable_graphite=no      # Yes is currently broken
@@ -44,6 +45,10 @@ _build_static_only_gcc=no # Use no for production
 _enable_backstrap_ada=yes  # Use no for production
 #
 # =========================================== #
+
+if [[ "$_enable_libada" == "yes" && "$_enable_ada" != "yes" ]]; then
+  _enable_libada=no
+fi
 
 if [[ "$_enable_fortran" == "yes" && "$_enable_libquadmath" != "yes" ]]; then
    warning "when building FORTRAN; libquadmath is enabled"
@@ -67,7 +72,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran-git")
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
-pkgver=4.6.4+d20130412.r45.c6.g66cc0b3cf5bc
+pkgver=4.6.4+d20130412.r45.c5.g66cc0b3cf5bc
 pkgrel=1
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
@@ -317,7 +322,7 @@ build() {
     _languages+=",ada"
   fi
 
-  if [[ "$_enable_ada" != "yes" ]]; then
+  if [[ "$_enable_libada" != "yes" ]]; then
     extra_config+=('--disable-libada')
   fi
 
@@ -424,7 +429,7 @@ build() {
   rm -rf ${srcdir}${OPT_MINGW_PREFIX}
 
   make --jobs=1 DESTDIR=${srcdir} install
-  if [[ "$_enable_ada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
+  if [[ "$_enable_libada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     mv ${srcdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib/*.dll ${srcdir}${OPT_MINGW_PREFIX}/bin/
   fi
 }
@@ -634,18 +639,18 @@ package_gcc-ada-git() {
   cd ${srcdir}${OPT_MINGW_PREFIX}
 
   cp bin/gnat*.exe                                          ${pkgdir}${OPT_MINGW_PREFIX}/bin/
-  if [[ "$_enable_ada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
+  if [[ "$_enable_libada" == "yes" && "$_build_static_only_gcc" != "yes" ]]; then
     cp bin/{libgnarl*,libgnat*}.dll                           ${pkgdir}${OPT_MINGW_PREFIX}/bin/
   fi
 
   mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}
   cp lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/gnat1.exe         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
 
-  if [ "$_enable_ada" == "yes" ]; then
+  if [ "$_enable_libada" == "yes" ]; then
     cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adainclude     ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
-  if [ "$_enable_ada" == "yes" ]; then
+  if [ "$_enable_libada" == "yes" ]; then
     cp -r lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/adalib         ${pkgdir}${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}/
   fi
 
