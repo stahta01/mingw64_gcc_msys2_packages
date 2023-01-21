@@ -1,0 +1,34 @@
+From e6bb76f1ff84469b37faaf95b47a6f7d81088670 Mon Sep 17 00:00:00 2001
+From: Tim Stahlhut <stahta01@gmail.com>
+Date: Tue, 17 Jan 2023 19:12:18 -0500
+Subject: Fix 64 bit build
+
+---
+ mingw-w64-headers/crt/intrin.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/mingw-w64-headers/crt/intrin.h b/mingw-w64-headers/crt/intrin.h
+index dd3b262ba..fb2c0b7e5 100644
+--- a/mingw-w64-headers/crt/intrin.h
++++ b/mingw-w64-headers/crt/intrin.h
+@@ -38,13 +38,13 @@ extern "C" {
+ #ifndef __MMX__
+ typedef union __m64 { char v[7]; } __m64;
+ #endif
+-#ifndef __SSE__
++/*#ifndef __SSE__*/
+ typedef union __m128 { char v[16]; } __m128;
+-#endif
+-#ifndef __SSE2__
++/*#endif
++#ifndef __SSE2__*/
+ typedef union __m128d { char v[16]; } __m128d;
+ typedef union __m128i { char v[16]; } __m128i;
+-#endif
++/*#endif*/
+ 
+ #ifndef WINAPI
+ #define WINAPI __stdcall
+-- 
+2.39.0.windows.2
+

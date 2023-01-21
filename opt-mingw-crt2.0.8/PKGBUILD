@@ -20,7 +20,7 @@ pkgbase=opt-mingw-${_realname}${_pkgver}
 pkgname=($([[ "$_build_headers_only" != "yes" ]] && echo  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
          "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
 pkgver=2.0.8.2684.696f2831b313
-pkgrel=4
+pkgrel=5
 _commit='696f2831b313e1be34799aec7cf4fc189d6666d5' # 2.0.0.2684 (v2.0.8)
 pkgdesc='MinGW-w64 CRT for Windows'
 arch=('any')
@@ -38,9 +38,11 @@ provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 options=('!strip' 'staticlibs' '!buildflags' '!emptydirs')
 source=("${_sourcedir}"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#commit=$_commit"
-        002-crt2-Backport-SVN-5819.patch)
+        002-crt2-Backport-SVN-5819.patch
+        003-crt2-Fix-64-bit-build.patch)
 sha256sums=('SKIP'
-            'e9bd159c06f80f5a1c338d0348ba18bb21b8759abf159933a54a29c84299f752')
+            'e9bd159c06f80f5a1c338d0348ba18bb21b8759abf159933a54a29c84299f752'
+            'aa5da008981a9329fa24232ebfc0a80996d59741fd5e300ebed30d18a5c8e99d')
 
 # Declare global variables; begin with underscore to avoid name conflicts
 _git_base_commit=
@@ -59,6 +61,7 @@ prepare() {
   _git_base_commit=$(git rev-parse HEAD)
 
   git am --committer-date-is-author-date "${srcdir}"/002-crt2-Backport-SVN-5819.patch || git am --abort
+  git am --committer-date-is-author-date "${srcdir}"/003-crt2-Fix-64-bit-build.patch || git am --abort
 }
 
 build() {
