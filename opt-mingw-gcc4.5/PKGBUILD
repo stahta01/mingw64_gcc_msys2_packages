@@ -19,7 +19,7 @@ _include_sub_folder=/${MINGW_CHOST}
 # =========================================== #
 
 _enable_bootstrap=no               # Use yes for production
-_build_static_only_gcc=no           # Use no for production
+_build_static_only_gcc=yes           # Use no for production
 _use_intree_gmp_mpfr_mpc=no         # Yes fails to build gmp configure error
 
 _enable_fortran=no                 # Use ?yes? for production
