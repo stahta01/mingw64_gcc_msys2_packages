@@ -24,7 +24,7 @@ _use_intree_gmp_mpfr_mpc=no         # Yes fails to build gmp configure error
 
 _enable_fortran=no                 # Use ?yes? for production
 _enable_cxx=yes                     # Use yes for production
-_enable_ada=yes                     # Use yes for production
+_enable_ada=no                     # Use yes for production
 _enable_lto=no                      # Use no for production
 
 _enable_threads=no                 # Use yes for production
@@ -36,6 +36,9 @@ _enable_libatomic=no                # yes will likely not work
 _enable_libgomp=no                  # yes will likely not work
 
 # =========================================== #
+if [[ "$_enable_libada" == "yes" && "$_enable_ada" != "yes" ]]; then
+  _enable_libada=no
+fi
 if [[ "$_enable_fortran" == "yes" && "$_enable_libquadmath" != "yes" ]]; then
    warning "when building FORTRAN; libquadmath is enabled"
   _enable_libquadmath=yes
@@ -53,7 +56,7 @@ pkgname=(
   $([[ "$_build_static_only_gcc" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-libs-git")
 )
 pkgver=4.5.4+d20120702.r42.c7.g41eccc86828f
-pkgrel=7
+pkgrel=8
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32')
