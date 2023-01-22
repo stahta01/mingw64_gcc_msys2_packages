@@ -39,7 +39,7 @@ _enable_libquadmath=no
 
 _enable_graphite=no      # Yes is currently broken
 _enable_bootstrap=no     # Use yes for production
-_build_static_only_gcc=no # Use no for production
+_build_static_only_gcc=yes # Use no for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
 _enable_backstrap_ada=yes  # Use no for production
