@@ -1,10 +1,10 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
 
-_build_static_only_gcc=no
+_build_static_only_gcc=yes
 
 _use_intree_gmp_mpfr=no
 
-_enable_ada=yes                     # Use yes for production
+_enable_ada=no                     # Use yes for production
 _enable_cxx=yes                     # Use yes for production
 
 _enable_bootstrap=no               # Use yes for production
