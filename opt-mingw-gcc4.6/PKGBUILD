@@ -38,7 +38,7 @@ _enable_libada=yes        # Use yes for production
 _enable_libquadmath=no
 
 _enable_graphite=no      # Yes is currently broken
-_enable_bootstrap=no     # Use yes for production
+_enable_bootstrap=yes     # Use yes for production
 _build_static_only_gcc=yes # Use no for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
@@ -73,7 +73,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.6.4+d20130412.r45.c5.g66cc0b3cf5bc
-pkgrel=1
+pkgrel=7
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
