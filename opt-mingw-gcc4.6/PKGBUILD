@@ -38,13 +38,17 @@ _enable_libada=yes        # Use yes for production
 _enable_libquadmath=no
 
 _enable_graphite=no      # Yes is currently broken
-_enable_bootstrap=yes     # Use yes for production
-_build_static_only_gcc=yes # Use no for production
+_enable_bootstrap=no     # Use yes for production
+_build_static_only_gcc=no # Use no for production
 # set _enable_backstrap_ada to yes when building Ada GCC using a newer
 #   version of GCC
 _enable_backstrap_ada=yes  # Use no for production
 #
 # =========================================== #
+
+if [[ "$_enable_ada" == "yes" && "$MSYSTEM" == "MINGW64" ]]; then
+  exit 1
+fi
 
 if [[ "$_enable_libada" == "yes" && "$_enable_ada" != "yes" ]]; then
   _enable_libada=no
