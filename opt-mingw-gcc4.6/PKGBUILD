@@ -29,7 +29,7 @@ _use_intree_gmp_mpfr_mpc=no
 
 _enable_fortran=no       # Use yes for production
 _enable_cxx=yes           # Use yes for production
-_enable_ada=no           # Use yes for production
+_enable_ada=yes           # Use yes for production
 _enable_lto=no            # Use no for production
 
 _enable_threads=yes       # Use yes for production
@@ -77,7 +77,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
 pkgver=4.6.4+d20130412.r45.c5.g66cc0b3cf5bc
-pkgrel=7
+pkgrel=8
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
