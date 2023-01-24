@@ -36,6 +36,10 @@ _enable_libatomic=no                # yes will likely not work
 _enable_libgomp=no                  # yes will likely not work
 
 # =========================================== #
+if [[ "$_enable_ada" == "yes" && "$MSYSTEM" == "MINGW64" ]]; then
+  _enable_ada=no
+fi
+
 if [[ "$_enable_fortran" == "yes" && "$_enable_libquadmath" != "yes" ]]; then
    warning "when building FORTRAN; libquadmath is enabled"
   _enable_libquadmath=yes
