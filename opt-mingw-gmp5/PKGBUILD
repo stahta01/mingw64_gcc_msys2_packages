@@ -1,6 +1,13 @@
 # Maintainer:  Tim Stahlhut <stahta01@gmail.com>
 # Contributor: Alexey Pavlov
 
+_build_using_std_mingw_packages=no
+
+if [[ "$_build_using_std_mingw_packages" == "no" && \
+       "$MSYSTEM" == "UCRT64" ]]; then
+  _build_using_std_mingw_packages=yes
+fi
+
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
   OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
@@ -12,13 +19,18 @@ _realname=gmp
 pkgbase=opt-mingw-${_realname}5
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 pkgver=5.1.3
-pkgrel=4
+pkgrel=5
 pkgdesc="A free library for arbitrary precision arithmetic (mingw-w64)"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
 url="https://gmplib.org/"
 license=('LGPL3' 'GPL')
-makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-autotools" "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+makedepends=(
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
+)
 source=(https://gmplib.org/download/gmp-${pkgver}/${_realname}-${pkgver}.tar.xz)
 options=('staticlibs')
 sha256sums=('dee2eda37f4ff541f30019932db0c37f6f77a30ba3609234933b1818f9b07071')
@@ -61,7 +73,7 @@ build() {
       ;;
   esac
   # Build static version
-  mkdir -p "${srcdir}/static-${MINGW_CHOST}" && cd "${srcdir}/static-${MINGW_CHOST}"
+  mkdir -p "${srcdir}/static-${MSYSTEM}" && cd "${srcdir}/static-${MSYSTEM}"
   ../${_realname}-${pkgver}/configure \
     --build=${MINGW_CHOST} \
     --prefix=${OPT_MINGW_PREFIX} \
@@ -83,12 +95,12 @@ build() {
 }
 
 check() {
-  cd "${srcdir}/static-${MINGW_CHOST}"
+  cd "${srcdir}/static-${MSYSTEM}"
   make check
 }
 
 package() {
-  cd "${srcdir}/static-${MINGW_CHOST}"
+  cd "${srcdir}/static-${MSYSTEM}"
   make DESTDIR="${pkgdir}" install
 
   rm -f ${pkgdir}${OPT_MINGW_PREFIX}/share/info/dir
