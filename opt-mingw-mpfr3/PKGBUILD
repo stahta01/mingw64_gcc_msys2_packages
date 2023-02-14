@@ -2,6 +2,13 @@
 # Contributor: Alexey Pavlov
 # Contributor: Karlson2k (Evgeny Grin)
 
+_build_using_std_mingw_packages=no
+
+if [[ "$_build_using_std_mingw_packages" == "no" && \
+       "$MSYSTEM" == "UCRT64" ]]; then
+  _build_using_std_mingw_packages=yes
+fi
+
 OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
 if [[ "$MSYSTEM" == "UCRT64" ]]; then
   OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
@@ -14,16 +21,19 @@ pkgbase=opt-mingw-${_realname}3
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 _pkgver=3.1.6
 pkgver=${_pkgver} # .p1
-pkgrel=3
+pkgrel=4
 pkgdesc="Multiple-precision floating-point library (mingw-w64)"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
 license=('LGPL')
 options=('staticlibs')
 depends=("${OPT_MINGW_PACKAGE_PREFIX}-gmp")
-makedepends=("${OPT_MINGW_PACKAGE_PREFIX}-cc"
-             "${OPT_MINGW_PACKAGE_PREFIX}-gmp"
-             "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+makedepends=(
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-autotools")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_std_mingw_packages" == "yes" ]] && echo "${MINGW_PACKAGE_PREFIX}-autotools")
+  "${OPT_MINGW_PACKAGE_PREFIX}-gmp")
 source=(https://ftp.gnu.org/gnu/mpfr/${_realname}-${_pkgver}.tar.xz)
 sha256sums=('7a62ac1a04408614fccdc506e4844b10cf0ad2c2b1677097f8f35d3a1344a950')
 
@@ -47,8 +57,8 @@ build() {
 
   export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
 
-  [[ -d build-${MINGW_CHOST} ]] && rm -rf build-${MINGW_CHOST}
-  mkdir -p build-${MINGW_CHOST} && cd build-${MINGW_CHOST}
+  [[ -d build-${MSYSTEM} ]] && rm -rf build-${MSYSTEM}
+  mkdir -p build-${MSYSTEM} && cd build-${MSYSTEM}
 
   ../${_realname}-${_pkgver}/configure \
     --build=${MINGW_CHOST} \
@@ -61,12 +71,12 @@ build() {
 }
 
 check() {
-  cd "${srcdir}/build-${MINGW_CHOST}"
+  cd "${srcdir}/build-${MSYSTEM}"
   make check
 }
 
 package() {
-  cd "${srcdir}/build-${MINGW_CHOST}"
+  cd "${srcdir}/build-${MSYSTEM}"
   make DESTDIR="${pkgdir}" install
 
   rm -f ${pkgdir}${OPT_MINGW_PREFIX}/share/info/dir
