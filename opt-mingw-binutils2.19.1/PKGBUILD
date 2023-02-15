@@ -19,7 +19,7 @@ fi
 _realname=binutils
 _sourcedir=${_realname}-git
 _base_ver=2.19
-pkgbase=opt-mingw-${_realname}${_base_ver}
+pkgbase=opt-mingw-${_realname}${_base_ver}.1
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
 pkgver=2.19+r59477.c0.g5cecc4f11e88
 pkgrel=2
