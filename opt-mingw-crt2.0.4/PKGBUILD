@@ -1,0 +1,195 @@
+# Maintainer:  Tim Stahlhut <stahta01@gmail.com>
+# Contributor: Alexey Pavlov
+
+_build_headers_only=no
+
+_build_using_external_compiler=no
+
+if [[ "$_build_using_external_compiler" == "yes" && \
+       "${MSYSTEM}" == "MINGW64" ]]; then
+  _build_using_external_compiler=no
+fi
+
+_include_sub_folder=/${MINGW_CHOST}
+OPT_MINGW_PREFIX=/opt${MINGW_PREFIX}
+if [[ "$MSYSTEM" == "UCRT64" ]]; then
+  OPT_MINGW_PACKAGE_PREFIX=opt-ucrt-${MSYSTEM_CARCH}
+else
+  OPT_MINGW_PACKAGE_PREFIX=opt-mingw-${MSYSTEM_CARCH}
+fi
+
+_realname=crt
+_sourcedir=mingw-w64-git
+_pkgver=2.0.4
+pkgbase=opt-mingw-${_realname}${_pkgver}
+pkgname=($([[ "$_build_headers_only" != "yes" ]] && echo  "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
+         "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
+pkgver=2.0.4.2646.854a72dcb3fd
+pkgrel=1
+#_commit='24b1f9cdcf1d425700312373b14e2a6e58c6d0aa' # 2.0.0.2777
+#_commit='ea32a0c5bf6f2a2473149d11314f7b92df63cdf4' # 2.0.0.2715 (v2.0.9)
+#_commit='696f2831b313e1be34799aec7cf4fc189d6666d5' # 2.0.0.2684 (v2.0.8)
+#_commit='56b79e1c0757237ea73c0632da4c41bf8c97a630' # 2.0.0.2668 (v2.0.7)
+#_commit='06c5a4241b475e784dbed9c54f7735106ae6d991' # 2.0.0.2656 (v2.0.6)
+#_commit='aab0d078eab2d135c43d8a9453eade13c255244f' # (tag: v2.0.5)
+ _commit='854a72dcb3fdff19464e399a41b75156a839ba78' # (tag: v2.0.4)
+#_commit='1920f0dcafa23b0a7fd2e8a4407fe56989351941' # (tag: v2.0.3)
+#_commit='6ce2e2e42e5c51a82a3a247d35f3e61324a558bf' # (tag: v2.0.2)
+#_commit='6afaf98aa0a41c245075f1f0a13f8e0e68d59b10' # 2.0.0.2598 (v2.0.1) # error: x86intrin.h: No such file or directory
+#_commit='6e5ac49e300a10c1dc4ac474fb1d1891ab5520d3' # (tag: v2.0)
+pkgdesc='MinGW-w64 CRT for Windows'
+arch=('any')
+url='https://mingw-w64.sourceforge.io/'
+license=('custom')
+groups=("${OPT_MINGW_PACKAGE_PREFIX}-toolchain")
+makedepends=(
+  "git"
+  $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-cc")
+  $([[ "$_build_using_external_compiler" != "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-binutils")
+)
+provides=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
+options=('!strip' 'staticlibs' '!buildflags' '!emptydirs')
+source=("${_sourcedir}"::"git+https://git.code.sf.net/p/mingw-w64/mingw-w64#commit=$_commit"
+        002-crt2-Backport-SVN-5819.patch)
+sha256sums=('SKIP'
+            'e9bd159c06f80f5a1c338d0348ba18bb21b8759abf159933a54a29c84299f752')
+
+# Declare global variables; begin with underscore to avoid name conflicts
+_git_base_commit=
+
+pkgver() {
+  cd "${srcdir}/${_sourcedir}"
+  #local _major=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep 'define __MINGW64_VERSION_MAJOR' | sed -e 's/.*[\t ]//' | tr '\n' '.' | sed 's/.$/\n/')
+  #local _minor=$(head -n 16 mingw-w64-headers/crt/_mingw_mac.h | grep 'define __MINGW64_VERSION_MINOR' | sed -e 's/.*[\t ]//' | tr '\n' '.' | sed 's/.$/\n/')
+  #local _rev=0
+  printf "%s.%s.%s" ${_pkgver} "$(git rev-list --count ${_git_base_commit})" "$(git rev-parse --short=12 ${_git_base_commit})"
+}
+
+prepare() {
+  cd "${srcdir}/${_sourcedir}"
+
+  _git_base_commit=$(git rev-parse HEAD)
+
+  git am --committer-date-is-author-date "${srcdir}"/002-crt2-Backport-SVN-5819.patch || git am --abort
+}
+
+build() {
+  # Set good default FLAGS
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
+
+  if [ "${CARCH}" = "x86_64" ]; then
+    CXXFLAGS+=" -march=nocona -msahf -mtune=generic"
+    CFLAGS+=" -march=nocona -msahf -mtune=generic"
+  else
+    CXXFLAGS+=" -mtune=generic"
+    CFLAGS+=" -mtune=generic"
+  fi
+
+  if [[ "$_build_using_external_compiler" == "yes" ]]; then
+    # GCC 4.1.x from GNAT 2007 builds CRT2 status unknown
+    # GCC 4.3.4 from GNAT 2009 builds CRT2 status unknown
+    # GCC 4.3.6 from GNAT 2010 builds CRT2 status unknown
+    # GCC 4.5.3 from GNAT 2011 builds CRT2.0.0.2656 (v2.0.6) okay
+    # GCC 4.5.4 from GNAT 2012 builds CRT2 status unknown
+    # GCC 4.7.4 from GNAT 2013 builds CRT2 status unknown
+    # GCC 4.7.4 from GNAT 2014 builds CRT2 status unknown
+    local _ext_compiler=/h/GNAT/2007
+    export PATH=${OPT_MINGW_PREFIX}/bin:${_ext_compiler}/bin:$PATH
+    export CC="${_ext_compiler}/bin/gcc"
+    export CXX="${_ext_compiler}/bin/g++"
+    export LD="${_ext_compiler}/bin/ld"
+    export GNATMAKE="${_ext_compiler}/bin/gnatmake"
+    export GNATBIND="${_ext_compiler}/bin/gnatbind"
+  else
+    local _GCC_VERSION=`${OPT_MINGW_PREFIX}/bin/gcc -dumpversion`
+    echo "_GCC_VERSION := ${_GCC_VERSION}"
+    export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}"
+    export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${_GCC_VERSION}:$PATH
+  fi
+  echo "PATH := $PATH"
+  ${CC} --version
+  pacman -Qs "${OPT_MINGW_PACKAGE_PREFIX}-toolchain" | grep ${OPT_MINGW_PACKAGE_PREFIX} \
+    | sed "s|(${OPT_MINGW_PACKAGE_PREFIX}-toolchain)||" || true
+
+  msg "Configuring ${MSYSTEM} headers"
+  [[ -d ${srcdir}/headers-${MSYSTEM} ]] && rm -rf ${srcdir}/headers-${MSYSTEM}
+  mkdir -p ${srcdir}/headers-${MSYSTEM} && cd ${srcdir}/headers-${MSYSTEM}
+
+  ${srcdir}/${_sourcedir}/mingw-w64-headers/configure \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --prefix=${OPT_MINGW_PREFIX} \
+    --enable-sdk=all \
+    --enable-secure-api
+
+  msg "Installing local copy of ${MSYSTEM} headers"
+  cd ${srcdir}/headers-${MSYSTEM}
+  rm -fr ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include
+  make DESTDIR=${srcdir} install
+
+  # create file if it does not exist; update time if it does
+  touch ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include/x86intrin.h
+
+if [[ "$_build_headers_only" != "yes" ]]; then
+
+  msg "Building ${MSYSTEM} CRT"
+  case "$CARCH" in
+    i686)
+      _crt_configure_args="--disable-lib64 --enable-lib32"
+    ;;
+    x86_64)
+      _crt_configure_args="--disable-lib32 --enable-lib64"
+    ;;
+  esac
+
+  [[ -d ${srcdir}/crt-${MSYSTEM} ]] && rm -rf ${srcdir}/crt-${MSYSTEM}
+  mkdir -p ${srcdir}/crt-${MSYSTEM} && cd ${srcdir}/crt-${MSYSTEM}
+  CFLAGS+=" -I${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include" \
+  ${srcdir}/${_sourcedir}/mingw-w64-crt/configure \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --prefix=${OPT_MINGW_PREFIX} \
+    --enable-wildcard \
+    --with-sysroot=${OPT_MINGW_PREFIX} \
+    ${_crt_configure_args}
+  make
+fi
+}
+
+package_crt-git() {
+  depends=("${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
+
+  msg "Installing ${MSYSTEM} crt"
+  cd ${srcdir}/crt-${MSYSTEM}
+  make DESTDIR=${pkgdir} install-strip
+}
+
+package_headers-git() {
+  pkgdesc="MinGW-w64 headers for Windows"
+  provides=("${OPT_MINGW_PACKAGE_PREFIX}-headers")
+  conflicts=("${OPT_MINGW_PACKAGE_PREFIX}-headers")
+
+  msg "Copying ${MSYSTEM} headers"
+  mkdir -p ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}
+  cp --recursive ${srcdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/include ${pkgdir}${OPT_MINGW_PREFIX}${_include_sub_folder}/
+
+  msg "Installing MinGW-w64 licenses"
+  install -Dm644 ${srcdir}/${_sourcedir}/mingw-w64-headers/ddk/readme.txt ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/ddk-readme.txt
+  install -Dm644 ${srcdir}/${_sourcedir}/mingw-w64-headers/direct-x/COPYING.LIB ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/direct-x-COPYING.LIB
+  install -Dm644 ${srcdir}/${_sourcedir}/mingw-w64-headers/direct-x/readme.txt ${pkgdir}${OPT_MINGW_PREFIX}/share/licenses/${_realname}/direct-x-readme.txt
+}
+
+# template start; name=mingw-w64-splitpkg-wrappers; version=1.0;
+# vim: set ft=bash :
+
+# generate wrappers
+for _name in "${pkgname[@]}"; do
+  _short="package_${_name#${OPT_MINGW_PACKAGE_PREFIX}-}"
+  _func="$(declare -f "${_short}")"
+  eval "${_func/#${_short}/package_${_name}}"
+done
+# template end;
