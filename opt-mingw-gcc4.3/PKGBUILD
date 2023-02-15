@@ -76,7 +76,7 @@ _base_ver=4.3
 pkgbase=opt-mingw-${_realname}${_base_ver}
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git")
 pkgver=4.3.6+d20110627.r39.c8.g6503c21eb909
-pkgrel=3
+pkgrel=4
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -193,8 +193,6 @@ prepare() {
   _git_base_commit=$(git rev-parse HEAD)
   GIT_AM="git am --committer-date-is-author-date"
 
-  git am --abort || true
-
   if [[ "$_build_using_external_compiler" != "yes" ]]; then
     ${GIT_AM} ${srcdir}/111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch
   fi
@@ -258,8 +256,9 @@ build() {
       #export ADA_INCLUDE_PATH="${_compiler_toolchain_prefix}/lib/gcc/${_compiler_toolchain_host}/4.1.3/adainclude"
     fi
   else
-    export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}"
-    export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}:$PATH
+    #export CC+=" -L${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}"
+    #export PATH=${OPT_MINGW_PREFIX}/bin:${OPT_MINGW_PREFIX}/lib/gcc/${MINGW_CHOST}/${pkgver%%+*}:$PATH
+    export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
   fi
   echo "PATH := $PATH"
   echo "installation root := $(cygpath -am /)"
