@@ -46,6 +46,10 @@ _enable_backstrap_ada=no  # Use no for production
 
 # =========================================== #
 
+if [[ "$_enable_ada" == "yes" && "$MSYSTEM" == "MINGW64" ]]; then
+  _enable_ada=no
+fi
+
 if [[ "$_enable_libstdcxx" == "yes" && \
        "${_enable_cxx}" != "yes" ]]; then
   _enable_libstdcxx=no
