@@ -12,7 +12,7 @@ _realname=gmp
 pkgbase=opt-mingw-${_realname}4
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 pkgver=4.3.2
-pkgrel=2
+pkgrel=3
 pkgdesc="A free library for arbitrary precision arithmetic (mingw-w64)"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
@@ -28,10 +28,10 @@ prepare() {
 }
 
 build() {
-  # Replace the MSys2 default FLAG values
+  # Set good default FLAGS and add static-libgcc flag
   export LDFLAGS="-pipe"
   export CPPFLAGS=""
-  export CFLAGS="-pipe"
+  export CFLAGS="-pipe -static-libgcc"
   export CXXFLAGS="-pipe"
 
   export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
