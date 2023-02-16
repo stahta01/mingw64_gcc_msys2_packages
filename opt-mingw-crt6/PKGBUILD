@@ -23,7 +23,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          "${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers-git"
          "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
 pkgver=6.0.0.5241.e174bf62d33d
-pkgrel=3
+pkgrel=4
 _commit='e174bf62d33d26b9fee56ef45e8d8566d01a5af7'
 pkgdesc='MinGW-w64 CRT for Windows'
 arch=('any')
@@ -59,6 +59,12 @@ prepare() {
 }
 
 build() {
+  # Set good default FLAGS
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe"
+  export CXXFLAGS="-pipe"
+
   if [[ "$_build_using_std_mingw_packages" == "yes" ]]; then
     export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
   else
