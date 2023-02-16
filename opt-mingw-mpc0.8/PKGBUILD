@@ -12,7 +12,7 @@ _realname=mpc
 pkgbase=mingw-w64-${_realname}0.8
 pkgname="${OPT_MINGW_PACKAGE_PREFIX}-${_realname}"
 pkgver=0.8.1
-pkgrel=2
+pkgrel=3
 pkgdesc="Multiple precision complex arithmetic library (mingw-w64)"
 url='http://www.multiprecision.org'
 license=('LGPL')
@@ -26,10 +26,10 @@ source=(#"http://www.multiprecision.org/mpc/download/${_realname}-${pkgver}.tar.
 sha256sums=('e664603757251fd8a352848276497a4c79b7f8b21fd8aedd5cc0598a38fee3e4')
 
 build() {
-  # Replace the MSys2 default FLAG values
+  # Set good default FLAGS and add static-libgcc flag
   export LDFLAGS="-pipe"
   export CPPFLAGS=""
-  export CFLAGS="-pipe"
+  export CFLAGS="-pipe -static-libgcc"
   export CXXFLAGS="-pipe"
 
   export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
@@ -47,6 +47,12 @@ build() {
 }
 
 check() {
+  # Set good default FLAGS and add static-libgcc flag
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe -static-libgcc"
+  export CXXFLAGS="-pipe"
+
   cd "${srcdir}/build-${MINGW_CHOST}"
   make check
 }
