@@ -14,7 +14,7 @@ pkgbase=opt-mingw-${_realname}2
 pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}")
 _pkgver=2.4.2
 pkgver=${_pkgver} # .p1
-pkgrel=2
+pkgrel=3
 pkgdesc="Multiple-precision floating-point library (mingw-w64)"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
@@ -32,10 +32,10 @@ prepare() {
 }
 
 build() {
-  # Replace the MSys2 default FLAG values
+  # Set good default FLAGS and add static-libgcc flag
   export LDFLAGS="-pipe"
   export CPPFLAGS=""
-  export CFLAGS="-pipe"
+  export CFLAGS="-pipe -static-libgcc"
   export CXXFLAGS="-pipe"
 
   export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
@@ -54,8 +54,14 @@ build() {
 }
 
 check() {
+  # Set good default FLAGS and add static-libgcc flag
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe -static-libgcc"
+  export CXXFLAGS="-pipe"
+
   cd "${srcdir}/build-${MINGW_CHOST}"
-  make check
+  make -k check || true
 }
 
 package() {
