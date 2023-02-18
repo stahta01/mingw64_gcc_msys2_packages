@@ -23,7 +23,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          "${OPT_MINGW_PACKAGE_PREFIX}-headers-git"
          "${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers-git")
 pkgver=5.0.0.4746.715ecca90d57
-pkgrel=1
+pkgrel=2
 _commit='715ecca90d57f240ea68561e95bfe3ce7e912202'
 pkgdesc='MinGW-w64 CRT for Windows'
 arch=('any')
@@ -63,6 +63,12 @@ prepare() {
 }
 
 build() {
+  # Set good default FLAGS and add static-libgcc flag
+  export LDFLAGS="-pipe"
+  export CPPFLAGS=""
+  export CFLAGS="-pipe -static-libgcc"
+  export CXXFLAGS="-pipe"
+
   if [[ "$_build_using_external_compiler" != "yes" ]]; then
     export PATH=${OPT_MINGW_PREFIX}/bin:$PATH
   else
