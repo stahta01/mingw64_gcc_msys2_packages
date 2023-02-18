@@ -25,7 +25,7 @@ if [[ "$_build_using_cross_mingw32" == "yes" && \
   _build_using_cross_mingw32=no
 fi
 
-_use_intree_gmp_mpfr_mpc=no
+_use_intree_gmp_mpfr_mpc=yes
 
 _enable_fortran=no       # Use yes for production
 _enable_cxx=yes           # Use yes for production
@@ -76,8 +76,8 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          $([[ "$_enable_fortran" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-fortran-git")
          $([[ "$_enable_ada" == "yes" ]] && echo "${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-ada-git")
         )
-pkgver=4.6.4+d20130412.r45.c5.g66cc0b3cf5bc
-pkgrel=8
+pkgver=4.6.4+d20130412.r45.c6.g66cc0b3cf5bc
+pkgrel=9
 pkgdesc="GCC for the MinGW-w64"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64')
@@ -107,35 +107,37 @@ optdepends=()
 
 PPL_VERSION=0.11       # Parma Polyhedra Library
 CLOOG_VERSION=0.15.11  # version 0.15 recommended for gcc 4.6.x
-MPFR_VERSION=2.4.2     # min 2.4.2
-GMP_VERSION=4.3.2      # min 4.3.2
-MPC_VERSION=0.8.1      # min 0.8.1
+MPFR_VERSION=3.1.6     # min 2.4.2
+GMP_VERSION=5.1.3      # min 4.3.2
+MPC_VERSION=1.0.3      # min 0.8.1
 noextract=("mpfr-${MPFR_VERSION}.tar.bz2"
            "cloog-ppl-${CLOOG_VERSION}.tar.gz" "ppl-${PPL_VERSION}.tar.gz"
-           "gmp-${GMP_VERSION}.tar.bz2" "mpc-${MPC_VERSION}.tar.gz")
+           "gmp-${GMP_VERSION}.tar.xz" "mpc-${MPC_VERSION}.tar.gz")
 source=(ftp://gcc.gnu.org/pub/gcc/infrastructure/ppl-${PPL_VERSION}.tar.gz
         ftp://gcc.gnu.org/pub/gcc/infrastructure/cloog-ppl-${CLOOG_VERSION}.tar.gz
         ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${MPFR_VERSION}.tar.bz2
-        ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${GMP_VERSION}.tar.bz2
-        ftp://gcc.gnu.org/pub/gcc/infrastructure/mpc-${MPC_VERSION}.tar.gz
+        https://gmplib.org/download/gmp-${GMP_VERSION}/gmp-${GMP_VERSION}.tar.xz
+        https://ftp.gnu.org/gnu/mpc/mpc-${MPC_VERSION}.tar.gz
         'conftest.adb'
         '111-gcc-4.0-fix-for-windows-not-minding-non-existant-parent-dirs.patch'
         '122-gcc-4.9-Relocate-libintl.patch'
         '131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch'
         '132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch'
+        '191-gcc-4.7-PR-bootstrap-50461-mpfr.h-found-in-mpfr-3.1.0-src.patch'
         '192-re-PR-ada-44431-boot-with-C-Conflicting-exit-declara.patch'
         '704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch'
         ${_sourcedir}::"git+https://github.com/gcc-mirror/gcc.git#branch=releases/gcc-${_base_ver}")
 sha256sums=('3453064ac192e095598576c5b59ecd81a26b268c597c53df05f18921a4f21c77'
             '7cd634d0b2b401b04096b545915ac67f883556e9a524e8e803a6bf6217a84d5f'
-            'c7e75a08a8d49d2082e4caee1591a05d11b9d5627514e678f02d66a124bcf2ba'
-            '936162c0312886c21581002b79932829aa048cfaf9937c6265aeaa14f1cd1775'
-            'e664603757251fd8a352848276497a4c79b7f8b21fd8aedd5cc0598a38fee3e4'
+            'cf4f4b2d80abb79e820e78c8077b6725bbbb4e8f41896783c899087be0e94068'
+            'dee2eda37f4ff541f30019932db0c37f6f77a30ba3609234933b1818f9b07071'
+            '617decc6ea09889fb08ede330917a00b16809b8db88c29c31bfbb49cbf88ecc3'
             '7270a08586d76b73d251d530f740a29a8bcc1ae11bf28a0fa35e811c9f39f2c1'
             'cba7c512a4e0e6a738e0f4ad1026930260a73c7b39bedf36df0b16bae312206b'
             'd143713dfcb86afa0c32e53b12c1d3a9586729b6580c8e535d72e03003511914'
             '7cd7f884b7d2f64846adfb06007e881834fd00e98f78c737b965a823ce6198b0'
             'd122ee00238f2cef746639cc5d8807dffd7d4f06a33e1bb146fa1b28a7dae14a'
+            '518b4b7870c57b53c31118170c45386141ba28d744834080a078bb5006232e6f'
             'a248605367040f6602e23d0492ce4d1445b9e217d165d3baba31b53f42d47d17'
             'c5782bca021e1b96ada60001e98052648bc07207d0a6e5066bc0b69f1efb692e'
             'SKIP')
@@ -189,7 +191,7 @@ prepare() {
 
   if [[ $_use_intree_gmp_mpfr_mpc == "yes" ]]; then
     _extract_to_gcc_folder          mpfr-${MPFR_VERSION}.tar.bz2
-    _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.bz2
+    _extract_to_gcc_folder          gmp-${GMP_VERSION}.tar.xz
     _extract_to_gcc_folder          mpc-${MPC_VERSION}.tar.gz
   else
     rm -fr ${srcdir}/${_sourcedir}/mpfr
@@ -218,6 +220,8 @@ prepare() {
   ${GIT_AM} ${srcdir}/131-gcc-4.0-windows-lrealpath-no-force-lowercase-nor-backslash.patch
   ${GIT_AM} ${srcdir}/132-gcc-4.3-dont-escape-arguments-that-dont-need-it-in-pex-win32.c.patch
   ${GIT_AM} ${srcdir}/704-gcc-4.6.4-Fix-texi-docs-syntax-errors.patch
+
+  ${GIT_AM} ${srcdir}/191-gcc-4.7-PR-bootstrap-50461-mpfr.h-found-in-mpfr-3.1.0-src.patch
 
   if [[ "$_enable_ada" == "yes" && "$_enable_backstrap_ada" == "yes" ]]; then
     ${GIT_AM} ${srcdir}/192-re-PR-ada-44431-boot-with-C-Conflicting-exit-declara.patch
