@@ -23,7 +23,7 @@ pkgname=("${OPT_MINGW_PACKAGE_PREFIX}-${_realname}-git"
          "${OPT_MINGW_PACKAGE_PREFIX}-pthread-stub-headers-git"
          "${OPT_MINGW_PACKAGE_PREFIX}-headers-git")
 pkgver=6.0.0.5241.e174bf62d33d
-pkgrel=5
+pkgrel=6
 _commit='e174bf62d33d26b9fee56ef45e8d8566d01a5af7'
 pkgdesc='MinGW-w64 CRT for Windows'
 arch=('any')
@@ -79,12 +79,17 @@ build() {
   [[ -d ${srcdir}/headers-${MSYSTEM} ]] && rm -rf ${srcdir}/headers-${MSYSTEM}
   mkdir -p ${srcdir}/headers-${MSYSTEM} && cd ${srcdir}/headers-${MSYSTEM}
 
+  local _default_win32_winnt=0x601 # Windows 7
+  local _default_msvcrt=msvcrt
+
   ${srcdir}/${_sourcedir}/mingw-w64-headers/configure \
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
     --prefix=${OPT_MINGW_PREFIX}${_include_sub_folder} \
     --enable-sdk=all \
+    --with-default-win32-winnt=${_default_win32_winnt} \
+    --with-default-msvcrt=${_default_msvcrt} \
     --enable-secure-api \
     --enable-idl --without-widl
 
@@ -112,6 +117,7 @@ build() {
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
     --with-sysroot=${OPT_MINGW_PREFIX}${_include_sub_folder} \
+    --with-default-msvcrt=${_default_msvcrt} \
     --enable-wildcard \
     ${_crt_configure_args}
   make
