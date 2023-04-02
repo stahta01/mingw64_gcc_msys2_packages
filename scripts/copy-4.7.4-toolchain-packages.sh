@@ -1,9 +1,9 @@
 mkdir -p gcc4.7.4_toolchain_mingw_64_packages
 
 rm -f ./gcc4.7.4_toolchain_mingw_64_packages/*.zst
-cp -f ../opt-mingw-crt3/opt-mingw-x86_64-headers-git-3.4.0.3935.8c7e00886f69-2-any.pkg.tar.zst ./gcc4.6.4_toolchain_mingw_64_packages/
-cp -f ../opt-mingw-crt3/opt-mingw-x86_64-crt-git-3.4.0.3935.8c7e00886f69-2-any.pkg.tar.zst ./gcc4.6.4_toolchain_mingw_64_packages/
-cp -f ../opt-mingw-crt3/opt-mingw-x86_64-pthread-stub-headers-git-3.4.0.3935.8c7e00886f69-2-any.pkg.tar.zst ./gcc4.6.4_toolchain_mingw_64_packages/
+cp -f ../opt-mingw-crt3/opt-mingw-x86_64-headers-git-3.4.0.3935.8c7e00886f69-2-any.pkg.tar.zst ./gcc4.7.4_toolchain_mingw_64_packages/
+cp -f ../opt-mingw-crt3/opt-mingw-x86_64-crt-git-3.4.0.3935.8c7e00886f69-2-any.pkg.tar.zst ./gcc4.7.4_toolchain_mingw_64_packages/
+cp -f ../opt-mingw-crt3/opt-mingw-x86_64-pthread-stub-headers-git-3.4.0.3935.8c7e00886f69-2-any.pkg.tar.zst ./gcc4.7.4_toolchain_mingw_64_packages/
 cp -f ../opt-mingw-binutils2.25/opt-mingw-x86_64-binutils-git-2.25+r82134.c5.g8f2db47d13b6-3-any.pkg.tar.zst ./gcc4.7.4_toolchain_mingw_64_packages/
 cp -f ../opt-mingw-gcc4.7/opt-mingw-x86_64-gcc-libs-git-4.7.4+d20140612.r45.c10.g4d1f511d7f2f-2-any.pkg.tar.zst ./gcc4.7.4_toolchain_mingw_64_packages/
 cp -f ../opt-mingw-gcc4.7/opt-mingw-x86_64-gcc-git-4.7.4+d20140612.r45.c10.g4d1f511d7f2f-2-any.pkg.tar.zst ./gcc4.7.4_toolchain_mingw_64_packages/
